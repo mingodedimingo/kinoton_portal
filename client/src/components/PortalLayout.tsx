@@ -113,12 +113,12 @@ export default function PortalLayout({ children }: Props) {
 
         {/* Right actions */}
         <div className="ml-auto flex items-center gap-1">
-          {/* Mobile search */}
+          {/* Mobile search icon */}
           <button
             className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
             onClick={() => setSearchOpen(!searchOpen)}
           >
-            <Search size={18} style={{ color: "var(--kino-mid)" }} />
+            <Search size={20} style={{ color: "var(--kino-mid)" }} />
           </button>
 
           {/* Notifications */}
@@ -126,34 +126,37 @@ export default function PortalLayout({ children }: Props) {
             className="relative p-2 rounded-md hover:bg-gray-100 transition-colors"
             onClick={() => handleComingSoon("알림")}
           >
-            <Bell size={18} style={{ color: "var(--kino-mid)" }} />
+            <Bell size={20} style={{ color: "var(--kino-mid)" }} />
             <span
-              className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
-              style={{ background: "var(--kino-red)" }}
-            />
+              className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-white font-bold"
+              style={{ background: "var(--kino-red)", fontSize: "0.6rem" }}
+            >3</span>
           </button>
 
-          {/* Profile */}
-          <div className="flex items-center gap-2 pl-2 ml-1" style={{ borderLeft: "1px solid var(--kino-pale)" }}>
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold text-white"
-              style={{ background: "var(--kino-charcoal)" }}
-            >
-              김
-            </div>
-            <div className="hidden md:block">
-              <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
-              <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
-            </div>
+          {/* Profile avatar */}
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white mx-1 cursor-pointer"
+            style={{ background: "var(--kino-charcoal)" }}
+            onClick={() => handleComingSoon("마이페이지")}
+          >
+            김
           </div>
 
-          {/* Mobile menu toggle */}
-          <button
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors ml-1"
-            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          >
-            {mobileMenuOpen ? <X size={18} /> : <Menu size={18} />}
-          </button>
+          {/* Desktop: name */}
+          <div className="hidden md:block mr-1">
+            <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
+            <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
+          </div>
+
+          {/* Divider + Mobile menu toggle */}
+          <div className="flex items-center" style={{ borderLeft: "1px solid var(--kino-pale)", paddingLeft: "0.5rem", marginLeft: "0.25rem" }}>
+            <button
+              className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
         </div>
       </header>
 

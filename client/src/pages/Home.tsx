@@ -1,17 +1,17 @@
 /**
  * Home.tsx — 키노톤 사내 포탈 메인 대시보드
  * Design: Monochrome Precision
- * Layout: 상단 퀵메뉴 원형 버튼 → 좌(공지+인사발령) + 우(게시판+경조사) + 우측패널(프로필+달력)
- * Reference: 상무님 구상안 + 현대퓨쳐넷 + 중앙그룹 ERP
+ * Layout (PC):  퀵메뉴(중앙) → 좌(공지+인사발령) + 우(게시판+경조사) + 우측패널(프로필+통계+출퇴근+연차+달력)
+ * Layout (Mobile): 퀵메뉴 → 프로필카드 → 통계카드 → 출퇴근카드 → 공지 → 게시판 → 인사발령 → 경조사
  */
 import { useState } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import {
-  Mail, FileCheck, Calendar, Users, Building2, Briefcase,
-  LayoutGrid, Bell, ChevronRight, Plus, RefreshCw,
-  Megaphone, UserCheck, Heart, BookOpen, Clock, LogIn, LogOut,
-  Wifi, MapPin, ChevronLeft,
+  Mail, FileCheck, Calendar, LayoutGrid,
+  ChevronRight, Plus, Megaphone, UserCheck,
+  Heart, BookOpen, ChevronLeft, LogIn, LogOut,
+  Building2, MapPin, Wifi,
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 
@@ -50,10 +50,10 @@ const CONDOLENCES = [
 ];
 
 const QUICK_MENUS = [
-  { label: "메일",     icon: Mail,        path: "/mail",     badge: 3 },
-  { label: "전자결재", icon: FileCheck,    path: "/approve",  badge: 2 },
-  { label: "일정",     icon: Calendar,    path: "/calendar", badge: 0 },
-  { label: "전체메뉴", icon: LayoutGrid,  path: "/#menu",    badge: 0 },
+  { label: "메일",     icon: Mail,       path: "/mail",     badge: 3 },
+  { label: "전자결재", icon: FileCheck,   path: "/approve",  badge: 2 },
+  { label: "일정",     icon: Calendar,   path: "/calendar", badge: 0 },
+  { label: "전체메뉴", icon: LayoutGrid, path: "/#menu",    badge: 0 },
 ];
 
 // ── Calendar helpers ─────────────────────────────────────────────
@@ -63,50 +63,47 @@ function getDaysInMonth(year: number, month: number) {
 function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
-const MONTH_NAMES = ["1월","2월","3월","4월","5월","6월","7월","8월","9월","10월","11월","12월"];
 const DAY_NAMES = ["일","월","화","수","목","금","토"];
 
 // ── Sub-components ───────────────────────────────────────────────
 
 function QuickMenuSection() {
   const handleClick = (item: typeof QUICK_MENUS[0]) => {
-    if (item.path === "/#menu") {
-      toast("전체메뉴 기능은 준비 중입니다.");
-    }
+    if (item.path === "/#menu") toast("전체메뉴 기능은 준비 중입니다.");
   };
-
   return (
-    <div className="flex items-center justify-center gap-6 md:gap-10 py-5 px-4 animate-fade-in-up stagger-1">
-      {QUICK_MENUS.map((item) => {
-        const Icon = item.icon;
-        const content = (
-          <div className="quick-menu-item" key={item.label}>
-            <div className="relative">
-              <div className="quick-menu-circle">
-                <Icon size={24} style={{ color: "var(--kino-charcoal)" }} />
+    <div className="portal-card mb-5 animate-fade-in-up stagger-1">
+      <div className="flex items-center justify-center gap-8 md:gap-16 py-6 px-4">
+        {QUICK_MENUS.map((item) => {
+          const Icon = item.icon;
+          const content = (
+            <div className="quick-menu-item" key={item.label}>
+              <div className="relative">
+                <div className="quick-menu-circle">
+                  <Icon size={26} style={{ color: "var(--kino-charcoal)" }} />
+                </div>
+                {item.badge > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full text-white font-bold"
+                    style={{ background: "var(--kino-red)", fontSize: "0.65rem" }}
+                  >
+                    {item.badge}
+                  </span>
+                )}
               </div>
-              {item.badge > 0 && (
-                <span
-                  className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full text-xs font-bold text-white"
-                  style={{ background: "var(--kino-red)", fontSize: "0.65rem" }}
-                >
-                  {item.badge}
-                </span>
-              )}
+              <span className="quick-menu-label">{item.label}</span>
             </div>
-            <span className="quick-menu-label">{item.label}</span>
-          </div>
-        );
-
-        if (item.path === "/#menu") {
-          return (
-            <button key={item.label} onClick={() => handleClick(item)} className="bg-transparent border-0">
-              {content}
-            </button>
           );
-        }
-        return <Link key={item.label} href={item.path}>{content}</Link>;
-      })}
+          if (item.path === "/#menu") {
+            return (
+              <button key={item.label} onClick={() => handleClick(item)} className="bg-transparent border-0">
+                {content}
+              </button>
+            );
+          }
+          return <Link key={item.label} href={item.path}>{content}</Link>;
+        })}
+      </div>
     </div>
   );
 }
@@ -116,7 +113,7 @@ function NoticeSection() {
   return (
     <div className="portal-card animate-fade-in-up stagger-2">
       <div className="section-header">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="section-title flex items-center gap-1.5">
             <Megaphone size={14} style={{ color: "var(--kino-mid)" }} />
             공지사항
@@ -143,7 +140,7 @@ function NoticeSection() {
       </div>
       <div>
         {NOTICES.map((n) => (
-          <div key={n.id} className="board-item">
+          <div key={n.id} className="board-item" onClick={() => toast(`"${n.title}" 상세 보기 준비 중`)}>
             <span className="badge-tag company shrink-0">{n.tag}</span>
             <span className="board-item-title">{n.title}</span>
             {n.isNew && <span className="badge-new shrink-0">N</span>}
@@ -169,7 +166,7 @@ function HRSection() {
       </div>
       <div>
         {HR_NOTICES.map((h) => (
-          <div key={h.id} className="board-item">
+          <div key={h.id} className="board-item" onClick={() => toast("인사발령 상세 보기 준비 중")}>
             <span
               className="badge-tag shrink-0"
               style={{
@@ -194,7 +191,7 @@ function BoardSection() {
   return (
     <div className="portal-card animate-fade-in-up stagger-2">
       <div className="section-header">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <span className="section-title flex items-center gap-1.5">
             <BookOpen size={14} style={{ color: "var(--kino-mid)" }} />
             게시판
@@ -221,7 +218,7 @@ function BoardSection() {
       </div>
       <div>
         {filtered.map((p) => (
-          <div key={p.id} className="board-item">
+          <div key={p.id} className="board-item" onClick={() => toast(`"${p.title}" 상세 보기 준비 중`)}>
             <span className="badge-tag shrink-0">{p.category}</span>
             <span className="board-item-title">{p.title}</span>
             {p.isNew && <span className="badge-new shrink-0">N</span>}
@@ -247,7 +244,7 @@ function CondolenceSection() {
       </div>
       <div>
         {CONDOLENCES.map((c) => (
-          <div key={c.id} className="board-item">
+          <div key={c.id} className="board-item" onClick={() => toast("경조사 상세 보기 준비 중")}>
             <span className="text-base shrink-0">{c.emoji}</span>
             <span
               className="badge-tag shrink-0"
@@ -295,7 +292,6 @@ function MiniCalendar() {
         </Link>
       </div>
       <div className="p-3">
-        {/* Month nav */}
         <div className="flex items-center justify-between mb-3">
           <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100 transition-colors">
             <ChevronLeft size={14} style={{ color: "var(--kino-mid)" }} />
@@ -307,7 +303,6 @@ function MiniCalendar() {
             <ChevronRight size={14} style={{ color: "var(--kino-mid)" }} />
           </button>
         </div>
-        {/* Day headers */}
         <div className="grid grid-cols-7 mb-1">
           {DAY_NAMES.map((d, i) => (
             <div
@@ -319,7 +314,6 @@ function MiniCalendar() {
             </div>
           ))}
         </div>
-        {/* Days */}
         <div className="grid grid-cols-7 gap-y-0.5">
           {cells.map((day, idx) => {
             if (!day) return <div key={`e-${idx}`} />;
@@ -336,7 +330,6 @@ function MiniCalendar() {
             );
           })}
         </div>
-        {/* Add schedule */}
         <button
           className="w-full mt-3 flex items-center justify-center gap-1.5 py-1.5 rounded text-xs font-medium transition-colors"
           style={{ border: "1px dashed var(--kino-pale)", color: "var(--kino-muted)" }}
@@ -349,7 +342,8 @@ function MiniCalendar() {
   );
 }
 
-function ProfilePanel() {
+// ── Right Panel (PC) — 프로필 + 통계 + 출퇴근 + 연차 + 달력 ─────
+function RightPanel() {
   const [checkedIn, setCheckedIn] = useState(false);
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
 
@@ -365,9 +359,9 @@ function ProfilePanel() {
   const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (목)`;
 
   return (
-    <div className="portal-card animate-fade-in-up stagger-4">
-      {/* Profile info */}
-      <div className="flex flex-col items-center p-4 pb-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
+    <div className="flex flex-col gap-3" style={{ width: "280px" }}>
+      {/* Profile card */}
+      <div className="portal-card p-4 flex flex-col items-center animate-fade-in-up stagger-2">
         <div
           className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-2"
           style={{ background: "var(--kino-charcoal)" }}
@@ -382,26 +376,28 @@ function ProfilePanel() {
         </div>
       </div>
 
-      {/* Quick stats */}
-      <div className="grid grid-cols-3 divide-x" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
-        {[
-          { label: "오늘 일정", value: "2" },
-          { label: "진행 결재", value: "1" },
-          { label: "미확인 메일", value: "3" },
-        ].map((s) => (
-          <div key={s.label} className="flex flex-col items-center py-2.5">
-            <span className="text-lg font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
-            <span className="text-xs" style={{ color: "var(--kino-muted)" }}>{s.label}</span>
-          </div>
-        ))}
+      {/* Stats card */}
+      <div className="portal-card animate-fade-in-up stagger-3">
+        <div className="grid grid-cols-3 divide-x" style={{ borderColor: "var(--kino-pale)" }}>
+          {[
+            { label: "오늘 일정", value: "2" },
+            { label: "진행 결재", value: "1" },
+            { label: "미확인 메일", value: "3" },
+          ].map((s) => (
+            <div key={s.label} className="flex flex-col items-center py-3">
+              <span className="text-xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
+              <span className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{s.label}</span>
+            </div>
+          ))}
+        </div>
       </div>
 
-      {/* Attendance */}
-      <div className="p-3">
-        <div className="flex items-center justify-between mb-2">
+      {/* Attendance card */}
+      <div className="portal-card p-3 animate-fade-in-up stagger-4">
+        <div className="flex items-center justify-between mb-2.5">
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
           <span
-            className="text-xs px-1.5 py-0.5 rounded font-medium"
+            className="text-xs px-2 py-0.5 rounded font-semibold"
             style={{
               background: checkedIn ? "#F0FDF4" : "#FEF9C3",
               color: checkedIn ? "#16A34A" : "#92400E",
@@ -412,87 +408,165 @@ function ProfilePanel() {
         </div>
 
         {/* Work type */}
-        <div className="flex gap-1.5 mb-2.5">
+        <div className="flex gap-2 mb-2">
           {(["내근","외근"] as const).map((t) => (
             <button
               key={t}
               onClick={() => setWorkType(t)}
-              className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-medium transition-colors"
+              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-semibold transition-all"
               style={{
                 border: `1.5px solid ${workType === t ? "var(--kino-charcoal)" : "var(--kino-pale)"}`,
                 background: workType === t ? "var(--kino-charcoal)" : "transparent",
                 color: workType === t ? "white" : "var(--kino-mid)",
               }}
             >
-              {t === "내근" ? <Building2 size={11} /> : <MapPin size={11} />}
+              {t === "내근" ? <Building2 size={12} /> : <MapPin size={12} />}
               {t}
             </button>
           ))}
         </div>
 
-        {/* Check in/out buttons */}
-        <div className="flex gap-1.5">
+        {/* Check in/out */}
+        <div className="flex gap-2">
           <button
             onClick={handleCheckIn}
             disabled={checkedIn}
-            className="flex-1 flex items-center justify-center gap-1 py-2 rounded text-xs font-semibold transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all"
             style={{
               background: checkedIn ? "var(--kino-pale)" : "var(--kino-charcoal)",
               color: checkedIn ? "var(--kino-light)" : "white",
             }}
           >
-            <LogIn size={12} /> 출근
+            <LogIn size={13} /> 출근
           </button>
           <button
             onClick={handleCheckOut}
-            className="flex-1 flex items-center justify-center gap-1 py-2 rounded text-xs font-semibold transition-all"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all"
             style={{ border: "1.5px solid var(--kino-pale)", color: "var(--kino-mid)" }}
           >
-            <LogOut size={12} /> 퇴근
+            <LogOut size={13} /> 퇴근
           </button>
         </div>
 
         {/* Annual leave */}
-        <div className="mt-3 p-2.5 rounded" style={{ background: "var(--kino-bg)", border: "1px solid var(--kino-pale)" }}>
-          <div className="flex justify-between items-center mb-1.5">
+        <div className="mt-3 pt-3" style={{ borderTop: "1px solid var(--kino-pale)" }}>
+          <div className="flex justify-between items-center mb-1">
             <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>연차 현황</span>
             <span className="text-xs" style={{ color: "var(--kino-muted)" }}>2026.06.05 기준</span>
           </div>
-          <div className="flex justify-between text-xs mb-1">
+          <div className="flex justify-between text-xs mb-1.5">
             <span style={{ color: "var(--kino-mid)" }}>사용 / 총 연차</span>
             <span className="font-semibold" style={{ color: "var(--kino-charcoal)" }}>3.5 / 15일</span>
           </div>
-          <div className="w-full rounded-full overflow-hidden" style={{ height: "5px", background: "var(--kino-pale)" }}>
-            <div
-              className="h-full rounded-full"
-              style={{ width: "23.3%", background: "var(--kino-charcoal)" }}
-            />
+          <div className="w-full rounded-full overflow-hidden" style={{ height: "4px", background: "var(--kino-pale)" }}>
+            <div className="h-full rounded-full" style={{ width: "23.3%", background: "var(--kino-charcoal)" }} />
           </div>
           <p className="text-xs mt-1" style={{ color: "var(--kino-muted)" }}>잔여 11.5일</p>
         </div>
+      </div>
+
+      {/* Mini Calendar */}
+      <MiniCalendar />
+    </div>
+  );
+}
+
+// ── Mobile Profile + Stats + Attendance cards ─────────────────────
+function MobileProfileCard() {
+  return (
+    <div className="portal-card p-5 flex flex-col items-center animate-fade-in-up stagger-2">
+      <div
+        className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white mb-3"
+        style={{ background: "var(--kino-charcoal)" }}
+      >
+        김
+      </div>
+      <p className="text-base font-bold" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
+      <p className="text-sm mt-0.5" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
+      <div className="flex items-center gap-1.5 mt-2">
+        <Wifi size={12} style={{ color: "var(--kino-green)" }} />
+        <span className="text-sm font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
       </div>
     </div>
   );
 }
 
-function BannerSection() {
+function MobileStatsCard() {
   return (
-    <div
-      className="relative overflow-hidden rounded-lg animate-fade-in-up stagger-1"
-      style={{ height: "120px" }}
-    >
-      <img
-        src="https://d2xsxph8kpxj0f.cloudfront.net/310519663697530344/A8dtZhdpffsLWcu73Q5zZa/kinoton-portal-banner-PPifkqzNuPi6BCUYuQYNcx.webp"
-        alt="키노톤 포탈 배너"
-        className="w-full h-full object-cover"
-      />
-      <div
-        className="absolute inset-0 flex flex-col justify-center px-6"
-        style={{ background: "linear-gradient(to right, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0.2) 60%, transparent 100%)" }}
-      >
-        <p className="text-white text-xs font-medium opacity-80">Kinoton Intranet</p>
-        <p className="text-white text-lg font-bold leading-tight">함께 만드는 공간,</p>
-        <p className="text-white text-lg font-bold leading-tight">함께 여는 미래</p>
+    <div className="portal-card animate-fade-in-up stagger-3">
+      <div className="grid grid-cols-3 divide-x" style={{ borderColor: "var(--kino-pale)" }}>
+        {[
+          { label: "오늘 일정", value: "2" },
+          { label: "진행 결재", value: "1" },
+          { label: "미확인 메일", value: "3" },
+        ].map((s) => (
+          <div key={s.label} className="flex flex-col items-center py-4">
+            <span className="text-2xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
+            <span className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{s.label}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MobileAttendanceCard() {
+  const [checkedIn, setCheckedIn] = useState(false);
+  const [workType, setWorkType] = useState<"내근"|"외근">("내근");
+  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (목)`;
+
+  return (
+    <div className="portal-card p-4 animate-fade-in-up stagger-4">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
+        <span
+          className="text-xs px-2.5 py-1 rounded font-semibold"
+          style={{
+            background: checkedIn ? "#F0FDF4" : "#FEF9C3",
+            color: checkedIn ? "#16A34A" : "#92400E",
+          }}
+        >
+          {checkedIn ? "출근" : "미출근"}
+        </span>
+      </div>
+
+      <div className="flex gap-2 mb-3">
+        {(["내근","외근"] as const).map((t) => (
+          <button
+            key={t}
+            onClick={() => setWorkType(t)}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded text-sm font-semibold transition-all"
+            style={{
+              border: `1.5px solid ${workType === t ? "var(--kino-charcoal)" : "var(--kino-pale)"}`,
+              background: workType === t ? "var(--kino-charcoal)" : "transparent",
+              color: workType === t ? "white" : "var(--kino-mid)",
+            }}
+          >
+            {t === "내근" ? <Building2 size={14} /> : <MapPin size={14} />}
+            {t}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex gap-2">
+        <button
+          onClick={() => { setCheckedIn(true); toast("출근 처리 완료"); }}
+          disabled={checkedIn}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded text-sm font-bold transition-all"
+          style={{
+            background: checkedIn ? "var(--kino-pale)" : "var(--kino-charcoal)",
+            color: checkedIn ? "var(--kino-light)" : "white",
+          }}
+        >
+          <LogIn size={15} /> 출근
+        </button>
+        <button
+          onClick={() => { toast("퇴근 처리 완료"); setCheckedIn(false); }}
+          className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded text-sm font-bold transition-all"
+          style={{ border: "1.5px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+        >
+          <LogOut size={15} /> 퇴근
+        </button>
       </div>
     </div>
   );
@@ -504,45 +578,38 @@ export default function Home() {
     <PortalLayout>
       <div className="container py-4 md:py-6">
 
-        {/* Quick Menu */}
-        <div
-          className="portal-card mb-4 animate-fade-in-up stagger-1"
-          style={{ background: "var(--kino-white)" }}
-        >
-          <QuickMenuSection />
-        </div>
+        {/* Quick Menu — 공통 (PC + Mobile) */}
+        <QuickMenuSection />
 
-        {/* Main grid */}
-        <div className="flex gap-4 items-start">
-
-          {/* ── LEFT + CENTER: 2-column content ── */}
+        {/* ── PC LAYOUT (md 이상) ── */}
+        <div className="hidden md:flex gap-4 items-start">
+          {/* Left + Center content */}
           <div className="flex-1 min-w-0 flex flex-col gap-4">
-
-            {/* Banner */}
-            <BannerSection />
-
-            {/* 공지사항 + 게시판 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <NoticeSection />
               <BoardSection />
             </div>
-
-            {/* 인사발령 + 경조사 */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-2 gap-4">
               <HRSection />
               <CondolenceSection />
             </div>
           </div>
 
-          {/* ── RIGHT PANEL: 프로필 + 달력 ── */}
-          <div
-            className="shrink-0 flex flex-col gap-4"
-            style={{ width: "240px" }}
-          >
-            <ProfilePanel />
-            <MiniCalendar />
-          </div>
+          {/* Right panel */}
+          <RightPanel />
         </div>
+
+        {/* ── MOBILE LAYOUT (md 미만) ── */}
+        <div className="flex flex-col gap-3 md:hidden">
+          <MobileProfileCard />
+          <MobileStatsCard />
+          <MobileAttendanceCard />
+          <NoticeSection />
+          <BoardSection />
+          <HRSection />
+          <CondolenceSection />
+        </div>
+
       </div>
     </PortalLayout>
   );

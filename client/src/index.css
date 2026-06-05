@@ -215,8 +215,8 @@
     cursor: pointer;
   }
   .quick-menu-circle {
-    width: 64px;
-    height: 64px;
+    width: 72px;
+    height: 72px;
     border-radius: 50%;
     background: var(--kino-white);
     border: 1.5px solid var(--kino-pale);
