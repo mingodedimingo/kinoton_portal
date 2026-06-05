@@ -1,28 +1,16 @@
 /**
  * PortalLayout — 키노톤 사내 포탈 공통 레이아웃
- * Design: Monochrome Precision — dark sidebar + white main content
- * 상단 헤더(로고+검색+GNB+알림+프로필) + 좌측 사이드바(모바일에서 숨김)
+ * Design: Monochrome Precision
+ * PC 헤더: 로고 + 검색바 + GNB + 알림 + 프로필(아바타+이름/부서)
+ * Mobile 헤더: 로고 + [검색아이콘 + 알림(빨간점) + 구분선 + 검정아바타 + 햄버거]
  */
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
-  Bell,
-  Search,
-  Mail,
-  FileCheck,
-  LayoutGrid,
-  Calendar,
-  Users,
-  BookOpen,
-  Briefcase,
-  Building2,
-  Menu,
-  X,
-  ChevronRight,
-  LogOut,
-  Settings,
-  User,
+  Bell, Search, Mail, FileCheck, LayoutGrid,
+  Calendar, Users, BookOpen, Briefcase, Building2,
+  Menu, X, ChevronRight, LogOut, Settings,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -54,12 +42,13 @@ export default function PortalLayout({ children }: Props) {
     <div className="min-h-screen flex flex-col" style={{ background: "var(--kino-bg)" }}>
       {/* ── TOP HEADER ── */}
       <header
-        className="sticky top-0 z-50 flex items-center gap-3 px-4 md:px-6"
+        className="sticky top-0 z-50 flex items-center px-4 md:px-6"
         style={{
           height: "56px",
           background: "var(--kino-white)",
           borderBottom: "1px solid var(--kino-pale)",
           boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          gap: "0.75rem",
         }}
       >
         {/* Logo */}
@@ -71,8 +60,8 @@ export default function PortalLayout({ children }: Props) {
           />
         </Link>
 
-        {/* Search bar — desktop */}
-        <div className="hidden md:flex items-center flex-1 max-w-sm">
+        {/* Search bar — desktop only */}
+        <div className="hidden md:flex items-center flex-1 max-w-xs">
           <div
             className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm"
             style={{ background: "var(--kino-bg)", border: "1px solid var(--kino-pale)" }}
@@ -85,14 +74,12 @@ export default function PortalLayout({ children }: Props) {
               style={{ color: "var(--kino-charcoal)" }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleComingSoon("통합검색");
-              }}
+              onKeyDown={(e) => { if (e.key === "Enter") handleComingSoon("통합검색"); }}
             />
           </div>
         </div>
 
-        {/* GNB — desktop */}
+        {/* GNB — desktop only */}
         <nav className="hidden lg:flex items-center gap-0.5 ml-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
@@ -111,9 +98,10 @@ export default function PortalLayout({ children }: Props) {
           })}
         </nav>
 
-        {/* Right actions */}
-        <div className="ml-auto flex items-center gap-1">
-          {/* Mobile search icon */}
+        {/* ── Right side ── */}
+        <div className="ml-auto flex items-center">
+
+          {/* Mobile: 검색 아이콘 */}
           <button
             className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
             onClick={() => setSearchOpen(!searchOpen)}
@@ -121,46 +109,56 @@ export default function PortalLayout({ children }: Props) {
             <Search size={20} style={{ color: "var(--kino-mid)" }} />
           </button>
 
-          {/* Notifications */}
+          {/* 알림 — 모바일: 빨간 점만 / PC: 숫자 배지 */}
           <button
             className="relative p-2 rounded-md hover:bg-gray-100 transition-colors"
             onClick={() => handleComingSoon("알림")}
           >
             <Bell size={20} style={{ color: "var(--kino-mid)" }} />
+            {/* 모바일: 작은 빨간 점 */}
             <span
-              className="absolute top-1 right-1 w-4 h-4 flex items-center justify-center rounded-full text-white font-bold"
+              className="md:hidden absolute top-2 right-2 w-2 h-2 rounded-full"
+              style={{ background: "var(--kino-red)" }}
+            />
+            {/* PC: 숫자 배지 */}
+            <span
+              className="hidden md:flex absolute top-1 right-1 w-4 h-4 items-center justify-center rounded-full text-white font-bold"
               style={{ background: "var(--kino-red)", fontSize: "0.6rem" }}
             >3</span>
           </button>
 
-          {/* Profile avatar */}
+          {/* 구분선 — 모바일에서만 표시 */}
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white mx-1 cursor-pointer"
+            className="md:hidden mx-1"
+            style={{ width: "1px", height: "20px", background: "var(--kino-pale)" }}
+          />
+
+          {/* 프로필 아바타 */}
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white cursor-pointer"
             style={{ background: "var(--kino-charcoal)" }}
             onClick={() => handleComingSoon("마이페이지")}
           >
             김
           </div>
 
-          {/* Desktop: name */}
-          <div className="hidden md:block mr-1">
+          {/* PC: 이름/부서 텍스트 */}
+          <div className="hidden md:block ml-2 mr-1">
             <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
             <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
           </div>
 
-          {/* Divider + Mobile menu toggle */}
-          <div className="flex items-center" style={{ borderLeft: "1px solid var(--kino-pale)", paddingLeft: "0.5rem", marginLeft: "0.25rem" }}>
-            <button
-              className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            >
-              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
-          </div>
+          {/* 햄버거 메뉴 — lg 미만에서만 표시 */}
+          <button
+            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors ml-1"
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          >
+            {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+          </button>
         </div>
       </header>
 
-      {/* Mobile search bar */}
+      {/* Mobile search bar (검색 아이콘 클릭 시) */}
       {searchOpen && (
         <div
           className="md:hidden px-4 py-2 animate-fade-in"
