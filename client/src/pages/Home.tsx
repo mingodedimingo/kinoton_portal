@@ -602,12 +602,11 @@ export default function Home() {
 
         {/* ── PC LAYOUT (md 이상) ── */}
         <div className="hidden md:block">
-          {/* 퀵메뉴: 카드 없이 흰 배경 */}
-          <QuickMenuSection card={false} />
-
           <div className="flex gap-4 items-start">
-            {/* 좌측: 공지+게시판 / 인사발령+경조사 */}
+            {/* 좌측: 퀵메뉴 + 공지+게시판 / 인사발령+경조사 */}
             <div className="flex-1 min-w-0 flex flex-col gap-4">
+              {/* 퀵메뉴: 카드 없이 흰 배경, 좌측 콘텐츠 상단 */}
+              <QuickMenuSection card={false} />
               <div className="grid grid-cols-2 gap-4">
                 <NoticeSection />
                 <BoardSection />
