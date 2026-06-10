@@ -156,6 +156,7 @@
     background: var(--kino-white);
     border: 1px solid var(--kino-pale);
     border-radius: var(--radius);
+    overflow: visible;
     transition: box-shadow 0.2s cubic-bezier(0.23, 1, 0.32, 1),
                 transform 0.2s cubic-bezier(0.23, 1, 0.32, 1);
   }
@@ -215,8 +216,8 @@
     cursor: pointer;
   }
   .quick-menu-circle {
-    width: 72px;
-    height: 72px;
+    width: clamp(56px, 16vw, 72px);
+    height: clamp(56px, 16vw, 72px);
     border-radius: 50%;
     background: var(--kino-white);
     border: 1.5px solid var(--kino-pale);

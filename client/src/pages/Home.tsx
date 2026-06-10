@@ -71,7 +71,7 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
     if (item.path === "/#menu") openFullMenu();
   };
   const inner = (
-    <div className="flex items-center justify-center gap-6 md:gap-14 py-6 px-4">
+    <div className="flex items-center justify-center gap-6 md:gap-14 pt-8 pb-5 px-4">
       {QUICK_MENUS.map((item) => {
         const Icon = item.icon;
         const content = (
@@ -82,8 +82,8 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
               </div>
               {item.badge > 0 && (
                 <span
-                  className="absolute -top-1 -right-1 w-5 h-5 flex items-center justify-center rounded-full text-white font-bold"
-                  style={{ background: "var(--kino-red)", fontSize: "0.65rem" }}
+                  className="absolute -top-2 -right-2 w-5 h-5 flex items-center justify-center rounded-full text-white font-bold"
+                  style={{ background: "var(--kino-red)", fontSize: "0.65rem", zIndex: 10 }}
                 >
                   {item.badge}
                 </span>
@@ -106,7 +106,7 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
 
   if (card) {
     return (
-      <div className="portal-card mb-4 animate-fade-in-up stagger-1">
+      <div className="portal-card mb-4 animate-fade-in-up stagger-1" style={{ paddingTop: "1rem", overflow: "visible" }}>
         {inner}
       </div>
     );
