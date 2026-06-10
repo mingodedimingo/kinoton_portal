@@ -342,6 +342,13 @@
     from { opacity: 0; }
     to   { opacity: 1; }
   }
+  @keyframes slideInRight {
+    from { opacity: 0; transform: translateX(40px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  .animate-slide-in-right {
+    animation: slideInRight 0.28s cubic-bezier(0.23, 1, 0.32, 1) both;
+  }
   .animate-fade-in-up {
     animation: fadeInUp 0.28s cubic-bezier(0.23, 1, 0.32, 1) both;
   }

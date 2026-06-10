@@ -12,6 +12,7 @@ import {
   Calendar, Users, BookOpen, Briefcase, Building2,
   Menu, X, ChevronRight, LogOut, Settings,
 } from "lucide-react";
+import FullMenuOverlay from "./FullMenuOverlay";
 
 const NAV_ITEMS = [
   { label: "메일",     icon: Mail,        path: "/mail" },
@@ -26,6 +27,13 @@ const NAV_ITEMS = [
 
 interface Props {
   children: React.ReactNode;
+  onFullMenuOpen?: () => void;
+}
+
+// 전체메뉴 상태를 전역에서 제어할 수 있도록 context 없이 이벤트로 처리
+let _setFullMenuOpen: ((v: boolean) => void) | null = null;
+export function openFullMenu() {
+  _setFullMenuOpen?.(true);
 }
 
 export default function PortalLayout({ children }: Props) {
@@ -33,6 +41,10 @@ export default function PortalLayout({ children }: Props) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [fullMenuOpen, setFullMenuOpen] = useState(false);
+
+  // 외부에서 열 수 있도록 등록
+  _setFullMenuOpen = setFullMenuOpen;
 
   const handleComingSoon = (label: string) => {
     toast(`${label} 기능은 준비 중입니다.`);
@@ -40,6 +52,9 @@ export default function PortalLayout({ children }: Props) {
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--kino-bg)" }}>
+      {/* 전체메뉴 오버레이 */}
+      <FullMenuOverlay open={fullMenuOpen} onClose={() => setFullMenuOpen(false)} />
+
       {/* ── TOP HEADER ── */}
       <header
         className="sticky top-0 z-50 flex items-center px-4 md:px-6"
@@ -84,16 +99,22 @@ export default function PortalLayout({ children }: Props) {
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
+            const isFullMenu = item.path === "/#menu";
             return (
-              <Link
+              <button
                 key={item.path}
-                href={item.path}
                 className={`gnb-item ${isActive ? "active" : ""}`}
-                onClick={item.path === "/#menu" ? (e) => { e.preventDefault(); handleComingSoon("전체메뉴"); } : undefined}
+                onClick={() => {
+                  if (isFullMenu) {
+                    setFullMenuOpen(true);
+                  } else {
+                    window.location.href = item.path;
+                  }
+                }}
               >
                 <Icon size={14} />
                 {item.label}
-              </Link>
+              </button>
             );
           })}
         </nav>
@@ -189,17 +210,24 @@ export default function PortalLayout({ children }: Props) {
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
               const isActive = location === item.path;
+              const isFullMenu = item.path === "/#menu";
               return (
-                <Link
+                <button
                   key={item.path}
-                  href={item.path}
-                  className={`gnb-item ${isActive ? "active" : ""}`}
-                  onClick={() => setMobileMenuOpen(false)}
+                  className={`gnb-item ${isActive ? "active" : ""} w-full text-left`}
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    if (isFullMenu) {
+                      setFullMenuOpen(true);
+                    } else {
+                      window.location.href = item.path;
+                    }
+                  }}
                 >
                   <Icon size={16} />
                   {item.label}
                   <ChevronRight size={14} className="ml-auto" style={{ color: "var(--kino-light)" }} />
-                </Link>
+                </button>
               );
             })}
             <div style={{ borderTop: "1px solid var(--kino-pale)", marginTop: "0.5rem", paddingTop: "0.5rem" }}>

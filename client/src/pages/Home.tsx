@@ -13,7 +13,7 @@ import {
   Heart, BookOpen, ChevronLeft, LogIn, LogOut,
   Building2, MapPin, Wifi,
 } from "lucide-react";
-import PortalLayout from "@/components/PortalLayout";
+import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
 
 // ── Dummy Data ──────────────────────────────────────────────────
 const TODAY = new Date(2026, 5, 5);
@@ -68,7 +68,7 @@ const DAY_NAMES = ["일","월","화","수","목","금","토"];
 // ── Quick Menu ───────────────────────────────────────────────────
 function QuickMenuSection({ card = false }: { card?: boolean }) {
   const handleClick = (item: typeof QUICK_MENUS[0]) => {
-    if (item.path === "/#menu") toast("전체메뉴 기능은 준비 중입니다.");
+    if (item.path === "/#menu") openFullMenu();
   };
   const inner = (
     <div className="flex items-center justify-center gap-6 md:gap-14 py-6 px-4">
