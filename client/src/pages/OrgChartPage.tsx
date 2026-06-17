@@ -167,18 +167,16 @@ const ORG_DATA: OrgNode = {
               members: [{ name: "길효철", title: "수석", phone: "010-4543-8898", ext: "1921" }],
               children: [
                 {
-                  // 1. 신정운·박진우 이동 / 10. 김동민 책임 추가
-                  name: "전시팀", title: "책임", person: "김동민",
+                  name: "전시팀", title: "책임", person: "신정운",
                   members: [
-                    { name: "김동민", title: "책임", phone: "010-8668-0222", ext: "1989" },
                     { name: "신정운", title: "책임", phone: "010-2066-5629", ext: "1974" },
                     { name: "박진우", title: "책임", phone: "010-9658-8030", ext: "1975" },
                   ],
                 },
                 {
-                  name: "기술영업팀", title: "수석", person: "길효철",
+                  name: "기술영업팀", title: "책임", person: "김동민",
                   members: [
-                    { name: "길효철", title: "수석", phone: "010-4543-8898", ext: "1921" },
+                    { name: "김동민", title: "책임", phone: "010-8668-0222", ext: "1989" },
                   ],
                 },
               ],
