@@ -8,7 +8,7 @@
  * - 이름: 김민구 / 경영기획팀·선임 / 프로필 사진 적용
  * - GNB: 메일·전자결재·게시판·ERP·영업시스템·전체메뉴
  * - 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
- * - 게시판 탭: 전체·플폼신청·매뉴얼·기타
+ * - 게시판 탭: 전체·물품신청·매뉴얼·기타
  * - 공지/게시판/인사발령/경조사 내용 업데이트
  * - 헤더 우측: 프로필 사진 + 이름/부서
  */
@@ -42,10 +42,10 @@ const HR_NOTICES = [
   { id: 5, type: "입사", title: "한민 선임 DE사업본부 관리팀 입사", date: "2026.04.14" },
 ];
 
-// 게시판 탭: 전체·플폼신청·매뉴얼·기타
+// 게시판 탭: 전체·물품신청·매뉴얼·기타
 const BOARD_POSTS = [
-  { id: 1, category: "플폼신청", title: "[플폼신청] 20260604_최강 책임", date: "2026.06.04", isNew: true },
-  { id: 2, category: "플폼신청", title: "[플폼신청] 20260603_장 형 책임", date: "2026.06.03" },
+  { id: 1, category: "물품신청", title: "[물품신청] 20260604_최강 책임", date: "2026.06.04", isNew: true },
+  { id: 2, category: "물품신청", title: "[물품신청] 20260603_장 형 책임", date: "2026.06.03" },
   { id: 3, category: "매뉴얼", title: "신규 생일 선물 제공 플랫폼(생일24) 이용 가이드 안내", date: "2026.06.02" },
   { id: 4, category: "매뉴얼", title: "키노톤(주) 실물모형 및 진시물 직접생산확인 증명서", date: "2026.06.01" },
   { id: 5, category: "기타", title: "새로운 맛집 공유 드립니다", date: "2026.05.30" },
@@ -209,13 +209,13 @@ function HRSection() {
   );
 }
 
-// ── Board Section — 탭: 전체·플폼신청·매뉴얼·기타 ──────────────
+// ── Board Section — 탭: 전체·물품신청·매뉴얼·기타 ──────────────
 function BoardSection() {
   const [tab, setTab] = useState<"all"|"platform"|"manual"|"etc">("all");
   const filtered = tab === "all"
     ? BOARD_POSTS
     : BOARD_POSTS.filter(p =>
-        tab === "platform" ? p.category === "플폼신청"
+        tab === "platform" ? p.category === "물품신청"
         : tab === "manual" ? p.category === "매뉴얼"
         : p.category === "기타"
       );
@@ -238,7 +238,7 @@ function BoardSection() {
                   color: tab === t ? "white" : "var(--kino-muted)",
                 }}
               >
-                {t === "all" ? "전체" : t === "platform" ? "플폼신청" : t === "manual" ? "매뉴얼" : "기타"}
+                {t === "all" ? "전체" : t === "platform" ? "물품신청" : t === "manual" ? "매뉴얼" : "기타"}
               </button>
             ))}
           </div>
