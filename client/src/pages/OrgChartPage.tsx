@@ -1,12 +1,12 @@
 /**
  * OrgChartPage — 조직도 & 사내 전화번호부
  * 형식: 트리 리스트 (들여쓰기 계층 구조)
- * 인원: 비상연락망 2026.06 PDF 기준 사원까지 전원 표시
+ * 인원: 비상연락망 2026.06 기준 + 수정사항 14개 반영
  */
 import { useState } from "react";
 import PortalLayout from "@/components/PortalLayout";
 import { toast } from "sonner";
-import { Search, ChevronDown, ChevronRight, Phone, Mail, User } from "lucide-react";
+import { Search, ChevronDown, ChevronRight, Phone, User } from "lucide-react";
 
 // ── 타입 ─────────────────────────────────────────────────────────
 interface Member {
@@ -20,16 +20,17 @@ interface OrgNode {
   name: string;
   title: string;
   person: string;
-  color?: string;   // 노드 아바타 배경색
+  color?: string;
   members?: Member[];
   children?: OrgNode[];
 }
 
-// ── 조직 데이터 (비상연락망 2026.06 PDF 기준, 사원까지 전원) ────
+// ── 조직 데이터 ───────────────────────────────────────────────────
 const ORG_DATA: OrgNode = {
   name: "키노톤(주)", title: "대표이사", person: "배윤성",
   members: [{ name: "배윤성", title: "대표이사", phone: "010-3725-7806", ext: "1910" }],
   children: [
+
     // ── 미래전략사업본부 ──────────────────────────────────────────
     {
       name: "미래전략사업본부", title: "부사장", person: "배우성",
@@ -53,30 +54,28 @@ const ORG_DATA: OrgNode = {
               ],
             },
             {
+              // 1. 신정운·박진우 → DE 전시팀으로 이동 / 2. 문대형 → 기술1팀으로 이동
               name: "글로벌사업팀", title: "팀장", person: "최우성",
               members: [
-                { name: "최우성",  title: "팀장", phone: "010-3665-6542", ext: "1929" },
-                { name: "강민구",  title: "책임", phone: "010-8970-4592", ext: "1930" },
-                { name: "신정운",  title: "책임", phone: "010-2066-5629", ext: "1974" },
-                { name: "박진우",  title: "책임", phone: "010-9658-8030", ext: "1975" },
-                { name: "문대형",  title: "책임", phone: "010-3900-6996", ext: "1985" },
+                { name: "최우성", title: "팀장", phone: "010-3665-6542", ext: "1929" },
+                { name: "강민구", title: "책임", phone: "010-8970-4592", ext: "1930" },
               ],
             },
             {
+              // 3. 문대훈 → 기술2팀으로 이동
               name: "경영기획팀", title: "팀장", person: "박찬훈",
               members: [
-                { name: "박찬훈",  title: "팀장", phone: "010-4027-0717", ext: "1925" },
-                { name: "김진형",  title: "책임", phone: "010-2699-5330", ext: "1935" },
-                { name: "장민석",  title: "책임", phone: "010-9927-9985", ext: "1936" },
-                { name: "김민구",  title: "선임", phone: "010-4334-3876", ext: "1928" },
-                { name: "문대훈",  title: "책임", phone: "010-9695-5082", ext: "1996" },
+                { name: "박찬훈", title: "팀장", phone: "010-4027-0717", ext: "1925" },
+                { name: "김진형", title: "책임", phone: "010-2699-5330", ext: "1935" },
+                { name: "장민석", title: "책임", phone: "010-9927-9985", ext: "1936" },
+                { name: "김민구", title: "선임", phone: "010-4334-3876", ext: "1928" },
               ],
             },
             {
+              // 4. 이다니엘 → 기술2팀으로 이동
               name: "경영혁신TASK", title: "팀장", person: "김영진",
               members: [
-                { name: "김영진",  title: "팀장", phone: "010-2519-1934", ext: "1934" },
-                { name: "이다니엘",title: "선임", phone: "010-3598-9723", ext: "1997" },
+                { name: "김영진", title: "팀장", phone: "010-2519-1934", ext: "1934" },
               ],
             },
           ],
@@ -94,14 +93,13 @@ const ORG_DATA: OrgNode = {
           members: [{ name: "오봉희", title: "담당", phone: "010-3714-8259", ext: "1917" }],
           children: [
             {
+              // 5·6. 이승호·장호균 → 기술2팀으로 이동
               name: "회계팀", title: "팀장", person: "임지혜",
               members: [
                 { name: "임지혜", title: "팀장", phone: "010-2220-2960", ext: "1902" },
                 { name: "강나연", title: "책임", phone: "010-8757-9638", ext: "1903" },
                 { name: "강해리", title: "선임", phone: "010-9573-0921", ext: "1905" },
                 { name: "박채윤", title: "선임", phone: "010-2376-0499", ext: "1906" },
-                { name: "이승호", title: "선임", phone: "010-8232-9102", ext: "1976" },
-                { name: "장호균", title: "선임", phone: "010-3438-4337", ext: "1998" },
               ],
             },
             {
@@ -126,13 +124,13 @@ const ORG_DATA: OrgNode = {
           members: [{ name: "최재설", title: "담당", phone: "010-3724-1448", ext: "1916" }],
           children: [
             {
+              // 7. 김계론 → 시설팀으로 이동
               name: "영업1팀", title: "팀장(공석)", person: "공석",
               members: [
                 { name: "김종수", title: "책임", phone: "010-4735-4968", ext: "1940" },
                 { name: "손명훈", title: "책임", phone: "010-9332-8817", ext: "1942" },
                 { name: "서재덕", title: "책임", phone: "010-5558-2896", ext: "1951" },
                 { name: "신민영", title: "선임", phone: "010-3381-0546", ext: "1941" },
-                { name: "김계론", title: "사원", phone: "010-7620-2822", ext: "-" },
               ],
             },
             {
@@ -149,17 +147,7 @@ const ORG_DATA: OrgNode = {
                 { name: "김설아", title: "선임", phone: "010-7794-9784", ext: "6252-5623" },
               ],
             },
-            {
-              name: "운영지원팀", title: "팀장", person: "이병민",
-              members: [
-                { name: "이병민", title: "팀장", phone: "010-2000-5964", ext: "1943" },
-                { name: "양대웅", title: "책임", phone: "010-4824-4724", ext: "1994" },
-                { name: "조준현", title: "책임", phone: "010-7101-6409", ext: "1977" },
-                { name: "김초원", title: "선임", phone: "010-3723-4377", ext: "1931" },
-                { name: "이원진", title: "사원", phone: "010-2220-5173", ext: "1995" },
-                { name: "이승재", title: "사원", phone: "010-5181-5546", ext: "1932" },
-              ],
-            },
+            // 8. 운영지원팀은 기술총괄 하위로 이동 (여기서 제거)
           ],
         },
       ],
@@ -170,27 +158,29 @@ const ORG_DATA: OrgNode = {
       name: "DE사업본부", title: "겸 대표이사", person: "배윤성",
       children: [
         {
+          // 9. DE영업총괄 길효철 수석 → 김광섭 담당 밑에서 전시팀·기술영업팀 관리
           name: "DE사업담당", title: "담당", person: "김광섭",
           members: [{ name: "김광섭", title: "담당", phone: "010-9041-8668", ext: "1919" }],
           children: [
             {
-              name: "전시팀", title: "책임", person: "김동민",
-              members: [
-                { name: "김동민", title: "책임", phone: "010-8668-0222", ext: "1989" },
-                { name: "신정운", title: "책임", phone: "010-2066-5629", ext: "1974" },
-                { name: "박진우", title: "책임", phone: "010-9658-8030", ext: "1975" },
-              ],
-            },
-            {
-              name: "기술영업팀", title: "수석", person: "길효철",
-              members: [
-                { name: "길효철", title: "수석", phone: "010-4543-8898", ext: "1921" },
-              ],
-            },
-            {
-              name: "이머시브미디어팀", title: "수석", person: "정현석",
-              members: [
-                { name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" },
+              name: "DE영업총괄", title: "수석", person: "길효철",
+              members: [{ name: "길효철", title: "수석", phone: "010-4543-8898", ext: "1921" }],
+              children: [
+                {
+                  // 1. 신정운·박진우 이동 / 10. 김동민 책임 추가
+                  name: "전시팀", title: "책임", person: "김동민",
+                  members: [
+                    { name: "김동민", title: "책임", phone: "010-8668-0222", ext: "1989" },
+                    { name: "신정운", title: "책임", phone: "010-2066-5629", ext: "1974" },
+                    { name: "박진우", title: "책임", phone: "010-9658-8030", ext: "1975" },
+                  ],
+                },
+                {
+                  name: "기술영업팀", title: "수석", person: "길효철",
+                  members: [
+                    { name: "길효철", title: "수석", phone: "010-4543-8898", ext: "1921" },
+                  ],
+                },
               ],
             },
           ],
@@ -200,80 +190,93 @@ const ORG_DATA: OrgNode = {
           members: [{ name: "이미화", title: "담당", phone: "010-3688-4998", ext: "1918" }],
           children: [
             {
-              name: "관리팀", title: "책임", person: "박상규",
+              // 12. 관리팀: 민경진, 이지은, 한민, 이윤철
+              name: "관리팀", title: "수석", person: "박상규",
               members: [
-                { name: "박상규", title: "책임", phone: "010-8996-2417", ext: "-" },
+                { name: "박상규", title: "수석", phone: "010-8996-2417", ext: "-" },
                 { name: "민경진", title: "책임", phone: "010-7441-3413", ext: "-" },
                 { name: "이지은", title: "책임", phone: "010-7344-6405", ext: "1990" },
+                { name: "한민",   title: "선임", phone: "010-9047-9747", ext: "1993" },
                 { name: "이윤철", title: "선임", phone: "010-2050-1362", ext: "-" },
-                { name: "김예랑", title: "선임", phone: "-",             ext: "-" },
               ],
             },
             {
+              // 12. 지원팀: 장령, 김민경
               name: "지원팀", title: "책임", person: "장령",
               members: [
                 { name: "장령",   title: "책임", phone: "010-2294-0203", ext: "1991" },
                 { name: "김민경", title: "선임", phone: "010-5361-4906", ext: "1992" },
-                { name: "한민",   title: "선임", phone: "010-9047-9747", ext: "1993" },
-                { name: "이상우", title: "책임", phone: "010-8789-1179", ext: "-" },
-                { name: "이찬익", title: "책임", phone: "010-5432-9040", ext: "-" },
-                { name: "김도경", title: "책임", phone: "010-5155-3903", ext: "-" },
+              ],
+            },
+            {
+              // 11. 이머시브미디어랩 (이름 변경) → 전략기획담당 이미화 밑, 박상규 수석 추가
+              name: "이머시브미디어랩", title: "수석", person: "박상규",
+              members: [
+                { name: "박상규", title: "수석", phone: "010-8996-2417", ext: "-" },
+                { name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" },
               ],
             },
           ],
         },
         {
-          name: "DE영업총괄", title: "수석", person: "길효철",
-          members: [{ name: "길효철", title: "수석", phone: "010-4543-8898", ext: "1921" }],
+          // 13. 기술총괄 — 이미지 기준으로 정현석 수석 하위에 5개 팀
+          name: "기술총괄", title: "수석", person: "정현석",
+          members: [{ name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" }],
           children: [
             {
-              name: "기술총괄", title: "수석", person: "정현석",
-              members: [{ name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" }],
-              children: [
-                {
-                  name: "기술1팀", title: "팀장", person: "유정식",
-                  members: [
-                    { name: "유정식", title: "팀장", phone: "010-6317-1211", ext: "1981" },
-                    { name: "이민구", title: "책임", phone: "010-5359-5239", ext: "1944" },
-                    { name: "송종현", title: "책임", phone: "010-7244-9694", ext: "1984" },
-                    { name: "문대형", title: "책임", phone: "010-3900-6996", ext: "1985" },
-                    { name: "김주훈", title: "선임", phone: "010-7359-9590", ext: "1986" },
-                    { name: "김희재", title: "선임", phone: "010-3112-0637", ext: "1988" },
-                  ],
-                },
-                {
-                  name: "기술2팀", title: "팀장", person: "정철훈",
-                  members: [
-                    { name: "정철훈", title: "팀장", phone: "010-2804-5493", ext: "1982" },
-                    { name: "최용호", title: "책임", phone: "010-8796-4967", ext: "1946" },
-                    { name: "장모세", title: "선임", phone: "010-5177-4004", ext: "1987" },
-                    { name: "장호균", title: "선임", phone: "010-3438-4337", ext: "1998" },
-                  ],
-                },
-                {
-                  name: "기술3팀", title: "팀장", person: "장춘봉",
-                  members: [
-                    { name: "장춘봉", title: "팀장", phone: "010-9449-0360", ext: "1947" },
-                    { name: "김기영", title: "책임", phone: "010-4353-0727", ext: "1945" },
-                  ],
-                },
-                {
-                  name: "시설팀", title: "팀장", person: "최문희",
-                  members: [
-                    { name: "최문희", title: "팀장", phone: "010-8958-6337", ext: "1983" },
-                  ],
-                },
-                {
-                  name: "운영지원팀", title: "팀장", person: "이병민",
-                  members: [
-                    { name: "이병민", title: "팀장", phone: "010-2000-5964", ext: "1943" },
-                    { name: "양대웅", title: "책임", phone: "010-4824-4724", ext: "1994" },
-                    { name: "조준현", title: "책임", phone: "010-7101-6409", ext: "1977" },
-                    { name: "김초원", title: "선임", phone: "010-3723-4377", ext: "1931" },
-                    { name: "이원진", title: "사원", phone: "010-2220-5173", ext: "1995" },
-                    { name: "이승재", title: "사원", phone: "010-5181-5546", ext: "1932" },
-                  ],
-                },
+              // 2. 문대형 이동 포함
+              name: "기술1팀", title: "팀장", person: "유정식",
+              members: [
+                { name: "유정식", title: "팀장", phone: "010-6317-1211", ext: "1981" },
+                { name: "이민구", title: "책임", phone: "010-5359-5239", ext: "1944" },
+                { name: "송종현", title: "책임", phone: "010-7244-9694", ext: "1984" },
+                { name: "문대형", title: "책임", phone: "010-3900-6996", ext: "1985" },
+                { name: "김주훈", title: "선임", phone: "010-7359-9590", ext: "1986" },
+                { name: "김희재", title: "선임", phone: "010-3112-0637", ext: "1988" },
+              ],
+            },
+            {
+              // 3·4·5·6. 문대훈·이다니엘·이승호·장호균 이동 포함
+              name: "기술2팀", title: "팀장", person: "정철훈",
+              members: [
+                { name: "정철훈", title: "팀장", phone: "010-2804-5493", ext: "1982" },
+                { name: "최용호", title: "책임", phone: "010-8796-4967", ext: "1946" },
+                { name: "문대훈", title: "책임", phone: "010-9695-5082", ext: "1996" },
+                { name: "이다니엘", title: "선임", phone: "010-3598-9723", ext: "1997" },
+                { name: "이승호", title: "선임", phone: "010-8232-9102", ext: "1976" },
+                { name: "장호균", title: "선임", phone: "010-3438-4337", ext: "1998" },
+                { name: "장모세", title: "선임", phone: "010-5177-4004", ext: "1987" },
+              ],
+            },
+            {
+              name: "기술3팀", title: "팀장", person: "장춘봉",
+              members: [
+                { name: "장춘봉", title: "팀장", phone: "010-9449-0360", ext: "1947" },
+                { name: "김기영", title: "책임", phone: "010-4353-0727", ext: "1945" },
+                { name: "장모세", title: "선임", phone: "010-5177-4004", ext: "1987" },
+              ],
+            },
+            {
+              // 7. 김계론 시설팀으로 이동
+              name: "시설팀", title: "팀장", person: "최문희",
+              members: [
+                { name: "최문희", title: "팀장", phone: "010-8958-6337", ext: "1983" },
+                { name: "이상우", title: "책임", phone: "010-8789-1179", ext: "-" },
+                { name: "이찬익", title: "책임", phone: "010-5432-9040", ext: "-" },
+                { name: "김도경", title: "책임", phone: "010-5155-3903", ext: "-" },
+                { name: "김계론", title: "사원",  phone: "010-7620-2822", ext: "-" },
+              ],
+            },
+            {
+              // 8. 운영지원팀 → 기술총괄 하위로 이동
+              name: "운영지원팀", title: "팀장", person: "이병민",
+              members: [
+                { name: "이병민", title: "팀장", phone: "010-2000-5964", ext: "1943" },
+                { name: "양대웅", title: "책임", phone: "010-4824-4724", ext: "1994" },
+                { name: "조준현", title: "책임", phone: "010-7101-6409", ext: "1977" },
+                { name: "김초원", title: "선임", phone: "010-3723-4377", ext: "1931" },
+                { name: "이원진", title: "사원",  phone: "010-2220-5173", ext: "1995" },
+                { name: "이승재", title: "사원",  phone: "010-5181-5546", ext: "1932" },
               ],
             },
           ],
@@ -293,16 +296,18 @@ const ORG_DATA: OrgNode = {
           ],
         },
         {
+          // 14. 설계파트: 한인희, 최수민, 유소연, 김승태, 김성민
           name: "설계파트", title: "책임", person: "한인희",
           members: [
             { name: "한인희", title: "책임", phone: "010-7226-8423", ext: "1962" },
             { name: "최수민", title: "책임", phone: "010-5504-5130", ext: "1963" },
             { name: "유소연", title: "선임", phone: "010-8842-0550", ext: "1964" },
             { name: "김승태", title: "선임", phone: "010-2733-5465", ext: "1965" },
-            { name: "김성민", title: "사원", phone: "010-4823-0579", ext: "1970" },
+            { name: "김성민", title: "사원",  phone: "010-4823-0579", ext: "1970" },
           ],
         },
         {
+          // 14. 디자인파트: 최강, 유상균, 서연주, 고은솔
           name: "디자인파트", title: "책임", person: "최강",
           members: [
             { name: "최강",   title: "책임", phone: "010-8810-9538", ext: "1966" },
@@ -339,7 +344,6 @@ function OrgNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
   const hasChildren = !!node.children?.length;
   const hasMembers = !!node.members?.length;
 
-  // depth별 아바타 색
   const avatarBg =
     depth === 0 ? "#1A1A1A"
     : depth === 1 ? "#E85D04"
@@ -348,7 +352,6 @@ function OrgNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
 
   return (
     <div className={depth > 0 ? "ml-6 border-l" : ""} style={{ borderColor: "#E5E7EB" }}>
-      {/* 노드 헤더 (팀/본부명) */}
       <div
         className="flex items-center gap-2 py-2 px-3 rounded cursor-pointer transition-colors hover:bg-gray-50 group"
         onClick={() => (hasChildren || hasMembers) && setOpen(!open)}
@@ -382,10 +385,8 @@ function OrgNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
         </button>
       </div>
 
-      {/* 펼쳐진 상태: 팀원 목록 + 하위 노드 */}
       {open && (
         <>
-          {/* 팀원 목록 (팀장 제외 나머지 멤버) */}
           {hasMembers && node.members!.filter(m => m.name !== node.person).map((m) => (
             <div
               key={`${m.name}-${m.title}`}
@@ -414,7 +415,6 @@ function OrgNode({ node, depth = 0 }: { node: OrgNode; depth?: number }) {
             </div>
           ))}
 
-          {/* 하위 노드 */}
           {hasChildren && node.children!.map((child) => (
             <OrgNode key={`${child.name}-${child.person}`} node={child} depth={depth + 1} />
           ))}
@@ -448,7 +448,6 @@ function flattenMembers(node: OrgNode, dept = ""): Array<{ name: string; dept: s
 
 const ALL_MEMBERS = (() => {
   const raw = flattenMembers(ORG_DATA);
-  // 이름+부서 기준 중복 제거
   return raw.filter((m, i, arr) => arr.findIndex(x => x.name === m.name && x.dept === m.dept) === i);
 })();
 
@@ -492,13 +491,11 @@ export default function OrgChartPage() {
           </div>
         </div>
 
-        {/* 조직도 트리 */}
         {view === "tree" ? (
           <div className="portal-card p-4">
             <OrgNode node={ORG_DATA} />
           </div>
         ) : (
-          /* 전화번호부 */
           <div className="portal-card">
             <div className="section-header">
               <span className="section-title">
