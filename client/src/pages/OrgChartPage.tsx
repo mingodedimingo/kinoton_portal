@@ -190,10 +190,16 @@ const ORG_DATA: OrgNode = {
           members: [{ name: "이미화", title: "담당", phone: "010-3688-4998", ext: "1918" }],
           children: [
             {
-              // 12. 관리팀: 민경진, 이지은, 한민, 이윤철
-              name: "관리팀", title: "수석", person: "박상규",
+              // 2. 이머시브미디어랩 → 관리팀·지원팀보다 위, 정현석 제거
+              name: "이머시브미디어랩", title: "수석", person: "박상규",
               members: [
                 { name: "박상규", title: "수석", phone: "010-8996-2417", ext: "-" },
+              ],
+            },
+            {
+              // 1. 관리팀: 민경진 책임이 대표자, 박상규 수석 제거
+              name: "관리팀", title: "책임", person: "민경진",
+              members: [
                 { name: "민경진", title: "책임", phone: "010-7441-3413", ext: "-" },
                 { name: "이지은", title: "책임", phone: "010-7344-6405", ext: "1990" },
                 { name: "한민",   title: "선임", phone: "010-9047-9747", ext: "1993" },
@@ -208,76 +214,65 @@ const ORG_DATA: OrgNode = {
                 { name: "김민경", title: "선임", phone: "010-5361-4906", ext: "1992" },
               ],
             },
-            {
-              // 11. 이머시브미디어랩 (이름 변경) → 전략기획담당 이미화 밑, 박상규 수석 추가
-              name: "이머시브미디어랩", title: "수석", person: "박상규",
-              members: [
-                { name: "박상규", title: "수석", phone: "010-8996-2417", ext: "-" },
-                { name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" },
-              ],
-            },
+          ],
+        },
+      ],
+    },
+
+    // ── 기술총괄 (별도 독립 조직) ─────────────────────────────────
+    {
+      name: "기술총괄", title: "수석", person: "정현석",
+      members: [{ name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" }],
+      children: [
+        {
+          name: "기술1팀", title: "팀장", person: "유정식",
+          members: [
+            { name: "유정식", title: "팀장", phone: "010-6317-1211", ext: "1981" },
+            { name: "이민구", title: "책임", phone: "010-5359-5239", ext: "1944" },
+            { name: "송종현", title: "책임", phone: "010-7244-9694", ext: "1984" },
+            { name: "문대형", title: "책임", phone: "010-3900-6996", ext: "1985" },
+            { name: "김주훈", title: "선임", phone: "010-7359-9590", ext: "1986" },
+            { name: "김희재", title: "선임", phone: "010-3112-0637", ext: "1988" },
           ],
         },
         {
-          // 13. 기술총괄 — 이미지 기준으로 정현석 수석 하위에 5개 팀
-          name: "기술총괄", title: "수석", person: "정현석",
-          members: [{ name: "정현석", title: "수석", phone: "010-4441-4576", ext: "1980" }],
-          children: [
-            {
-              // 2. 문대형 이동 포함
-              name: "기술1팀", title: "팀장", person: "유정식",
-              members: [
-                { name: "유정식", title: "팀장", phone: "010-6317-1211", ext: "1981" },
-                { name: "이민구", title: "책임", phone: "010-5359-5239", ext: "1944" },
-                { name: "송종현", title: "책임", phone: "010-7244-9694", ext: "1984" },
-                { name: "문대형", title: "책임", phone: "010-3900-6996", ext: "1985" },
-                { name: "김주훈", title: "선임", phone: "010-7359-9590", ext: "1986" },
-                { name: "김희재", title: "선임", phone: "010-3112-0637", ext: "1988" },
-              ],
-            },
-            {
-              // 3·4·5·6. 문대훈·이다니엘·이승호·장호균 이동 포함
-              name: "기술2팀", title: "팀장", person: "정철훈",
-              members: [
-                { name: "정철훈", title: "팀장", phone: "010-2804-5493", ext: "1982" },
-                { name: "최용호", title: "책임", phone: "010-8796-4967", ext: "1946" },
-                { name: "문대훈", title: "책임", phone: "010-9695-5082", ext: "1996" },
-                { name: "이다니엘", title: "선임", phone: "010-3598-9723", ext: "1997" },
-                { name: "이승호", title: "선임", phone: "010-8232-9102", ext: "1976" },
-                { name: "장호균", title: "선임", phone: "010-3438-4337", ext: "1998" },
-              ],
-            },
-            {
-              name: "기술3팀", title: "팀장", person: "장춘봉",
-              members: [
-                { name: "장춘봉", title: "팀장", phone: "010-9449-0360", ext: "1947" },
-                { name: "김기영", title: "책임", phone: "010-4353-0727", ext: "1945" },
-                { name: "장모세", title: "선임", phone: "010-5177-4004", ext: "1987" },
-              ],
-            },
-            {
-              // 7. 김계론 시설팀으로 이동
-              name: "시설팀", title: "팀장", person: "최문희",
-              members: [
-                { name: "최문희", title: "팀장", phone: "010-8958-6337", ext: "1983" },
-                { name: "이상우", title: "책임", phone: "010-8789-1179", ext: "-" },
-                { name: "이찬익", title: "책임", phone: "010-5432-9040", ext: "-" },
-                { name: "김도경", title: "책임", phone: "010-5155-3903", ext: "-" },
-                { name: "김계론", title: "사원",  phone: "010-7620-2822", ext: "-" },
-              ],
-            },
-            {
-              // 8. 운영지원팀 → 기술총괄 하위로 이동
-              name: "운영지원팀", title: "팀장", person: "이병민",
-              members: [
-                { name: "이병민", title: "팀장", phone: "010-2000-5964", ext: "1943" },
-                { name: "양대웅", title: "책임", phone: "010-4824-4724", ext: "1994" },
-                { name: "조준현", title: "책임", phone: "010-7101-6409", ext: "1977" },
-                { name: "김초원", title: "선임", phone: "010-3723-4377", ext: "1931" },
-                { name: "이원진", title: "사원",  phone: "010-2220-5173", ext: "1995" },
-                { name: "이승재", title: "사원",  phone: "010-5181-5546", ext: "1932" },
-              ],
-            },
+          name: "기술2팀", title: "팀장", person: "정철훈",
+          members: [
+            { name: "정철훈", title: "팀장", phone: "010-2804-5493", ext: "1982" },
+            { name: "최용호", title: "책임", phone: "010-8796-4967", ext: "1946" },
+            { name: "문대훈", title: "책임", phone: "010-9695-5082", ext: "1996" },
+            { name: "이다니엘", title: "선임", phone: "010-3598-9723", ext: "1997" },
+            { name: "이승호", title: "선임", phone: "010-8232-9102", ext: "1976" },
+            { name: "장호균", title: "선임", phone: "010-3438-4337", ext: "1998" },
+          ],
+        },
+        {
+          name: "기술3팀", title: "팀장", person: "장춴봉",
+          members: [
+            { name: "장춴봉", title: "팀장", phone: "010-9449-0360", ext: "1947" },
+            { name: "김기영", title: "책임", phone: "010-4353-0727", ext: "1945" },
+            { name: "장모세", title: "선임", phone: "010-5177-4004", ext: "1987" },
+          ],
+        },
+        {
+          name: "시설팀", title: "팀장", person: "최문희",
+          members: [
+            { name: "최문희", title: "팀장", phone: "010-8958-6337", ext: "1983" },
+            { name: "이상우", title: "책임", phone: "010-8789-1179", ext: "-" },
+            { name: "이찬익", title: "책임", phone: "010-5432-9040", ext: "-" },
+            { name: "김도경", title: "책임", phone: "010-5155-3903", ext: "-" },
+            { name: "김계론", title: "사원",  phone: "010-7620-2822", ext: "-" },
+          ],
+        },
+        {
+          name: "운영지원팀", title: "팀장", person: "이병민",
+          members: [
+            { name: "이병민", title: "팀장", phone: "010-2000-5964", ext: "1943" },
+            { name: "양대웅", title: "책임", phone: "010-4824-4724", ext: "1994" },
+            { name: "조준현", title: "책임", phone: "010-7101-6409", ext: "1977" },
+            { name: "김초원", title: "선임", phone: "010-3723-4377", ext: "1931" },
+            { name: "이원진", title: "사원",  phone: "010-2220-5173", ext: "1995" },
+            { name: "이승재", title: "사원",  phone: "010-5181-5546", ext: "1932" },
           ],
         },
       ],
