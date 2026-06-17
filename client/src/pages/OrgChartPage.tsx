@@ -245,7 +245,6 @@ const ORG_DATA: OrgNode = {
                 { name: "이다니엘", title: "선임", phone: "010-3598-9723", ext: "1997" },
                 { name: "이승호", title: "선임", phone: "010-8232-9102", ext: "1976" },
                 { name: "장호균", title: "선임", phone: "010-3438-4337", ext: "1998" },
-                { name: "장모세", title: "선임", phone: "010-5177-4004", ext: "1987" },
               ],
             },
             {
