@@ -1,28 +1,27 @@
 /**
  * PortalLayout — 키노톤 사내 포탈 공통 레이아웃
  * Design: Monochrome Precision
- * PC 헤더: 로고 + 검색바 + GNB + 알림 + 프로필(아바타+이름/부서)
- * Mobile 헤더: 로고 + [검색아이콘 + 알림(빨간점) + 구분선 + 검정아바타 + 햄버거]
+ * PC 헤더: 로고 + 검색바 + GNB + 알림 + 프로필(사진+이름/부서)
+ * Mobile 헤더: 로고 + [검색아이콘 + 알림(빨간점) + 구분선 + 프로필사진 + 햄버거]
+ * GNB: 메일·전자결재·게시판·ERP·영업시스템·전체메뉴
  */
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   Bell, Search, Mail, FileCheck, LayoutGrid,
-  Calendar, Users, BookOpen, Briefcase, Building2,
+  BookOpen, Building2, Settings2,
   Menu, X, ChevronRight, LogOut, Settings,
 } from "lucide-react";
 import FullMenuOverlay from "./FullMenuOverlay";
 
 const NAV_ITEMS = [
-  { label: "메일",     icon: Mail,        path: "/mail" },
-  { label: "전자결재", icon: FileCheck,    path: "/approve" },
-  { label: "게시판",   icon: BookOpen,     path: "/board" },
-  { label: "일정",     icon: Calendar,     path: "/calendar" },
-  { label: "조직도",   icon: Users,        path: "/orgchart" },
-  { label: "예약",     icon: Building2,    path: "/reserve" },
-  { label: "업무",     icon: Briefcase,    path: "/work" },
-  { label: "전체메뉴", icon: LayoutGrid,   path: "/#menu" },
+  { label: "메일",       icon: Mail,       path: "/mail",                          external: false },
+  { label: "전자결재",   icon: FileCheck,  path: "/approve",                       external: false },
+  { label: "게시판",     icon: BookOpen,   path: "/board",                         external: false },
+  { label: "ERP",        icon: Settings2,  path: "https://erp.kinoton.co.kr/",    external: true },
+  { label: "영업시스템", icon: Building2,  path: "https://sales.kinoton.co.kr/",  external: true },
+  { label: "전체메뉴",   icon: LayoutGrid, path: "/#menu",                         external: false },
 ];
 
 interface Props {
@@ -30,7 +29,7 @@ interface Props {
   onFullMenuOpen?: () => void;
 }
 
-// 전체메뉴 상태를 전역에서 제어할 수 있도록 context 없이 이벤트로 처리
+// 전체메뉴 상태를 전역에서 제어할 수 있도록 이벤트로 처리
 let _setFullMenuOpen: ((v: boolean) => void) | null = null;
 export function openFullMenu() {
   _setFullMenuOpen?.(true);
@@ -48,6 +47,16 @@ export default function PortalLayout({ children }: Props) {
 
   const handleComingSoon = (label: string) => {
     toast(`${label} 기능은 준비 중입니다.`);
+  };
+
+  const handleNavClick = (item: typeof NAV_ITEMS[0]) => {
+    if (item.path === "/#menu") {
+      setFullMenuOpen(true);
+    } else if (item.external) {
+      window.open(item.path, "_blank");
+    } else {
+      window.location.href = item.path;
+    }
   };
 
   return (
@@ -94,23 +103,16 @@ export default function PortalLayout({ children }: Props) {
           </div>
         </div>
 
-        {/* GNB — desktop only */}
+        {/* GNB — desktop only (lg 이상) */}
         <nav className="hidden lg:flex items-center gap-0.5 ml-2">
           {NAV_ITEMS.map((item) => {
             const Icon = item.icon;
-            const isActive = location === item.path;
-            const isFullMenu = item.path === "/#menu";
+            const isActive = !item.external && location === item.path;
             return (
               <button
-                key={item.path}
+                key={item.label}
                 className={`gnb-item ${isActive ? "active" : ""}`}
-                onClick={() => {
-                  if (isFullMenu) {
-                    setFullMenuOpen(true);
-                  } else {
-                    window.location.href = item.path;
-                  }
-                }}
+                onClick={() => handleNavClick(item)}
               >
                 <Icon size={14} />
                 {item.label}
@@ -154,19 +156,22 @@ export default function PortalLayout({ children }: Props) {
             style={{ width: "1px", height: "20px", background: "var(--kino-pale)" }}
           />
 
-          {/* 프로필 아바타 */}
+          {/* 프로필 — 증명사진 (모바일: 원형 사진, PC: 사진+이름/부서) */}
           <div
-            className="w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white cursor-pointer"
-            style={{ background: "var(--kino-charcoal)" }}
+            className="flex items-center gap-2 cursor-pointer"
             onClick={() => handleComingSoon("마이페이지")}
           >
-            김
-          </div>
-
-          {/* PC: 이름/부서 텍스트 */}
-          <div className="hidden md:block ml-2 mr-1">
-            <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
-            <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
+            <img
+              src="/manus-storage/profile-kimingu_d2337f72.jpg"
+              alt="김민구"
+              className="w-9 h-9 rounded-full object-cover"
+              style={{ border: "1.5px solid var(--kino-pale)" }}
+            />
+            {/* PC: 이름/부서 텍스트 */}
+            <div className="hidden md:block mr-1">
+              <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>김민구</p>
+              <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>경영기획팀 · 선임</p>
+            </div>
           </div>
 
           {/* 햄버거 메뉴 — lg 미만에서만 표시 */}
@@ -209,23 +214,21 @@ export default function PortalLayout({ children }: Props) {
           <nav className="flex flex-col p-2">
             {NAV_ITEMS.map((item) => {
               const Icon = item.icon;
-              const isActive = location === item.path;
-              const isFullMenu = item.path === "/#menu";
+              const isActive = !item.external && location === item.path;
               return (
                 <button
-                  key={item.path}
+                  key={item.label}
                   className={`gnb-item ${isActive ? "active" : ""} w-full text-left`}
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    if (isFullMenu) {
-                      setFullMenuOpen(true);
-                    } else {
-                      window.location.href = item.path;
-                    }
+                    handleNavClick(item);
                   }}
                 >
                   <Icon size={16} />
                   {item.label}
+                  {item.external && (
+                    <span className="ml-1 text-xs" style={{ color: "var(--kino-muted)" }}>↗</span>
+                  )}
                   <ChevronRight size={14} className="ml-auto" style={{ color: "var(--kino-light)" }} />
                 </button>
               );

@@ -1,8 +1,16 @@
 /**
  * Home.tsx — 키노톤 사내 포탈 메인 대시보드
  * Design: Monochrome Precision
- * PC: 퀵메뉴(카드 없이 흰배경) → 좌(공지+인사발령) + 우(게시판+경조사) + 우측패널(프로필+통계+출퇴근+연차+달력)
- * Mobile: 퀵메뉴카드 → 프로필카드 → 통계카드 → 출퇴근카드(내근/외근 + 출근/퇴근)
+ * PC: 좌(프로필+통계+출퇴근+연차+달력) + 우(퀵메뉴+공지+게시판+인사발령+경조사)
+ * Mobile: 퀵메뉴카드 → 프로필카드 → 통계카드 → 출퇴근카드
+ *
+ * 수정사항 (이미지 기준):
+ * - 이름: 김민구 / 경영기획팀·선임 / 프로필 사진 적용
+ * - GNB: 메일·전자결재·게시판·ERP·영업시스템·전체메뉴
+ * - 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
+ * - 게시판 탭: 전체·플폼신청·매뉴얼·기타
+ * - 공지/게시판/인사발령/경조사 내용 업데이트
+ * - 헤더 우측: 프로필 사진 + 이름/부서
  */
 import { useState } from "react";
 import { Link } from "wouter";
@@ -11,49 +19,52 @@ import {
   Mail, FileCheck, Calendar, LayoutGrid,
   ChevronRight, Plus, Megaphone, UserCheck,
   Heart, BookOpen, ChevronLeft, LogIn, LogOut,
-  Building2, MapPin, Wifi,
+  Building2, MapPin, Wifi, Settings2,
 } from "lucide-react";
 import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
 
 // ── Dummy Data ──────────────────────────────────────────────────
-const TODAY = new Date(2026, 5, 5);
+const TODAY = new Date(2026, 5, 16); // 2026년 6월 16일 (화)
 
 const NOTICES = [
-  { id: 1, tag: "공지", title: "2026년 하반기 사업계획 발표 안내", date: "2026.06.04", isNew: true },
-  { id: 2, tag: "공지", title: "사무실 이전 관련 안내사항 (6/15 예정)", date: "2026.06.03", isNew: true },
-  { id: 3, tag: "공지", title: "정보보안 교육 이수 필수 안내 (6/30 마감)", date: "2026.06.02" },
-  { id: 4, tag: "공지", title: "2026년 하계 휴가 신청 일정 안내", date: "2026.05.30" },
-  { id: 5, tag: "공지", title: "사내 복지포인트 사용처 확대 안내", date: "2026.05.28" },
+  { id: 1, tag: "공지", title: "[공유] 2026년 6월 비상연락망", date: "2026.06.15", isNew: true },
+  { id: 2, tag: "공지", title: "[공지] 노사협의회 근로자위원 선거 결과 공고", date: "2026.06.11", isNew: true },
+  { id: 3, tag: "공지", title: "[공지] 여름철 폭염 대비 온열질환 예방 안내", date: "2026.06.09" },
+  { id: 4, tag: "공지", title: "[공지] 2026년 6월 정기 공지사항", date: "2026.05.28" },
+  { id: 5, tag: "공지", title: "[공지] 노사협의회 근로자위원 선거 및 입후보 등록 안내", date: "2026.05.27" },
 ];
 
 const HR_NOTICES = [
-  { id: 1, type: "발령", title: "김민준 부장 → 영업본부장 승진 발령", date: "2026.06.04" },
-  { id: 2, type: "발령", title: "이서연 과장 → 마케팅팀 팀장 발령", date: "2026.06.01" },
-  { id: 3, type: "입사", title: "박지호 사원 개발팀 신규 입사", date: "2026.05.31" },
-  { id: 4, type: "발령", title: "최유진 대리 → 기술지원팀 전보 발령", date: "2026.05.29" },
-  { id: 5, type: "퇴직", title: "정현우 차장 명예퇴직", date: "2026.05.27" },
+  { id: 1, type: "발령", title: "서강현 사원 → 주임 승진", date: "2026.06.01" },
+  { id: 2, type: "발령", title: "조종인 사원 → 주임 승진", date: "2026.06.01" },
+  { id: 3, type: "입사", title: "장민석 책임 미래전략사업본부 경영기획팀 입사", date: "2026.05.11" },
+  { id: 4, type: "입사", title: "김진형 책임 미래전략사업본부 경영기획팀 입사", date: "2026.04.14" },
+  { id: 5, type: "입사", title: "한민 선임 DE사업본부 관리팀 입사", date: "2026.04.14" },
 ];
 
+// 게시판 탭: 전체·플폼신청·매뉴얼·기타
 const BOARD_POSTS = [
-  { id: 1, category: "자유", title: "6월 사내 동호회 모집 안내 (등산/독서/볼링)", date: "2026.06.04", isNew: true },
-  { id: 2, category: "업무", title: "Q2 프로젝트 납품 완료 보고", date: "2026.06.03" },
-  { id: 3, category: "자유", title: "구내식당 6월 메뉴 공지", date: "2026.06.02" },
-  { id: 4, category: "업무", title: "신규 장비 도입 관련 의견 수렴", date: "2026.06.01" },
-  { id: 5, category: "자유", title: "5월 생일자 축하합니다 🎂", date: "2026.05.30" },
+  { id: 1, category: "플폼신청", title: "[플폼신청] 20260604_최강 책임", date: "2026.06.04", isNew: true },
+  { id: 2, category: "플폼신청", title: "[플폼신청] 20260603_장 형 책임", date: "2026.06.03" },
+  { id: 3, category: "매뉴얼", title: "신규 생일 선물 제공 플랫폼(생일24) 이용 가이드 안내", date: "2026.06.02" },
+  { id: 4, category: "매뉴얼", title: "키노톤(주) 실물모형 및 진시물 직접생산확인 증명서", date: "2026.06.01" },
+  { id: 5, category: "기타", title: "새로운 맛집 공유 드립니다", date: "2026.05.30" },
 ];
 
 const CONDOLENCES = [
-  { id: 1, type: "결혼", name: "박준서 대리", detail: "본인 결혼", date: "2026.06.07", emoji: "💍" },
-  { id: 2, type: "출산", name: "이미래 과장", detail: "득남", date: "2026.06.03", emoji: "👶" },
-  { id: 3, type: "부고", name: "김태양 팀장", detail: "부친상", date: "2026.06.01", emoji: "🕯️" },
-  { id: 4, type: "결혼", name: "최소연 사원", detail: "본인 결혼", date: "2026.05.30", emoji: "💍" },
+  { id: 1, type: "결혼", name: "미래전략사업부 경영기획팀 김민구 선임님 형제자매 결혼", date: "2026.04.25", emoji: "💍" },
+  { id: 2, type: "부고", name: "Dx사업부 오디오사업팀 이재원 책임님 조모상", date: "2026.02.05", emoji: "🕯️" },
+  { id: 3, type: "부고", name: "미래전략사업부 경영기획팀 박찬훈 팀장님 담당님 부친상", date: "2026.01.13", emoji: "🕯️" },
+  { id: 4, type: "부고", name: "Dx사업부 최재실 담당님 부친상", date: "2026.01.02", emoji: "🕯️" },
 ];
 
+// 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
 const QUICK_MENUS = [
-  { label: "메일",     icon: Mail,       path: "/mail",     badge: 3 },
-  { label: "전자결재", icon: FileCheck,   path: "/approve",  badge: 2 },
-  { label: "일정",     icon: Calendar,   path: "/calendar", badge: 0 },
-  { label: "전체메뉴", icon: LayoutGrid, path: "/#menu",    badge: 0 },
+  { label: "메일",       icon: Mail,        path: "/mail",                          badge: 3 },
+  { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 2 },
+  { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
+  { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
+  { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
 ];
 
 // ── Calendar helpers ─────────────────────────────────────────────
@@ -69,9 +80,10 @@ const DAY_NAMES = ["일","월","화","수","목","금","토"];
 function QuickMenuSection({ card = false }: { card?: boolean }) {
   const handleClick = (item: typeof QUICK_MENUS[0]) => {
     if (item.path === "/#menu") openFullMenu();
+    else if (item.external) window.open(item.path, "_blank");
   };
   const inner = (
-    <div className="flex items-center justify-center gap-6 md:gap-14 pt-8 pb-5 px-4">
+    <div className="flex items-center justify-center gap-4 md:gap-10 pt-8 pb-5 px-4">
       {QUICK_MENUS.map((item) => {
         const Icon = item.icon;
         const content = (
@@ -92,14 +104,11 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
             <span className="quick-menu-label">{item.label}</span>
           </div>
         );
-        if (item.path === "/#menu") {
-          return (
-            <button key={item.label} onClick={() => handleClick(item)} className="bg-transparent border-0 p-0">
-              {content}
-            </button>
-          );
-        }
-        return <Link key={item.label} href={item.path}>{content}</Link>;
+        return (
+          <button key={item.label} onClick={() => handleClick(item)} className="bg-transparent border-0 p-0">
+            {content}
+          </button>
+        );
       })}
     </div>
   );
@@ -111,7 +120,6 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
       </div>
     );
   }
-  // PC: 카드 없이 흰 배경 영역
   return (
     <div
       className="mb-5 animate-fade-in-up stagger-1"
@@ -201,10 +209,16 @@ function HRSection() {
   );
 }
 
-// ── Board Section ────────────────────────────────────────────────
+// ── Board Section — 탭: 전체·플폼신청·매뉴얼·기타 ──────────────
 function BoardSection() {
-  const [tab, setTab] = useState<"all"|"free"|"work">("all");
-  const filtered = tab === "all" ? BOARD_POSTS : BOARD_POSTS.filter(p => p.category === (tab === "free" ? "자유" : "업무"));
+  const [tab, setTab] = useState<"all"|"platform"|"manual"|"etc">("all");
+  const filtered = tab === "all"
+    ? BOARD_POSTS
+    : BOARD_POSTS.filter(p =>
+        tab === "platform" ? p.category === "플폼신청"
+        : tab === "manual" ? p.category === "매뉴얼"
+        : p.category === "기타"
+      );
   return (
     <div className="portal-card animate-fade-in-up stagger-2">
       <div className="section-header">
@@ -214,7 +228,7 @@ function BoardSection() {
             게시판
           </span>
           <div className="flex gap-1">
-            {(["all","free","work"] as const).map((t) => (
+            {(["all","platform","manual","etc"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -224,7 +238,7 @@ function BoardSection() {
                   color: tab === t ? "white" : "var(--kino-muted)",
                 }}
               >
-                {t === "all" ? "전체" : t === "free" ? "자유" : "업무"}
+                {t === "all" ? "전체" : t === "platform" ? "플폼신청" : t === "manual" ? "매뉴얼" : "기타"}
               </button>
             ))}
           </div>
@@ -273,10 +287,7 @@ function CondolenceSection() {
             >
               {c.type}
             </span>
-            <span className="board-item-title">
-              <strong style={{ color: "var(--kino-charcoal)" }}>{c.name}</strong>
-              <span style={{ color: "var(--kino-muted)" }}> · {c.detail}</span>
-            </span>
+            <span className="board-item-title" style={{ color: "var(--kino-charcoal)" }}>{c.name}</span>
             <span className="board-item-date shrink-0">{c.date}</span>
           </div>
         ))}
@@ -360,29 +371,28 @@ function MiniCalendar() {
   );
 }
 
-// ── Right Panel (PC only) ────────────────────────────────────────
-// 이미지 기준: 프로필(아바타+이름+부서+온라인) → 통계3열 → 출퇴근(날짜+미출근배지, 내근/외근, 출근/퇴근) → 연차 → 달력
-function RightPanel() {
+// ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
+function LeftPanel() {
   const [checkedIn, setCheckedIn] = useState(false);
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
 
-  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (목)`;
+  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (화)`;
 
   return (
     <div
       className="portal-card animate-fade-in-up stagger-2 p-4 flex flex-col gap-0"
       style={{ width: "260px", flexShrink: 0 }}
     >
-      {/* 프로필 */}
+      {/* 프로필 — 증명사진 */}
       <div className="flex flex-col items-center pb-4" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
-        <div
-          className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-bold text-white mb-2"
-          style={{ background: "var(--kino-charcoal)" }}
-        >
-          김
-        </div>
-        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
-        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
+        <img
+          src="/manus-storage/profile-kimingu_d2337f72.jpg"
+          alt="김민구"
+          className="w-16 h-16 rounded-full object-cover mb-2"
+          style={{ border: "2px solid var(--kino-pale)" }}
+        />
+        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>김민구</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>경영기획팀 · 선임</p>
         <div className="flex items-center gap-1 mt-1.5">
           <Wifi size={10} style={{ color: "var(--kino-green)" }} />
           <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
@@ -405,7 +415,6 @@ function RightPanel() {
 
       {/* 출퇴근 */}
       <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
-        {/* 날짜 + 미출근 배지 */}
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
           <span
@@ -441,7 +450,7 @@ function RightPanel() {
         {/* 출근 / 퇴근 */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => { setCheckedIn(true); toast(`출근 처리 완료`); }}
+            onClick={() => { setCheckedIn(true); toast("출근 처리 완료"); }}
             disabled={checkedIn}
             className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all"
             style={{
@@ -482,7 +491,7 @@ function RightPanel() {
   );
 }
 
-// ── Mobile: 퀵메뉴 카드 (이미지 기준: 카드 안에 4개 원형 아이콘) ──
+// ── Mobile: 퀵메뉴 카드 ──────────────────────────────────────────
 function MobileQuickMenu() {
   return <QuickMenuSection card={true} />;
 }
@@ -491,14 +500,14 @@ function MobileQuickMenu() {
 function MobileProfileCard() {
   return (
     <div className="portal-card p-6 flex flex-col items-center animate-fade-in-up stagger-2">
-      <div
-        className="w-24 h-24 rounded-full flex items-center justify-center text-4xl font-bold text-white mb-3"
-        style={{ background: "var(--kino-charcoal)" }}
-      >
-        김
-      </div>
-      <p className="text-lg font-bold mt-1" style={{ color: "var(--kino-charcoal)" }}>김팽팽</p>
-      <p className="text-sm mt-0.5" style={{ color: "var(--kino-muted)" }}>개발팀 · 대리</p>
+      <img
+        src="/manus-storage/profile-kimingu_d2337f72.jpg"
+        alt="김민구"
+        className="w-24 h-24 rounded-full object-cover mb-3"
+        style={{ border: "2px solid var(--kino-pale)" }}
+      />
+      <p className="text-lg font-bold mt-1" style={{ color: "var(--kino-charcoal)" }}>김민구</p>
+      <p className="text-sm mt-0.5" style={{ color: "var(--kino-muted)" }}>경영기획팀 · 선임</p>
       <div className="flex items-center gap-1.5 mt-2">
         <Wifi size={13} style={{ color: "var(--kino-green)" }} />
         <span className="text-sm font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
@@ -507,7 +516,7 @@ function MobileProfileCard() {
   );
 }
 
-// ── Mobile: 통계 카드 (숫자 크게) ───────────────────────────────
+// ── Mobile: 통계 카드 ────────────────────────────────────────────
 function MobileStatsCard() {
   return (
     <div className="portal-card animate-fade-in-up stagger-3">
@@ -528,15 +537,13 @@ function MobileStatsCard() {
 }
 
 // ── Mobile: 출퇴근 카드 ──────────────────────────────────────────
-// 이미지 기준: 날짜+미출근배지 → 내근(검정)/외근(테두리) → 출근(검정)/퇴근(테두리)
 function MobileAttendanceCard() {
   const [checkedIn, setCheckedIn] = useState(false);
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (목)`;
+  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (화)`;
 
   return (
     <div className="portal-card p-4 animate-fade-in-up stagger-4">
-      {/* 날짜 + 미출근 배지 */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
         <span
@@ -550,7 +557,6 @@ function MobileAttendanceCard() {
         </span>
       </div>
 
-      {/* 내근 / 외근 */}
       <div className="grid grid-cols-2 gap-3 mb-3">
         {(["내근","외근"] as const).map((t) => (
           <button
@@ -569,7 +575,6 @@ function MobileAttendanceCard() {
         ))}
       </div>
 
-      {/* 출근 / 퇴근 */}
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => { setCheckedIn(true); toast("출근 처리 완료"); }}
@@ -604,11 +609,10 @@ export default function Home() {
         <div className="hidden md:block">
           <div className="flex gap-4 items-start">
             {/* 좌측 패널: 프로필+통계+출퇴근+연차+달력 */}
-            <RightPanel />
+            <LeftPanel />
 
             {/* 우측: 퀵메뉴 + 공지+게시판 / 인사발령+경조사 */}
             <div className="flex-1 min-w-0 flex flex-col gap-4">
-              {/* 퀵메뉴: 카드 없이 흰 배경, 우측 콘텐츠 상단 */}
               <QuickMenuSection card={false} />
               <div className="grid grid-cols-2 gap-4">
                 <NoticeSection />
