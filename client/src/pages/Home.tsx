@@ -54,7 +54,7 @@ const BOARD_POSTS = [
 const CONDOLENCES = [
   { id: 1, type: "결혼", name: "미래전략사업부 경영기획팀 김민구 선임님 형제자매 결혼", date: "2026.04.25", emoji: "💍" },
   { id: 2, type: "부고", name: "Dx사업부 오디오사업팀 이재원 책임님 조모상", date: "2026.02.05", emoji: "🕯️" },
-  { id: 3, type: "부고", name: "미래전략사업부 경영기획팀 박찬훈 팀장님 담당님 부친상", date: "2026.01.13", emoji: "🕯️" },
+  { id: 3, type: "부고", name: "미래전략사업부 경영기획팀 박찬훈 팀장님 부친상", date: "2026.01.13", emoji: "🕯️" },
   { id: 4, type: "부고", name: "Dx사업부 최재실 담당님 부친상", date: "2026.01.02", emoji: "🕯️" },
 ];
 
