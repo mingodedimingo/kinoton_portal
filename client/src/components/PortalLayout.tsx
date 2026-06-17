@@ -19,7 +19,7 @@ const NAV_ITEMS = [
   { label: "메일",       icon: Mail,       path: "/mail",                          external: false },
   { label: "전자결재",   icon: FileCheck,  path: "/approve",                       external: false },
   { label: "게시판",     icon: BookOpen,   path: "/board",                         external: false },
-  { label: "조직도",     icon: Network,    path: "/org",                          external: false },
+  { label: "조직도",     icon: Network,    path: "/orgchart",                     external: false },
   { label: "ERP",        icon: Settings2,  path: "https://erp.kinoton.co.kr/",    external: true },
   { label: "영업시스템", icon: Building2,  path: "https://sales.kinoton.co.kr/",  external: true },
   { label: "전체메뉴",   icon: LayoutGrid, path: "/#menu",                         external: false },
