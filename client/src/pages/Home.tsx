@@ -42,10 +42,10 @@ const HR_NOTICES = [
   { id: 5, type: "입사", title: "한민 선임 DE사업본부 관리팀 입사", date: "2026.04.14" },
 ];
 
-// 게시판 탭: 전체·물품신청·매뉴얼·기타
+// 게시판 탭: 전체·언론보도·매뉴얼·기타
 const BOARD_POSTS = [
-  { id: 1, category: "물품신청", title: "[물품신청] 20260604_최강 책임", date: "2026.06.04", isNew: true },
-  { id: 2, category: "물품신청", title: "[물품신청] 20260603_장 형 책임", date: "2026.06.03" },
+  { id: 1, category: "언론보도", title: "키노톤, 콘텐츠 IP 기업 도약 선언…\"연내 코스닥 상장 추진\"", date: "2026.06.12", isNew: true, link: "https://www.yna.co.kr/view/AKR20260612056400030?input=1195m" },
+  { id: 2, category: "언론보도", title: "키노톤 \"글로벌 디지털 미디어 기업으로 도약\" 창립 20주년 맞아 미래비전 발표, IPO 절차 진행", date: "2026.06.12", link: "https://www.thebell.co.kr/front/newsview.asp?click=F&key=202606121100151040102052" },
   { id: 3, category: "매뉴얼", title: "신규 생일 선물 제공 플랫폼(생일24) 이용 가이드 안내", date: "2026.06.02" },
   { id: 4, category: "매뉴얼", title: "키노톤(주) 실물모형 및 진시물 직접생산확인 증명서", date: "2026.06.01" },
   { id: 5, category: "기타", title: "새로운 맛집 공유 드립니다", date: "2026.05.30" },
@@ -209,13 +209,13 @@ function HRSection() {
   );
 }
 
-// ── Board Section — 탭: 전체·물품신청·매뉴얼·기타 ──────────────
+// ── Board Section — 탭: 전체·언론보도·매뉴얼·기타 ──────────────
 function BoardSection() {
-  const [tab, setTab] = useState<"all"|"platform"|"manual"|"etc">("all");
+  const [tab, setTab] = useState<"all"|"press"|"manual"|"etc">("all");
   const filtered = tab === "all"
     ? BOARD_POSTS
     : BOARD_POSTS.filter(p =>
-        tab === "platform" ? p.category === "물품신청"
+        tab === "press" ? p.category === "언론보도"
         : tab === "manual" ? p.category === "매뉴얼"
         : p.category === "기타"
       );
@@ -228,7 +228,7 @@ function BoardSection() {
             게시판
           </span>
           <div className="flex gap-1">
-            {(["all","platform","manual","etc"] as const).map((t) => (
+            {(["all","press","manual","etc"] as const).map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -238,7 +238,7 @@ function BoardSection() {
                   color: tab === t ? "white" : "var(--kino-muted)",
                 }}
               >
-                {t === "all" ? "전체" : t === "platform" ? "물품신청" : t === "manual" ? "매뉴얼" : "기타"}
+                {t === "all" ? "전체" : t === "press" ? "언론보도" : t === "manual" ? "매뉴얼" : "기타"}
               </button>
             ))}
           </div>
@@ -249,7 +249,7 @@ function BoardSection() {
       </div>
       <div>
         {filtered.map((p) => (
-          <div key={p.id} className="board-item" onClick={() => toast(`"${p.title}" 상세 보기 준비 중`)}>
+          <div key={p.id} className="board-item" style={{ cursor: "pointer" }} onClick={() => (p as any).link ? window.open((p as any).link, "_blank") : toast(`"${p.title}" 상세 보기 준비 중`)}>
             <span className="badge-tag shrink-0">{p.category}</span>
             <span className="board-item-title">{p.title}</span>
             {p.isNew && <span className="badge-new shrink-0">N</span>}
@@ -386,7 +386,7 @@ function LeftPanel() {
       {/* 프로필 — 증명사진 */}
       <div className="flex flex-col items-center pb-4" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         <img
-          src="/manus-storage/profile-kimingu_d2337f72.jpg"
+          src="/manus-storage/profile-kmg-new_30f1ac23.png"
           alt="김민구"
           className="w-16 h-16 rounded-full object-cover mb-2"
           style={{ border: "2px solid var(--kino-pale)" }}
@@ -501,7 +501,7 @@ function MobileProfileCard() {
   return (
     <div className="portal-card p-6 flex flex-col items-center animate-fade-in-up stagger-2">
       <img
-        src="/manus-storage/profile-kimingu_d2337f72.jpg"
+        src="/manus-storage/profile-kmg-new_30f1ac23.png"
         alt="김민구"
         className="w-24 h-24 rounded-full object-cover mb-3"
         style={{ border: "2px solid var(--kino-pale)" }}

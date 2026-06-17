@@ -163,7 +163,7 @@ export default function PortalLayout({ children }: Props) {
             onClick={() => handleComingSoon("마이페이지")}
           >
             <img
-              src="/manus-storage/profile-kimingu_d2337f72.jpg"
+              src="/manus-storage/profile-kmg-new_30f1ac23.png"
               alt="김민구"
               className="w-9 h-9 rounded-full object-cover"
               style={{ border: "1.5px solid var(--kino-pale)" }}
