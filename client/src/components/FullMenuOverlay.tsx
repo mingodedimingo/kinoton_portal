@@ -5,7 +5,7 @@
 import { Link } from "wouter";
 import { X, Mail, FileCheck, BookOpen, Calendar, Users, Building2, Briefcase,
   MessageSquare, FileText, BarChart2, Settings, HelpCircle, Bell,
-  ClipboardList, Car, Coffee, Printer, Phone, Globe } from "lucide-react";
+  ClipboardList, Car, Coffee, Phone, Globe, Settings2, TrendingUp } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -50,15 +50,15 @@ const MENU_GROUPS = [
     items: [
       { label: "통계·현황",  icon: BarChart2,      path: "/#stats",    desc: "업무 통계" },
       { label: "사내 전화",  icon: Phone,          path: "/#phone",    desc: "임직원 연락처" },
-      { label: "사내 홈페이지", icon: Globe,       path: "https://kinoton.co.kr/ko", desc: "kinoton.co.kr" },
+      { label: "홈페이지",   icon: Globe,          path: "https://kinoton.co.kr/", desc: "kinoton.co.kr" },
     ],
   },
   {
     category: "시스템",
     items: [
-      { label: "알림",       icon: Bell,           path: "/#notify",   desc: "알림 설정" },
+      { label: "ERP",        icon: Settings2,      path: "https://erp.kinoton.co.kr/",   desc: "ERP 시스템" },
+      { label: "영업시스템", icon: TrendingUp,     path: "https://sales.kinoton.co.kr/", desc: "영업 관리" },
       { label: "설정",       icon: Settings,       path: "/#settings", desc: "개인 설정" },
-      { label: "도움말",     icon: HelpCircle,     path: "/#help",     desc: "사용 가이드" },
     ],
   },
 ];
