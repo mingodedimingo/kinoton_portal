@@ -474,7 +474,7 @@ function LeftPanel() {
       <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         <div className="flex justify-between items-center mb-1">
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>연차 현황</span>
-          <span className="text-xs" style={{ color: "var(--kino-muted)" }}>2026.06.05 기준</span>
+          <span className="text-xs" style={{ color: "var(--kino-muted)" }}>2026.06.16 기준</span>
         </div>
         <div className="flex justify-between text-xs mb-1">
           <span style={{ color: "var(--kino-mid)" }}>사용 / 총 연차</span>
