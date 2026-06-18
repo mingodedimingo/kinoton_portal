@@ -139,16 +139,6 @@ export default function PortalLayout({ children }: Props) {
             onClick={() => handleComingSoon("알림")}
           >
             <Bell size={20} style={{ color: "var(--kino-mid)" }} />
-            {/* 모바일: 작은 빨간 점 */}
-            <span
-              className="md:hidden absolute top-2 right-2 w-2 h-2 rounded-full"
-              style={{ background: "var(--kino-red)" }}
-            />
-            {/* PC: 숫자 배지 */}
-            <span
-              className="hidden md:flex absolute top-1 right-1 w-4 h-4 items-center justify-center rounded-full text-white font-bold"
-              style={{ background: "var(--kino-red)", fontSize: "0.6rem" }}
-            >3</span>
           </button>
 
           {/* 구분선 — 모바일에서만 표시 */}

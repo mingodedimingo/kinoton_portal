@@ -60,7 +60,7 @@ const CONDOLENCES = [
 
 // 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
 const QUICK_MENUS = [
-  { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 3, external: true },
+  { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
   { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 2 },
   { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
   { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
@@ -399,12 +399,11 @@ function LeftPanel() {
         </div>
       </div>
 
-      {/* 통계 3열 */}
-      <div className="grid grid-cols-3 divide-x py-1" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
+      {/* 통계 2열 */}
+      <div className="grid grid-cols-2 divide-x py-1" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         {[
           { label: "오늘 일정", value: "2" },
           { label: "진행 결재", value: "1" },
-          { label: "미확인 메일", value: "3" },
         ].map((s) => (
           <div key={s.label} className="flex flex-col items-center py-2.5">
             <span className="text-xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
@@ -520,11 +519,10 @@ function MobileProfileCard() {
 function MobileStatsCard() {
   return (
     <div className="portal-card animate-fade-in-up stagger-3">
-      <div className="grid grid-cols-3 divide-x">
+      <div className="grid grid-cols-2 divide-x">
         {[
           { label: "오늘 일정", value: "2" },
           { label: "진행 결재", value: "1" },
-          { label: "미확인 메일", value: "3" },
         ].map((s) => (
           <div key={s.label} className="flex flex-col items-center py-5">
             <span className="text-3xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
