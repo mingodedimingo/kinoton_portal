@@ -16,7 +16,7 @@ const MENU_GROUPS = [
   {
     category: "커뮤니케이션",
     items: [
-      { label: "메일",       icon: Mail,          path: "/mail",      desc: "사내 이메일" },
+      { label: "메일",       icon: Mail,          path: "https://wmail.ecount.com/", desc: "사내 이메일" },
       { label: "게시판",     icon: BookOpen,       path: "/board",     desc: "언론보도 / 매뉴얼 / 기타" },
       { label: "쪽지",       icon: MessageSquare,  path: "/#msg",      desc: "사내 메시지" },
     ],
