@@ -81,6 +81,7 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
   const handleClick = (item: typeof QUICK_MENUS[0]) => {
     if (item.path === "/#menu") openFullMenu();
     else if (item.external) window.open(item.path, "_blank");
+    else window.location.href = item.path;
   };
   const inner = (
     <div className="flex items-center justify-center gap-4 md:gap-10 pt-8 pb-5 px-4">
