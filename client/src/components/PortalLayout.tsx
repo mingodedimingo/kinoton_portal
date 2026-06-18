@@ -16,7 +16,7 @@ import {
 import FullMenuOverlay from "./FullMenuOverlay";
 
 const NAV_ITEMS = [
-  { label: "메일",       icon: Mail,       path: "https://wmail.ecount.com/",      external: true },
+  { label: "메일",       icon: Mail,       path: "/mail",                          external: false },
   { label: "전자결재",   icon: FileCheck,  path: "/approve",                       external: false },
   { label: "게시판",     icon: BookOpen,   path: "/board",                         external: false },
   { label: "조직도",     icon: Network,    path: "/orgchart",                     external: false },
