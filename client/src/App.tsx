@@ -12,11 +12,20 @@ import CalendarPage from "./pages/CalendarPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import ReservePage from "./pages/ReservePage";
 import WorkPage from "./pages/WorkPage";
-import AttendanceAdminPage from "./pages/AttendanceAdminPage";
+
+// Admin pages
+import AdminLoginPage from "./pages/admin/AdminLoginPage";
+import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminAttendancePage from "./pages/admin/AdminAttendancePage";
+import AdminNoticesPage from "./pages/admin/AdminNoticesPage";
+import AdminHrPage from "./pages/admin/AdminHrPage";
+import AdminCondolencesPage from "./pages/admin/AdminCondolencesPage";
+import AdminBoardPage from "./pages/admin/AdminBoardPage";
+
 function Router() {
-  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
+      {/* 일반 페이지 */}
       <Route path="/" component={Home} />
       <Route path="/mail" component={MailPage} />
       <Route path="/approve" component={ApprovePage} />
@@ -25,7 +34,16 @@ function Router() {
       <Route path="/orgchart" component={OrgChartPage} />
       <Route path="/reserve" component={ReservePage} />
       <Route path="/work" component={WorkPage} />
-      <Route path="/admin/attendance" component={AttendanceAdminPage} />
+
+      {/* 어드민 페이지 */}
+      <Route path="/admin/login" component={AdminLoginPage} />
+      <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/attendance" component={AdminAttendancePage} />
+      <Route path="/admin/notices" component={AdminNoticesPage} />
+      <Route path="/admin/hr" component={AdminHrPage} />
+      <Route path="/admin/condolences" component={AdminCondolencesPage} />
+      <Route path="/admin/board" component={AdminBoardPage} />
+
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>
