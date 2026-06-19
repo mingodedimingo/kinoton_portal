@@ -54,3 +54,35 @@
 - [x] 경조사 DB 연동 (condolences 테이블)
 - [x] 게시판 DB 연동 (board_posts 테이블)
 - [x] App.tsx 어드민 라우트 전체 등록
+
+## 근태 관리 시스템 자체 구축
+
+### Phase 1: DB 스키마 확장
+- [x] employees 테이블 (직원 정보: 이름, 부서, 직위, 입사일, 이메일)
+- [x] leave_balances 테이블 (연차 부여: 직원별 연도별 총 연차, 사용 연차)
+- [x] leave_requests 테이블 (연차 신청: 신청자, 기간, 종류, 상태, 반차여부, 사유)
+- [x] pnpm db:push 실행
+
+### Phase 2: 백엔드 API
+- [x] employees CRUD (어드민용)
+- [x] leave.request - 연차 신청
+- [x] leave.myRequests - 내 신청 이력 조회
+- [x] leave.approve / leave.reject - 어드민 승인/반려
+- [x] leave.balance - 잔여 연차 조회 (자동 계산)
+- [x] attendance.exportCSV - 이카운트용 CSV 내보내기
+
+### Phase 3: 홈 페이지 출퇴근 개선
+- [x] 직원 선택 드롭다운 (또는 이름 입력)
+- [x] 연차 신청 바로가기 버튼
+- [x] 잔여 연차 실시간 표시 (DB 연동)
+
+### Phase 4: 직원용 연차 신청 페이지 (/leave)
+- [x] 연차 신청 폼 (날짜, 종류: 연차/반차/반반차, 사유)
+- [x] 내 연차 현황 (총 연차, 사용, 잔여)
+- [x] 신청 이력 (승인/대기/반려 상태 표시)
+
+### Phase 5: 어드민 근태 관리 강화
+- [x] /admin/employees - 직원 등록/수정/삭제, 연차 부여
+- [x] /admin/leave - 연차 신청 목록, 승인/반려 처리
+- [x] /admin/attendance 근태 보고서 강화 (월별 집계, 지각/조퇴)
+- [x] CSV 내보내기 (이카운트 업로드용)

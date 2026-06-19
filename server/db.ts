@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, like } from "drizzle-orm";
+import { and, desc, eq, gte, lte, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   AttendanceLog, InsertAttendanceLog, InsertUser,
@@ -7,6 +7,9 @@ import {
   HrNotice, InsertHrNotice, hrNotices,
   Condolence, InsertCondolence, condolences,
   BoardPost, InsertBoardPost, boardPosts,
+  Employee, InsertEmployee, employees,
+  LeaveBalance, InsertLeaveBalance, leaveBalances,
+  LeaveRequest, InsertLeaveRequest, leaveRequests,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -69,6 +72,8 @@ export async function getAttendanceLogs(filters?: {
   date?: Date;
   department?: string;
   employeeName?: string;
+  startDate?: Date;
+  endDate?: Date;
 }): Promise<AttendanceLog[]> {
   const db = await getDb();
   if (!db) return [];
@@ -79,6 +84,8 @@ export async function getAttendanceLogs(filters?: {
     conditions.push(gte(attendanceLogs.recordedAt, start));
     conditions.push(lte(attendanceLogs.recordedAt, end));
   }
+  if (filters?.startDate) conditions.push(gte(attendanceLogs.recordedAt, filters.startDate));
+  if (filters?.endDate) conditions.push(lte(attendanceLogs.recordedAt, filters.endDate));
   if (filters?.department) conditions.push(eq(attendanceLogs.department, filters.department));
   if (filters?.employeeName) conditions.push(eq(attendanceLogs.employeeName, filters.employeeName));
   const query = conditions.length > 0
@@ -121,6 +128,132 @@ export async function getTodaySummary(): Promise<{
   const checkoutNames = new Set(rows.filter(r => r.type === 'checkout').map(r => r.employeeName));
   const currentlyIn = Array.from(checkinNames).filter(name => !checkoutNames.has(name)).length;
   return { totalCheckin: checkinNames.size, totalCheckout: checkoutNames.size, currentlyIn };
+}
+
+// ── 직원 쿼리 헬퍼 ───────────────────────────────────────────────
+
+export async function getEmployees(activeOnly = true): Promise<Employee[]> {
+  const db = await getDb();
+  if (!db) return [];
+  if (activeOnly) {
+    return db.select().from(employees).where(eq(employees.isActive, true)).orderBy(employees.department, employees.name);
+  }
+  return db.select().from(employees).orderBy(employees.department, employees.name);
+}
+
+export async function getEmployeeById(id: number): Promise<Employee | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(employees).where(eq(employees.id, id)).limit(1);
+  return result[0];
+}
+
+export async function insertEmployee(data: InsertEmployee): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(employees).values(data);
+  return (result[0] as any).insertId;
+}
+
+export async function updateEmployee(id: number, data: Partial<InsertEmployee>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(employees).set(data).where(eq(employees.id, id));
+}
+
+export async function deleteEmployee(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(employees).set({ isActive: false }).where(eq(employees.id, id));
+}
+
+// ── 연차 잔액 쿼리 헬퍼 ─────────────────────────────────────────
+
+export async function getLeaveBalance(employeeId: number, year: number): Promise<LeaveBalance | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(leaveBalances)
+    .where(and(eq(leaveBalances.employeeId, employeeId), eq(leaveBalances.year, year)))
+    .limit(1);
+  return result[0];
+}
+
+export async function getAllLeaveBalances(year: number): Promise<LeaveBalance[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(leaveBalances).where(eq(leaveBalances.year, year));
+}
+
+export async function upsertLeaveBalance(employeeId: number, year: number, totalDays: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const existing = await getLeaveBalance(employeeId, year);
+  if (existing) {
+    await db.update(leaveBalances).set({ totalDays }).where(eq(leaveBalances.id, existing.id));
+  } else {
+    await db.insert(leaveBalances).values({ employeeId, year, totalDays, usedDays: "0.0" });
+  }
+}
+
+export async function updateLeaveUsed(employeeId: number, year: number, delta: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(leaveBalances)
+    .set({ usedDays: sql`usedDays + ${delta}` })
+    .where(and(eq(leaveBalances.employeeId, employeeId), eq(leaveBalances.year, year)));
+}
+
+// ── 연차 신청 쿼리 헬퍼 ─────────────────────────────────────────
+
+export async function getLeaveRequests(filters?: {
+  employeeId?: number;
+  status?: string;
+  year?: number;
+}): Promise<LeaveRequest[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (filters?.employeeId) conditions.push(eq(leaveRequests.employeeId, filters.employeeId));
+  if (filters?.status) conditions.push(eq(leaveRequests.status, filters.status as any));
+  if (filters?.year) {
+    const yearStr = String(filters.year);
+    conditions.push(gte(leaveRequests.startDate, `${yearStr}-01-01`));
+    conditions.push(lte(leaveRequests.startDate, `${yearStr}-12-31`));
+  }
+  const query = conditions.length > 0
+    ? db.select().from(leaveRequests).where(and(...conditions)).orderBy(desc(leaveRequests.createdAt))
+    : db.select().from(leaveRequests).orderBy(desc(leaveRequests.createdAt));
+  return query;
+}
+
+export async function insertLeaveRequest(data: InsertLeaveRequest): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(leaveRequests).values(data);
+  return (result[0] as any).insertId;
+}
+
+export async function updateLeaveRequestStatus(
+  id: number,
+  status: "승인" | "반려",
+  approverName: string,
+  rejectReason?: string
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(leaveRequests).set({
+    status,
+    approverName,
+    approvedAt: new Date(),
+    rejectReason: rejectReason ?? null,
+  }).where(eq(leaveRequests.id, id));
+}
+
+export async function getLeaveRequestById(id: number): Promise<LeaveRequest | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(leaveRequests).where(eq(leaveRequests.id, id)).limit(1);
+  return result[0];
 }
 
 // ── 공지사항 쿼리 헬퍼 ────────────────────────────────────────────

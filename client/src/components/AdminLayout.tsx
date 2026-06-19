@@ -11,12 +11,14 @@ import AdminLoginPage from "@/pages/admin/AdminLoginPage";
 import {
   LayoutDashboard, ClipboardList, Megaphone,
   UserCheck, Heart, BookOpen, LogOut,
-  Menu, X, ChevronRight, Loader2,
+  Menu, X, ChevronRight, Loader2, Users, CalendarDays,
 } from "lucide-react";
 
 const ADMIN_NAV = [
   { label: "대시보드",    icon: LayoutDashboard, path: "/admin" },
   { label: "출퇴근 관리", icon: ClipboardList,   path: "/admin/attendance" },
+  { label: "직원 관리",   icon: Users,           path: "/admin/employees" },
+  { label: "연차 관리",   icon: CalendarDays,    path: "/admin/leave" },
   { label: "공지사항",    icon: Megaphone,       path: "/admin/notices" },
   { label: "인사발령",    icon: UserCheck,       path: "/admin/hr" },
   { label: "경조사",      icon: Heart,           path: "/admin/condolences" },

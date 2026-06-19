@@ -21,6 +21,9 @@ import AdminNoticesPage from "./pages/admin/AdminNoticesPage";
 import AdminHrPage from "./pages/admin/AdminHrPage";
 import AdminCondolencesPage from "./pages/admin/AdminCondolencesPage";
 import AdminBoardPage from "./pages/admin/AdminBoardPage";
+import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
+import AdminLeavePage from "./pages/admin/AdminLeavePage";
+import LeavePage from "./pages/LeavePage";
 
 function Router() {
   return (
@@ -34,6 +37,7 @@ function Router() {
       <Route path="/orgchart" component={OrgChartPage} />
       <Route path="/reserve" component={ReservePage} />
       <Route path="/work" component={WorkPage} />
+      <Route path="/leave" component={LeavePage} />
 
       {/* 어드민 페이지 */}
       <Route path="/admin/login" component={AdminLoginPage} />
@@ -43,6 +47,8 @@ function Router() {
       <Route path="/admin/hr" component={AdminHrPage} />
       <Route path="/admin/condolences" component={AdminCondolencesPage} />
       <Route path="/admin/board" component={AdminBoardPage} />
+      <Route path="/admin/employees" component={AdminEmployeesPage} />
+      <Route path="/admin/leave" component={AdminLeavePage} />
 
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
