@@ -6,7 +6,7 @@
  * GNB: 메일·전자결재·게시판·ERP·영업시스템·전체메뉴
  */
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { Link, useLocation, useRouter } from "wouter";
 import { toast } from "sonner";
 import {
   Bell, Search, Mail, FileCheck, LayoutGrid,
@@ -150,7 +150,7 @@ export default function PortalLayout({ children }: Props) {
           {/* 프로필 — 증명사진 (모바일: 원형 사진, PC: 사진+이름/부서) */}
           <div
             className="flex items-center gap-2 cursor-pointer"
-            onClick={() => handleComingSoon("마이페이지")}
+            onClick={() => window.location.href = "/mypage"}
           >
             <img
               src="/manus-storage/profile-kmg-new_30f1ac23.png"

@@ -346,6 +346,15 @@ function LeaveBalancesTab({ adminToken }: { adminToken: string }) {
 export default function AdminLeavePage() {
   const { token: adminToken } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<"requests" | "balances">("requests");
+  const currentYear = new Date().getFullYear();
+
+  // 대기 건수 조회
+  const { data: pendingRequests } = trpc.leave.adminList.useQuery({
+    adminToken,
+    year: currentYear,
+    status: "대기",
+  });
+  const pendingCount = pendingRequests?.length ?? 0;
 
   return (
     <AdminLayout>
@@ -361,24 +370,47 @@ export default function AdminLeavePage() {
           </p>
         </div>
 
+        {/* 대기 중 신청 알림 배너 */}
+        {pendingCount > 0 && (
+          <div
+            className="flex items-center gap-2 px-4 py-3 rounded-lg mb-5 text-sm font-semibold"
+            style={{ background: "#FEF9C3", color: "#92400E", border: "1px solid #FDE68A" }}
+          >
+            <Clock size={15} />
+            승인 대기 중인 연차 신청이 <strong>{pendingCount}건</strong> 있습니다. 아래 목록에서 처리해 주세요.
+          </div>
+        )}
+
         {/* 탭 */}
         <div className="flex gap-1 mb-5 p-1 rounded-lg" style={{ background: "var(--kino-pale)", width: "fit-content" }}>
-          {[
-            { key: "requests", label: "연차 신청 목록" },
-            { key: "balances", label: "연차 잔액 현황" },
-          ].map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as "requests" | "balances")}
-              className="px-4 py-1.5 rounded text-xs font-semibold transition-all"
-              style={{
-                background: activeTab === tab.key ? "var(--kino-charcoal)" : "transparent",
-                color: activeTab === tab.key ? "white" : "var(--kino-mid)",
-              }}
-            >
-              {tab.label}
-            </button>
-          ))}
+          <button
+            onClick={() => setActiveTab("requests")}
+            className="relative px-4 py-1.5 rounded text-xs font-semibold transition-all flex items-center gap-1.5"
+            style={{
+              background: activeTab === "requests" ? "var(--kino-charcoal)" : "transparent",
+              color: activeTab === "requests" ? "white" : "var(--kino-mid)",
+            }}
+          >
+            연차 신청 목록
+            {pendingCount > 0 && (
+              <span
+                className="inline-flex items-center justify-center w-4 h-4 rounded-full text-white font-bold"
+                style={{ background: "var(--kino-red)", fontSize: "0.6rem" }}
+              >
+                {pendingCount}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setActiveTab("balances")}
+            className="px-4 py-1.5 rounded text-xs font-semibold transition-all"
+            style={{
+              background: activeTab === "balances" ? "var(--kino-charcoal)" : "transparent",
+              color: activeTab === "balances" ? "white" : "var(--kino-mid)",
+            }}
+          >
+            연차 잔액 현황
+          </button>
         </div>
 
         {activeTab === "requests" ? (

@@ -95,6 +95,7 @@ export const appRouter = router({
         email: z.string().email().optional().or(z.literal("")),
         phone: z.string().optional(),
         joinDate: z.string().min(1), // YYYY-MM-DD
+        profileImage: z.string().optional(), // 프로필 사진 URL
         annualLeave: z.number().default(15), // 초기 연차 일수
       }))
       .mutation(async ({ input }) => {
@@ -108,6 +109,7 @@ export const appRouter = router({
           email: input.email || null,
           phone: input.phone || null,
           joinDate: input.joinDate,
+          profileImage: input.profileImage || null,
           isActive: true,
         });
         // 현재 연도 연차 자동 생성
@@ -126,6 +128,7 @@ export const appRouter = router({
         email: z.string().optional(),
         phone: z.string().optional(),
         joinDate: z.string().optional(),
+        profileImage: z.string().optional(), // 프로필 사진 URL
         isActive: z.boolean().optional(),
       }))
       .mutation(async ({ input }) => {
@@ -359,6 +362,40 @@ export const appRouter = router({
       })),
 
     todaySummary: publicProcedure.query(async () => getTodaySummary()),
+
+    // 개인 출퇴근 이력 (날짜 문자열 기반)
+    myHistory: publicProcedure
+      .input(z.object({
+        employeeName: z.string().min(1),
+        days: z.number().default(7),
+      }))
+      .query(async ({ input }) => {
+        const endDate = new Date();
+        endDate.setHours(23, 59, 59, 999);
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - input.days);
+        startDate.setHours(0, 0, 0, 0);
+        const logs = await getAttendanceLogs({ employeeName: input.employeeName, startDate, endDate });
+        // 날짜별 그룹핑
+        const grouped: Record<string, { date: string; checkIn: string | null; checkOut: string | null; workType: string; workHours: string | null }> = {};
+        for (const log of logs) {
+          const dateKey = log.recordedAt.toISOString().substring(0, 10);
+          if (!grouped[dateKey]) grouped[dateKey] = { date: dateKey, checkIn: null, checkOut: null, workType: log.workType === 'office' ? '내근' : '외근', workHours: null };
+          const timeStr = log.recordedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+          if (log.type === 'checkin') grouped[dateKey].checkIn = timeStr;
+          else grouped[dateKey].checkOut = timeStr;
+        }
+        // 근무시간 계산
+        for (const entry of Object.values(grouped)) {
+          if (entry.checkIn && entry.checkOut) {
+            const [ih, im] = entry.checkIn.split(':').map(Number);
+            const [oh, om] = entry.checkOut.split(':').map(Number);
+            const mins = (oh * 60 + om) - (ih * 60 + im);
+            if (mins > 0) entry.workHours = (mins / 60).toFixed(1);
+          }
+        }
+        return Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date));
+      }),
 
     // CSV 내보내기 (이카운트 업로드용)
     exportCsv: publicProcedure

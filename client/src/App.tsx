@@ -24,6 +24,7 @@ import AdminBoardPage from "./pages/admin/AdminBoardPage";
 import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
 import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import LeavePage from "./pages/LeavePage";
+import MyPage from "./pages/MyPage";
 
 function Router() {
   return (
@@ -38,6 +39,7 @@ function Router() {
       <Route path="/reserve" component={ReservePage} />
       <Route path="/work" component={WorkPage} />
       <Route path="/leave" component={LeavePage} />
+      <Route path="/mypage" component={MyPage} />
 
       {/* 어드민 페이지 */}
       <Route path="/admin/login" component={AdminLoginPage} />

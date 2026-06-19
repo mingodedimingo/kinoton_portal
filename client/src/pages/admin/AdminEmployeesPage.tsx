@@ -20,6 +20,7 @@ type Employee = {
   email: string | null;
   phone: string | null;
   joinDate: string;
+  profileImage: string | null;
   isActive: boolean;
 };
 
@@ -43,6 +44,7 @@ function EmployeeFormModal({
     email: employee?.email ?? "",
     phone: employee?.phone ?? "",
     joinDate: employee?.joinDate ?? new Date().toISOString().split("T")[0],
+    profileImage: (employee as Employee | null)?.profileImage ?? "",
     annualLeave: 15,
   });
 
@@ -76,6 +78,7 @@ function EmployeeFormModal({
         email: form.email,
         phone: form.phone,
         joinDate: form.joinDate,
+        profileImage: form.profileImage || undefined,
       });
     } else {
       createMutation.mutate({ adminToken, ...form });
@@ -104,6 +107,7 @@ function EmployeeFormModal({
             { label: "이메일", key: "email", type: "email", placeholder: "hong@kinoton.co.kr" },
             { label: "연락처", key: "phone", type: "tel", placeholder: "010-0000-0000" },
             { label: "입사일 *", key: "joinDate", type: "date", placeholder: "" },
+            { label: "프로필 사진 URL", key: "profileImage", type: "url", placeholder: "https://example.com/photo.jpg" },
           ].map(field => (
             <div key={field.key}>
               <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>{field.label}</label>

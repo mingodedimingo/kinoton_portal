@@ -5,7 +5,7 @@
 import { Link } from "wouter";
 import { X, Mail, FileCheck, BookOpen, Calendar, Users, Building2, Briefcase,
   MessageSquare, FileText, Settings, HelpCircle, Bell,
-  ClipboardList, Car, Coffee, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays } from "lucide-react";
+  ClipboardList, Car, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays, User } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -18,7 +18,7 @@ const MENU_GROUPS = [
     items: [
       { label: "메일",       icon: Mail,          path: "https://wmail.ecount.com/", desc: "사내 이메일", external: true },
       { label: "게시판",     icon: BookOpen,       path: "/board",     desc: "언론보도 / 매뉴얼 / 기타" },
-      { label: "쪽지",       icon: MessageSquare,  path: "/#msg",      desc: "사내 메시지" },
+      { label: "쪽지",       icon: MessageSquare,  path: "/board",     desc: "사내 메시지" },
     ],
   },
   {
@@ -26,7 +26,7 @@ const MENU_GROUPS = [
     items: [
       { label: "전자결재",   icon: FileCheck,      path: "/approve",   desc: "기안·결재·조회" },
       { label: "업무",       icon: Briefcase,      path: "/work",      desc: "To-Do·업무현황" },
-      { label: "보고서",     icon: FileText,       path: "/#report",   desc: "업무 보고" },
+      { label: "보고서",     icon: FileText,       path: "/board",     desc: "업무 보고" },
     ],
   },
   {
@@ -41,8 +41,16 @@ const MENU_GROUPS = [
     category: "조직·인사",
     items: [
       { label: "조직도",     icon: Users,          path: "/orgchart",  desc: "부서·임직원" },
-      { label: "인사발령",   icon: ClipboardList,  path: "/#hr",       desc: "발령·입퇴사" },
+      { label: "인사발령",   icon: ClipboardList,  path: "/board",     desc: "발령·입퇴사" },
       { label: "연차 신청",  icon: CalendarDays,   path: "/leave",     desc: "연차·반차 신청" },
+    ],
+  },
+  {
+    category: "마이페이지",
+    items: [
+      { label: "마이페이지", icon: User,          path: "/mypage",    desc: "프로필 · 근태 이력" },
+      { label: "연차 현황",  icon: CalendarDays,   path: "/leave",     desc: "내 연차 신청·이력" },
+      { label: "설정",       icon: Settings,       path: "/mypage",    desc: "개인 설정" },
     ],
   },
   {

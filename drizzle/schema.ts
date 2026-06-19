@@ -27,6 +27,7 @@ export const employees = mysqlTable("employees", {
   email: varchar("email", { length: 320 }),
   phone: varchar("phone", { length: 20 }),
   joinDate: varchar("joinDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  profileImage: varchar("profileImage", { length: 500 }), // 프로필 사진 URL
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
