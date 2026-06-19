@@ -12,8 +12,9 @@ import CalendarPage from "./pages/CalendarPage";
 import OrgChartPage from "./pages/OrgChartPage";
 import ReservePage from "./pages/ReservePage";
 import WorkPage from "./pages/WorkPage";
-
+import AttendanceAdminPage from "./pages/AttendanceAdminPage";
 function Router() {
+  // make sure to consider if you need authentication for certain routes
   return (
     <Switch>
       <Route path="/" component={Home} />
@@ -24,6 +25,7 @@ function Router() {
       <Route path="/orgchart" component={OrgChartPage} />
       <Route path="/reserve" component={ReservePage} />
       <Route path="/work" component={WorkPage} />
+      <Route path="/admin/attendance" component={AttendanceAdminPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -3,28 +3,28 @@
  * Design: Monochrome Precision
  * PC: 좌(프로필+통계+출퇴근+연차+달력) + 우(퀵메뉴+공지+게시판+인사발령+경조사)
  * Mobile: 퀵메뉴카드 → 프로필카드 → 통계카드 → 출퇴근카드
- *
- * 수정사항 (이미지 기준):
- * - 이름: 김민구 / 경영기획팀·선임 / 프로필 사진 적용
- * - GNB: 메일·전자결재·게시판·ERP·영업시스템·전체메뉴
- * - 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
- * - 게시판 탭: 전체·물품신청·매뉴얼·기타
- * - 공지/게시판/인사발령/경조사 내용 업데이트
- * - 헤더 우측: 프로필 사진 + 이름/부서
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link } from "wouter";
 import { toast } from "sonner";
 import {
   Mail, FileCheck, Calendar, LayoutGrid,
   ChevronRight, Plus, Megaphone, UserCheck,
   Heart, BookOpen, ChevronLeft, LogIn, LogOut,
-  Building2, MapPin, Wifi, Settings2,
+  Building2, MapPin, Wifi, Settings2, Loader2,
 } from "lucide-react";
 import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
+import { trpc } from "@/lib/trpc";
+
+// ── 현재 사용자 정보 (로그인 없이 고정값 사용) ─────────────────────
+const CURRENT_USER = {
+  name: "김민구",
+  department: "경영기획팀",
+  position: "선임",
+};
 
 // ── Dummy Data ──────────────────────────────────────────────────
-const TODAY = new Date(2026, 5, 16); // 2026년 6월 16일 (화)
+const TODAY = new Date();
 
 const NOTICES = [
   { id: 1, tag: "공지", title: "[공유] 2026년 6월 비상연락망", date: "2026.06.15", isNew: true },
@@ -75,6 +75,7 @@ function getFirstDayOfMonth(year: number, month: number) {
   return new Date(year, month, 1).getDay();
 }
 const DAY_NAMES = ["일","월","화","수","목","금","토"];
+const DAY_KO = ["일","월","화","수","목","금","토"];
 
 // ── Quick Menu ───────────────────────────────────────────────────
 function QuickMenuSection({ card = false }: { card?: boolean }) {
@@ -372,12 +373,84 @@ function MiniCalendar() {
   );
 }
 
+// ── 출퇴근 훅 (tRPC 연동) ────────────────────────────────────────
+function useAttendance() {
+  const utils = trpc.useUtils();
+
+  // 오늘 상태 조회 (이름 기반)
+  const { data: todayStatus, isLoading } = trpc.attendance.todayStatus.useQuery(
+    { employeeName: CURRENT_USER.name },
+    { refetchOnWindowFocus: true }
+  );
+
+  // 출퇴근 기록 뮤테이션
+  const recordMutation = trpc.attendance.record.useMutation({
+    onSuccess: (data) => {
+      utils.attendance.todayStatus.invalidate();
+      if (data.type === "checkin") {
+        toast.success("출근 처리가 완료되었습니다.");
+      } else {
+        toast.success("퇴근 처리가 완료되었습니다.");
+      }
+    },
+    onError: (err) => {
+      toast.error(`처리 실패: ${err.message}`);
+    },
+  });
+
+  const checkedIn = !!todayStatus?.checkin;
+  const checkedOut = !!todayStatus?.checkout;
+
+  const handleCheckin = (workType: "office" | "field") => {
+    recordMutation.mutate({
+      employeeName: CURRENT_USER.name,
+      department: CURRENT_USER.department,
+      position: CURRENT_USER.position,
+      type: "checkin",
+      workType,
+    });
+  };
+
+  const handleCheckout = (workType: "office" | "field") => {
+    recordMutation.mutate({
+      employeeName: CURRENT_USER.name,
+      department: CURRENT_USER.department,
+      position: CURRENT_USER.position,
+      type: "checkout",
+      workType,
+    });
+  };
+
+  return {
+    checkedIn,
+    checkedOut,
+    isLoading,
+    isPending: recordMutation.isPending,
+    checkinTime: todayStatus?.checkin?.recordedAt,
+    checkoutTime: todayStatus?.checkout?.recordedAt,
+    handleCheckin,
+    handleCheckout,
+  };
+}
+
 // ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
 function LeftPanel() {
-  const [checkedIn, setCheckedIn] = useState(false);
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
+  const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance();
 
-  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (화)`;
+  const now = new Date();
+  const dayStr = DAY_KO[now.getDay()];
+  const todayStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 (${dayStr})`;
+
+  const formatTime = (date: Date | undefined) => {
+    if (!date) return null;
+    const d = new Date(date);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const statusLabel = isLoading ? "조회 중" : checkedIn ? (checkedOut ? "퇴근" : "출근 중") : "미출근";
+  const statusBg = isLoading ? "#F3F4F6" : checkedIn ? (checkedOut ? "#EFF6FF" : "#F0FDF4") : "#FEF9C3";
+  const statusColor = isLoading ? "#6B7280" : checkedIn ? (checkedOut ? "#1D4ED8" : "#16A34A") : "#92400E";
 
   return (
     <div
@@ -419,14 +492,19 @@ function LeftPanel() {
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
           <span
             className="text-xs px-2 py-0.5 rounded font-semibold"
-            style={{
-              background: checkedIn ? "#F0FDF4" : "#FEF9C3",
-              color: checkedIn ? "#16A34A" : "#92400E",
-            }}
+            style={{ background: statusBg, color: statusColor }}
           >
-            {checkedIn ? "출근" : "미출근"}
+            {statusLabel}
           </span>
         </div>
+
+        {/* 출근/퇴근 시간 표시 */}
+        {(checkinTime || checkoutTime) && (
+          <div className="flex justify-between text-xs mb-2" style={{ color: "var(--kino-muted)" }}>
+            {checkinTime && <span>출근 {formatTime(checkinTime)}</span>}
+            {checkoutTime && <span>퇴근 {formatTime(checkoutTime)}</span>}
+          </div>
+        )}
 
         {/* 내근 / 외근 */}
         <div className="grid grid-cols-2 gap-2 mb-2">
@@ -450,22 +528,30 @@ function LeftPanel() {
         {/* 출근 / 퇴근 */}
         <div className="grid grid-cols-2 gap-2">
           <button
-            onClick={() => { setCheckedIn(true); toast("출근 처리 완료"); }}
-            disabled={checkedIn}
-            className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all"
+            onClick={() => handleCheckin(workType === "내근" ? "office" : "field")}
+            disabled={checkedIn || isPending || isLoading}
+            className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all active:scale-95"
             style={{
               background: checkedIn ? "var(--kino-pale)" : "var(--kino-charcoal)",
-              color: checkedIn ? "var(--kino-light)" : "white",
+              color: checkedIn ? "var(--kino-muted)" : "white",
+              opacity: checkedIn ? 0.6 : 1,
             }}
           >
-            <LogIn size={12} /> 출근
+            {isPending ? <Loader2 size={12} className="animate-spin" /> : <LogIn size={12} />}
+            출근
           </button>
           <button
-            onClick={() => { toast("퇴근 처리 완료"); setCheckedIn(false); }}
-            className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all"
-            style={{ border: "1.5px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+            onClick={() => handleCheckout(workType === "내근" ? "office" : "field")}
+            disabled={!checkedIn || checkedOut || isPending || isLoading}
+            className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all active:scale-95"
+            style={{
+              border: "1.5px solid var(--kino-pale)",
+              color: (!checkedIn || checkedOut) ? "var(--kino-pale)" : "var(--kino-mid)",
+              opacity: (!checkedIn || checkedOut) ? 0.5 : 1,
+            }}
           >
-            <LogOut size={12} /> 퇴근
+            {isPending ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
+            퇴근
           </button>
         </div>
       </div>
@@ -474,7 +560,7 @@ function LeftPanel() {
       <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         <div className="flex justify-between items-center mb-1">
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>연차 현황</span>
-          <span className="text-xs" style={{ color: "var(--kino-muted)" }}>2026.06.16 기준</span>
+          <span className="text-xs" style={{ color: "var(--kino-muted)" }}>2026.06 기준</span>
         </div>
         <div className="flex justify-between text-xs mb-1">
           <span style={{ color: "var(--kino-mid)" }}>사용 / 총 연차</span>
@@ -537,24 +623,42 @@ function MobileStatsCard() {
 
 // ── Mobile: 출퇴근 카드 ──────────────────────────────────────────
 function MobileAttendanceCard() {
-  const [checkedIn, setCheckedIn] = useState(false);
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const todayStr = `${TODAY.getFullYear()}년 ${TODAY.getMonth() + 1}월 ${TODAY.getDate()}일 (화)`;
+  const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance();
+
+  const now = new Date();
+  const dayStr = DAY_KO[now.getDay()];
+  const todayStr = `${now.getFullYear()}년 ${now.getMonth() + 1}월 ${now.getDate()}일 (${dayStr})`;
+
+  const formatTime = (date: Date | undefined) => {
+    if (!date) return null;
+    const d = new Date(date);
+    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  };
+
+  const statusLabel = isLoading ? "조회 중" : checkedIn ? (checkedOut ? "퇴근" : "출근 중") : "미출근";
+  const statusBg = isLoading ? "#F3F4F6" : checkedIn ? (checkedOut ? "#EFF6FF" : "#F0FDF4") : "#FEF9C3";
+  const statusColor = isLoading ? "#6B7280" : checkedIn ? (checkedOut ? "#1D4ED8" : "#16A34A") : "#92400E";
 
   return (
     <div className="portal-card p-4 animate-fade-in-up stagger-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
         <span
           className="text-sm px-3 py-1 rounded font-semibold"
-          style={{
-            background: checkedIn ? "#F0FDF4" : "#FEF9C3",
-            color: checkedIn ? "#16A34A" : "#92400E",
-          }}
+          style={{ background: statusBg, color: statusColor }}
         >
-          {checkedIn ? "출근" : "미출근"}
+          {statusLabel}
         </span>
       </div>
+
+      {/* 출근/퇴근 시간 표시 */}
+      {(checkinTime || checkoutTime) && (
+        <div className="flex justify-between text-xs mb-3" style={{ color: "var(--kino-muted)" }}>
+          {checkinTime && <span>출근 {formatTime(checkinTime)}</span>}
+          {checkoutTime && <span>퇴근 {formatTime(checkoutTime)}</span>}
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3 mb-3">
         {(["내근","외근"] as const).map((t) => (
@@ -576,22 +680,30 @@ function MobileAttendanceCard() {
 
       <div className="grid grid-cols-2 gap-3">
         <button
-          onClick={() => { setCheckedIn(true); toast("출근 처리 완료"); }}
-          disabled={checkedIn}
-          className="flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold transition-all"
+          onClick={() => handleCheckin(workType === "내근" ? "office" : "field")}
+          disabled={checkedIn || isPending || isLoading}
+          className="flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold transition-all active:scale-95"
           style={{
             background: checkedIn ? "var(--kino-pale)" : "var(--kino-charcoal)",
-            color: checkedIn ? "var(--kino-light)" : "white",
+            color: checkedIn ? "var(--kino-muted)" : "white",
+            opacity: checkedIn ? 0.6 : 1,
           }}
         >
-          <LogIn size={15} /> 출근
+          {isPending ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
+          출근
         </button>
         <button
-          onClick={() => { toast("퇴근 처리 완료"); setCheckedIn(false); }}
-          className="flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold transition-all"
-          style={{ border: "1.5px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+          onClick={() => handleCheckout(workType === "내근" ? "office" : "field")}
+          disabled={!checkedIn || checkedOut || isPending || isLoading}
+          className="flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold transition-all active:scale-95"
+          style={{
+            border: "1.5px solid var(--kino-pale)",
+            color: (!checkedIn || checkedOut) ? "var(--kino-pale)" : "var(--kino-mid)",
+            opacity: (!checkedIn || checkedOut) ? 0.5 : 1,
+          }}
         >
-          <LogOut size={15} /> 퇴근
+          {isPending ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
+          퇴근
         </button>
       </div>
     </div>
