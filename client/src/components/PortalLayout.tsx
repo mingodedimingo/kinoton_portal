@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Bell, Search, Mail, FileCheck, LayoutGrid,
   BookOpen, Building2, Settings2, Network,
-  Menu, X, ChevronRight, LogOut, Settings, ClipboardList,
+  Menu, X, ChevronRight, LogOut, Settings,
 } from "lucide-react";
 import FullMenuOverlay from "./FullMenuOverlay";
 
@@ -23,7 +23,6 @@ const NAV_ITEMS = [
   { label: "ERP",        icon: Settings2,  path: "https://erp.kinoton.co.kr/",    external: true },
   { label: "영업시스템", icon: Building2,  path: "https://sales.kinoton.co.kr/",  external: true },
   { label: "전체메뉴",   icon: LayoutGrid, path: "/#menu",                         external: false },
-  { label: "출퇴근관리", icon: ClipboardList, path: "/admin/attendance",             external: false },
 ];
 
 interface Props {

@@ -4,8 +4,8 @@
  */
 import { Link } from "wouter";
 import { X, Mail, FileCheck, BookOpen, Calendar, Users, Building2, Briefcase,
-  MessageSquare, FileText, BarChart2, Settings, HelpCircle, Bell,
-  ClipboardList, Car, Coffee, Globe, Settings2, TrendingUp } from "lucide-react";
+  MessageSquare, FileText, Settings, HelpCircle, Bell,
+  ClipboardList, Car, Coffee, Globe, Settings2, TrendingUp, ShieldCheck } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -59,6 +59,7 @@ const MENU_GROUPS = [
       { label: "알림",       icon: Bell,           path: "/#notify",   desc: "알림 설정" },
       { label: "설정",       icon: Settings,       path: "/#settings", desc: "개인 설정" },
       { label: "도움말",     icon: HelpCircle,     path: "/#help",     desc: "사용 가이드" },
+      { label: "Admin",       icon: ShieldCheck,    path: "/admin",     desc: "관리자 페이지" },
     ],
   },
 ];
