@@ -25,6 +25,9 @@ import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
 import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import LeavePage from "./pages/LeavePage";
 import MyPage from "./pages/MyPage";
+import NoticesPage from "./pages/NoticesPage";
+import HrPage from "./pages/HrPage";
+import CondolencesPage from "./pages/CondolencesPage";
 
 function Router() {
   return (
@@ -40,6 +43,9 @@ function Router() {
       <Route path="/work" component={WorkPage} />
       <Route path="/leave" component={LeavePage} />
       <Route path="/mypage" component={MyPage} />
+      <Route path="/notices" component={NoticesPage} />
+      <Route path="/hr" component={HrPage} />
+      <Route path="/condolences" component={CondolencesPage} />
 
       {/* 어드민 페이지 */}
       <Route path="/admin/login" component={AdminLoginPage} />

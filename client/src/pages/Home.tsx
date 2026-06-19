@@ -203,7 +203,7 @@ function NoticeSection() {
             ))}
           </div>
         </div>
-        <Link href="/board" className="section-more flex items-center gap-0.5">
+        <Link href="/notices" className="section-more flex items-center gap-0.5">
           더보기 <ChevronRight size={12} />
         </Link>
       </div>
@@ -236,9 +236,9 @@ function HRSection() {
           <UserCheck size={14} style={{ color: "var(--kino-mid)" }} />
           인사발령
         </span>
-        <button className="section-more flex items-center gap-0.5" onClick={() => toast("인사발령 전체 보기 준비 중")}>
+        <Link href="/hr" className="section-more flex items-center gap-0.5">
           더보기 <ChevronRight size={12} />
-        </button>
+        </Link>
       </div>
       <div>
         {isLoading ? (
@@ -329,9 +329,9 @@ function CondolenceSection() {
           <Heart size={14} style={{ color: "var(--kino-mid)" }} />
           경조사
         </span>
-        <button className="section-more flex items-center gap-0.5" onClick={() => toast("경조사 전체 보기 준비 중")}>
+        <Link href="/condolences" className="section-more flex items-center gap-0.5">
           더보기 <ChevronRight size={12} />
-        </button>
+        </Link>
       </div>
       <div>
         {isLoading ? (
