@@ -4,66 +4,18 @@
  * PC: 좌(프로필+통계+출퇴근+연차+달력) + 우(퀵메뉴+공지+게시판+인사발령+경조사)
  * Mobile: 퀵메뉴카드 → 프로필카드 → 통계카드 → 출퇴근카드
  */
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   Mail, FileCheck, Calendar, LayoutGrid,
   ChevronRight, Plus, Megaphone, UserCheck,
   Heart, BookOpen, ChevronLeft, LogIn, LogOut,
-  Building2, MapPin, Wifi, Settings2, Loader2, ChevronDown, FileText,
+  Building2, MapPin, Wifi, Settings2, Loader2, FileText,
 } from "lucide-react";
 import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
-// ── 직원 선택 드롭다운 컴포넌트 ────────────────────────────────────
-function EmployeeSelector({ selected, onSelect }: {
-  selected: { id: number; name: string; department: string; position: string } | null;
-  onSelect: (emp: { id: number; name: string; department: string; position: string }) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  const { data: employees, isLoading } = trpc.employees.list.useQuery({ activeOnly: true });
-
-  return (
-    <div className="relative">
-      <button
-        onClick={() => setOpen(o => !o)}
-        className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs font-medium transition-all w-full"
-        style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-white)" }}
-      >
-        <span className="flex-1 text-left truncate">
-          {selected ? `${selected.name} (${selected.department})` : "직원 선택"}
-        </span>
-        <ChevronDown size={11} style={{ color: "var(--kino-muted)", flexShrink: 0 }} />
-      </button>
-      {open && (
-        <div
-          className="absolute top-full left-0 right-0 mt-1 rounded shadow-lg z-50 max-h-48 overflow-y-auto"
-          style={{ background: "var(--kino-white)", border: "1px solid var(--kino-pale)" }}
-        >
-          {isLoading ? (
-            <div className="flex justify-center py-3"><Loader2 size={14} className="animate-spin" style={{ color: "var(--kino-muted)" }} /></div>
-          ) : !employees || employees.length === 0 ? (
-            <div className="py-3 text-center text-xs" style={{ color: "var(--kino-muted)" }}>등록된 직원이 없습니다<br/><span style={{ color: "var(--kino-light)" }}>어드민에서 직원을 먼저 등록해주세요</span></div>
-          ) : employees.map(emp => (
-            <button
-              key={emp.id}
-              onClick={() => { onSelect({ id: emp.id, name: emp.name, department: emp.department, position: emp.position }); setOpen(false); }}
-              className="w-full text-left px-3 py-2 text-xs transition-colors"
-              style={{
-                background: selected?.id === emp.id ? "var(--kino-pale)" : "transparent",
-                color: "var(--kino-charcoal)",
-              }}
-            >
-              <span className="font-medium">{emp.name}</span>
-              <span className="ml-1.5" style={{ color: "var(--kino-muted)" }}>{emp.department} · {emp.position}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ── Dummy Data ──────────────────────────────────────────────────
 const TODAY = new Date();
@@ -496,17 +448,21 @@ function useAttendance(employee: { id: number; name: string; department: string;
   };
 }
 
+// 고정 직원 정보 (김민구)
+const FIXED_EMPLOYEE = { id: 1, name: "김민구", department: "경영기획팀", position: "선임" };
+const PROFILE_IMAGE = "/manus-storage/profile-kmg-new_30f1ac23.png";
+
 // ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
 function LeftPanel() {
   const [, navigate] = useLocation();
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const [selectedEmployee, setSelectedEmployee] = useState<{ id: number; name: string; department: string; position: string } | null>(null);
+  const selectedEmployee = FIXED_EMPLOYEE;
   const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(selectedEmployee);
 
   // 연차 잔액 조회
   const { data: leaveBalance } = trpc.employees.leaveBalance.useQuery(
-    { employeeId: selectedEmployee?.id ?? 0 },
-    { enabled: !!selectedEmployee }
+    { employeeId: selectedEmployee.id },
+    { enabled: true }
   );
 
   const now = new Date();
@@ -528,16 +484,20 @@ function LeftPanel() {
       className="portal-card animate-fade-in-up stagger-2 p-4 flex flex-col gap-0"
       style={{ width: "260px", flexShrink: 0 }}
     >
-      {/* 직원 선택 */}
-      <div className="pb-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
-        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--kino-charcoal)" }}>직원 선택</p>
-        <EmployeeSelector selected={selectedEmployee} onSelect={setSelectedEmployee} />
-        {selectedEmployee && (
-          <div className="flex items-center gap-1 mt-2">
-            <Wifi size={10} style={{ color: "var(--kino-green)" }} />
-            <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>선택됨</span>
-          </div>
-        )}
+      {/* 프로필 카드 */}
+      <div className="pb-4 flex flex-col items-center text-center" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
+        <img
+          src={PROFILE_IMAGE}
+          alt={selectedEmployee.name}
+          className="w-16 h-16 rounded-full object-cover mb-2"
+          style={{ border: "2px solid var(--kino-pale)" }}
+        />
+        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{selectedEmployee.name}</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{selectedEmployee.department} · {selectedEmployee.position}</p>
+        <div className="flex items-center gap-1 mt-1.5">
+          <Wifi size={10} style={{ color: "var(--kino-green)" }} />
+          <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
+        </div>
       </div>
 
       {/* 통계 2열 */}
@@ -635,9 +595,7 @@ function LeftPanel() {
             신청 <ChevronRight size={10} />
           </button>
         </div>
-        {!selectedEmployee ? (
-          <p className="text-xs" style={{ color: "var(--kino-light)" }}>직원을 선택하면 연차 현황이 표시됩니다</p>
-        ) : leaveBalance ? (
+        {leaveBalance ? (
           <>
             <div className="flex justify-between text-xs mb-1">
               <span style={{ color: "var(--kino-mid)" }}>사용 / 총 연차</span>
@@ -658,7 +616,7 @@ function LeftPanel() {
             </div>
           </>
         ) : (
-          <p className="text-xs" style={{ color: "var(--kino-light)" }}>연차 정보가 없습니다</p>
+          <p className="text-xs" style={{ color: "var(--kino-light)" }}>연차 정보 로딩 중...</p>
         )}
         <button
           onClick={() => navigate("/leave")}
@@ -682,24 +640,28 @@ function MobileQuickMenu() {
   return <QuickMenuSection card={true} />;
 }
 
-// ── Mobile: 직원 선택 카드 ──────────────────────────────────────
-function MobileEmployeeCard({ selected, onSelect }: {
-  selected: { id: number; name: string; department: string; position: string } | null;
-  onSelect: (emp: { id: number; name: string; department: string; position: string }) => void;
-}) {
+// ── Mobile: 프로필 카드 ──────────────────────────────────────────
+function MobileProfileCard() {
   const [, navigate] = useLocation();
   return (
-    <div className="portal-card p-4 animate-fade-in-up stagger-2">
-      <div className="flex items-center justify-between mb-2">
-        <p className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>직원 선택</p>
-        <button onClick={() => navigate("/leave")} className="text-xs flex items-center gap-0.5" style={{ color: "var(--kino-muted)" }}>
-          <FileText size={12} /> 연차 신청
-        </button>
+    <div className="portal-card p-4 animate-fade-in-up stagger-2 flex items-center gap-3">
+      <img
+        src={PROFILE_IMAGE}
+        alt={FIXED_EMPLOYEE.name}
+        className="w-14 h-14 rounded-full object-cover shrink-0"
+        style={{ border: "2px solid var(--kino-pale)" }}
+      />
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{FIXED_EMPLOYEE.name}</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{FIXED_EMPLOYEE.department} · {FIXED_EMPLOYEE.position}</p>
+        <div className="flex items-center gap-1 mt-1">
+          <Wifi size={10} style={{ color: "var(--kino-green)" }} />
+          <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
+        </div>
       </div>
-      <EmployeeSelector selected={selected} onSelect={onSelect} />
-      {selected && (
-        <p className="text-xs mt-2" style={{ color: "var(--kino-muted)" }}>{selected.department} · {selected.position}</p>
-      )}
+      <button onClick={() => navigate("/leave")} className="text-xs flex items-center gap-0.5 shrink-0" style={{ color: "var(--kino-muted)" }}>
+        <FileText size={12} /> 연차 신청
+      </button>
     </div>
   );
 }
@@ -724,9 +686,9 @@ function MobileStatsCard() {
 }
 
 // ── Mobile: 출퇴근 카드 ──────────────────────────────────────────
-function MobileAttendanceCard({ employee }: { employee: { id: number; name: string; department: string; position: string } | null }) {
+function MobileAttendanceCard() {
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(employee);
+  const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(FIXED_EMPLOYEE);
 
   const now = new Date();
   const dayStr = DAY_KO[now.getDay()];
@@ -814,8 +776,6 @@ function MobileAttendanceCard({ employee }: { employee: { id: number; name: stri
 
 // ── Main Page ────────────────────────────────────────────────────
 export default function Home() {
-  const [mobileEmployee, setMobileEmployee] = useState<{ id: number; name: string; department: string; position: string } | null>(null);
-
   return (
     <PortalLayout>
       <div className="container py-4 md:py-6">
@@ -844,9 +804,9 @@ export default function Home() {
         {/* ── MOBILE LAYOUT (md 미만) ── */}
         <div className="flex flex-col gap-3 md:hidden">
           <MobileQuickMenu />
-          <MobileEmployeeCard selected={mobileEmployee} onSelect={setMobileEmployee} />
+          <MobileProfileCard />
           <MobileStatsCard />
-          <MobileAttendanceCard employee={mobileEmployee} />
+          <MobileAttendanceCard />
           <NoticeSection />
           <BoardSection />
           <HRSection />
