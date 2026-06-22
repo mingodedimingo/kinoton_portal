@@ -1,13 +1,13 @@
 /**
- * AdminNoticesPage — 공지사항 관리
- * 목록 조회, 작성, 수정, 삭제
+ * AdminNoticesPage — 공지사항 관리 (이미지 첨부 지원)
  */
 import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, X, Pin } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Pin, Image as ImageIcon } from "lucide-react";
+import ImageUploader from "@/components/ImageUploader";
 
 type FormData = {
   tag: string;
@@ -16,6 +16,7 @@ type FormData = {
   category: "company" | "dept" | "all";
   isNew: boolean;
   isPinned: boolean;
+  images: string[];
 };
 
 const DEFAULT_FORM: FormData = {
@@ -25,7 +26,17 @@ const DEFAULT_FORM: FormData = {
   category: "all",
   isNew: true,
   isPinned: false,
+  images: [],
 };
+
+function parseImages(images: unknown): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images as string[];
+  if (typeof images === "string") {
+    try { return JSON.parse(images) as string[]; } catch { return []; }
+  }
+  return [];
+}
 
 export default function AdminNoticesPage() {
   const { token } = useAdminAuth();
@@ -34,6 +45,7 @@ export default function AdminNoticesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: notices, isLoading } = trpc.notices.list.useQuery({ limit: 50 });
 
@@ -85,6 +97,7 @@ export default function AdminNoticesPage() {
       category: n.category,
       isNew: n.isNew,
       isPinned: n.isPinned,
+      images: parseImages(n.images),
     });
     setShowForm(true);
   };
@@ -98,11 +111,8 @@ export default function AdminNoticesPage() {
 
   return (
     <AdminLayout title="공지사항 관리">
-      {/* 헤더 */}
       <div className="flex items-center justify-between mb-4">
-        <p className="text-sm" style={{ color: "var(--kino-muted)" }}>
-          총 {notices?.length ?? 0}건
-        </p>
+        <p className="text-sm" style={{ color: "var(--kino-muted)" }}>총 {notices?.length ?? 0}건</p>
         <button
           onClick={() => { setShowForm(true); setEditId(null); setForm(DEFAULT_FORM); }}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
@@ -114,10 +124,7 @@ export default function AdminNoticesPage() {
 
       {/* 작성/수정 폼 */}
       {showForm && (
-        <div
-          className="rounded-lg p-5 mb-5"
-          style={{ background: "var(--kino-white)", border: "1.5px solid var(--kino-charcoal)" }}
-        >
+        <div className="rounded-lg p-5 mb-5" style={{ background: "var(--kino-white)", border: "1.5px solid var(--kino-charcoal)" }}>
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>
               {editId !== null ? "공지 수정" : "새 공지 등록"}
@@ -142,7 +149,7 @@ export default function AdminNoticesPage() {
                 <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>카테고리</label>
                 <select
                   value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value as any }))}
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value as "company" | "dept" | "all" }))}
                   className="w-full px-3 py-2 rounded-md text-sm outline-none"
                   style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
                 >
@@ -174,39 +181,28 @@ export default function AdminNoticesPage() {
                 style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
               />
             </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (선택 · 최대 5장)</label>
+              <ImageUploader images={form.images} onChange={(imgs) => setForm(f => ({ ...f, images: imgs }))} />
+            </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isNew}
-                  onChange={e => setForm(f => ({ ...f, isNew: e.target.checked }))}
-                />
+                <input type="checkbox" checked={form.isNew} onChange={e => setForm(f => ({ ...f, isNew: e.target.checked }))} />
                 <span className="text-xs" style={{ color: "var(--kino-mid)" }}>NEW 표시</span>
               </label>
               <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={form.isPinned}
-                  onChange={e => setForm(f => ({ ...f, isPinned: e.target.checked }))}
-                />
+                <input type="checkbox" checked={form.isPinned} onChange={e => setForm(f => ({ ...f, isPinned: e.target.checked }))} />
                 <span className="text-xs" style={{ color: "var(--kino-mid)" }}>상단 고정</span>
               </label>
             </div>
             <div className="flex gap-2 justify-end">
-              <button
-                type="button"
-                onClick={() => { setShowForm(false); setEditId(null); setForm(DEFAULT_FORM); }}
-                className="px-4 py-2 rounded-md text-sm font-medium"
-                style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
-              >
+              <button type="button" onClick={() => { setShowForm(false); setEditId(null); setForm(DEFAULT_FORM); }}
+                className="px-4 py-2 rounded-md text-sm font-medium" style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}>
                 취소
               </button>
-              <button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
+              <button type="submit" disabled={createMutation.isPending || updateMutation.isPending}
                 className="px-4 py-2 rounded-md text-sm font-semibold flex items-center gap-2 transition-all active:scale-95"
-                style={{ background: "var(--kino-charcoal)", color: "white" }}
-              >
+                style={{ background: "var(--kino-charcoal)", color: "white" }}>
                 {(createMutation.isPending || updateMutation.isPending) && <Loader2 size={12} className="animate-spin" />}
                 {editId !== null ? "수정 완료" : "등록"}
               </button>
@@ -218,13 +214,9 @@ export default function AdminNoticesPage() {
       {/* 목록 */}
       <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--kino-pale)" }}>
         {isLoading ? (
-          <div className="flex justify-center py-10">
-            <Loader2 size={20} className="animate-spin" style={{ color: "var(--kino-muted)" }} />
-          </div>
+          <div className="flex justify-center py-10"><Loader2 size={20} className="animate-spin" style={{ color: "var(--kino-muted)" }} /></div>
         ) : !notices || notices.length === 0 ? (
-          <div className="text-center py-10">
-            <p className="text-sm" style={{ color: "var(--kino-light)" }}>등록된 공지사항이 없습니다</p>
-          </div>
+          <div className="text-center py-10"><p className="text-sm" style={{ color: "var(--kino-light)" }}>등록된 공지사항이 없습니다</p></div>
         ) : (
           <table className="w-full text-sm">
             <thead>
@@ -237,58 +229,51 @@ export default function AdminNoticesPage() {
               </tr>
             </thead>
             <tbody>
-              {notices.map((n, i) => (
-                <tr
-                  key={n.id}
-                  style={{
-                    background: i % 2 === 0 ? "var(--kino-white)" : "var(--kino-bg)",
-                    borderBottom: "1px solid var(--kino-pale)",
-                  }}
-                >
-                  <td className="px-4 py-2.5">
-                    <span
-                      className="text-xs px-1.5 py-0.5 rounded font-medium"
-                      style={{ background: "var(--kino-pale)", color: "var(--kino-mid)" }}
-                    >
-                      {n.tag}
-                    </span>
-                  </td>
-                  <td className="px-4 py-2.5">
-                    <div className="flex items-center gap-1.5">
-                      {n.isPinned && <Pin size={11} style={{ color: "var(--kino-red)" }} />}
-                      <span style={{ color: "var(--kino-charcoal)" }}>{n.title}</span>
-                      {n.isNew && (
-                        <span className="text-xs px-1 py-0.5 rounded font-bold" style={{ background: "var(--kino-red)", color: "white" }}>N</span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-2.5 hidden md:table-cell text-xs" style={{ color: "var(--kino-muted)" }}>
-                    {categoryLabel[n.category]}
-                  </td>
-                  <td className="px-4 py-2.5 hidden md:table-cell text-xs" style={{ color: "var(--kino-muted)" }}>
-                    {new Date(n.createdAt).toLocaleDateString("ko-KR")}
-                  </td>
-                  <td className="px-4 py-2.5 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleEdit(n)}
-                        className="p-1.5 rounded transition-all"
-                        style={{ color: "var(--kino-mid)" }}
-                      >
-                        <Pencil size={13} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(n.id)}
-                        disabled={deleteMutation.isPending}
-                        className="p-1.5 rounded transition-all"
-                        style={{ color: "var(--kino-red)" }}
-                      >
-                        <Trash2 size={13} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
+              {notices.map((n, i) => {
+                const imgs = parseImages(n.images);
+                return (
+                  <>
+                    <tr key={n.id} style={{ background: i % 2 === 0 ? "var(--kino-white)" : "var(--kino-bg)", borderBottom: imgs.length > 0 && expandedId === n.id ? "none" : "1px solid var(--kino-pale)" }}>
+                      <td className="px-4 py-2.5">
+                        <span className="text-xs px-1.5 py-0.5 rounded font-medium" style={{ background: "var(--kino-pale)", color: "var(--kino-mid)" }}>{n.tag}</span>
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="flex items-center gap-1.5">
+                          {n.isPinned && <Pin size={11} style={{ color: "var(--kino-red)" }} />}
+                          <span style={{ color: "var(--kino-charcoal)" }}>{n.title}</span>
+                          {n.isNew && <span className="text-xs px-1 py-0.5 rounded font-bold" style={{ background: "var(--kino-red)", color: "white" }}>N</span>}
+                          {imgs.length > 0 && (
+                            <button onClick={() => setExpandedId(expandedId === n.id ? null : n.id)} className="flex items-center gap-0.5 text-xs" style={{ color: "var(--kino-muted)" }}>
+                              <ImageIcon size={11} /> {imgs.length}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-2.5 hidden md:table-cell text-xs" style={{ color: "var(--kino-muted)" }}>{categoryLabel[n.category]}</td>
+                      <td className="px-4 py-2.5 hidden md:table-cell text-xs" style={{ color: "var(--kino-muted)" }}>{new Date(n.createdAt).toLocaleDateString("ko-KR")}</td>
+                      <td className="px-4 py-2.5 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <button onClick={() => handleEdit(n)} className="p-1.5 rounded transition-all" style={{ color: "var(--kino-mid)" }}><Pencil size={13} /></button>
+                          <button onClick={() => handleDelete(n.id)} disabled={deleteMutation.isPending} className="p-1.5 rounded transition-all" style={{ color: "var(--kino-red)" }}><Trash2 size={13} /></button>
+                        </div>
+                      </td>
+                    </tr>
+                    {imgs.length > 0 && expandedId === n.id && (
+                      <tr key={`${n.id}-imgs`} style={{ background: i % 2 === 0 ? "var(--kino-white)" : "var(--kino-bg)", borderBottom: "1px solid var(--kino-pale)" }}>
+                        <td colSpan={5} className="px-4 pb-3">
+                          <div className="flex flex-wrap gap-2">
+                            {imgs.map((url, idx) => (
+                              <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                                <img src={url} alt={`이미지 ${idx + 1}`} className="rounded-lg object-cover hover:opacity-90 transition-opacity" style={{ width: 120, height: 90 }} />
+                              </a>
+                            ))}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                );
+              })}
             </tbody>
           </table>
         )}

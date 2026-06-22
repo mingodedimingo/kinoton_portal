@@ -6,7 +6,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Image as ImageIcon } from "lucide-react";
+import ImageUploader from "@/components/ImageUploader";
 
 type CondolenceType = "결혼" | "출산" | "부고" | "기타";
 
@@ -16,7 +17,17 @@ type FormData = {
   content: string;
   eventDate: string;
   authorName: string;
+  images: string[];
 };
+
+function parseImages(images: unknown): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images as string[];
+  if (typeof images === "string") {
+    try { return JSON.parse(images) as string[]; } catch { return []; }
+  }
+  return [];
+}
 
 const DEFAULT_FORM: FormData = {
   type: "결혼",
@@ -24,6 +35,7 @@ const DEFAULT_FORM: FormData = {
   content: "",
   eventDate: "",
   authorName: "",
+  images: [],
 };
 
 const TYPE_EMOJI: Record<CondolenceType, string> = {
@@ -97,6 +109,7 @@ export default function AdminCondolencesPage() {
       content: c.content ?? "",
       eventDate: c.eventDate ?? "",
       authorName: c.authorName ?? "",
+      images: parseImages(c.images),
     });
     setShowForm(true);
   };
@@ -178,6 +191,10 @@ export default function AdminCondolencesPage() {
                 className="w-full px-3 py-2 rounded-md text-sm outline-none resize-none"
                 style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
               />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (선택 · 최대 5장)</label>
+              <ImageUploader images={form.images} onChange={(imgs) => setForm(f => ({ ...f, images: imgs }))} />
             </div>
             <div className="flex gap-2 justify-end">
               <button

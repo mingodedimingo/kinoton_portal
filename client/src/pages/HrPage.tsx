@@ -2,7 +2,7 @@
  * HrPage.tsx — 인사발령 전체 목록 페이지
  */
 import { useState } from "react";
-import { UserCheck, ChevronRight, X } from "lucide-react";
+import { UserCheck, ChevronRight, X, Image as ImageIcon } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
@@ -11,10 +11,20 @@ type HrItem = {
   type: "입사" | "퇴직" | "발령" | "승진";
   title: string;
   content: string | null;
+  images?: unknown;
   effectiveDate: string | null;
   authorName: string | null;
   createdAt: Date;
 };
+
+function parseImages(images: unknown): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images as string[];
+  if (typeof images === "string") {
+    try { return JSON.parse(images) as string[]; } catch { return []; }
+  }
+  return [];
+}
 
 const TYPE_STYLE: Record<string, { bg: string; color: string }> = {
   입사: { bg: "#F0FDF4", color: "#16A34A" },
@@ -45,9 +55,18 @@ function HrDetailModal({ item, onClose }: { item: HrItem; onClose: () => void })
         </div>
         <div className="p-5">
           {item.content ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--kino-charcoal)" }}>{item.content}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap mb-4" style={{ color: "var(--kino-charcoal)" }}>{item.content}</p>
           ) : (
-            <p className="text-sm" style={{ color: "var(--kino-muted)" }}>상세 내용이 없습니다.</p>
+            <p className="text-sm mb-4" style={{ color: "var(--kino-muted)" }}>상세 내용이 없습니다.</p>
+          )}
+          {parseImages(item.images).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {parseImages(item.images).map((url, idx) => (
+                <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} alt={`이미지 ${idx + 1}`} className="rounded-lg object-cover hover:opacity-90 transition-opacity" style={{ width: 160, height: 120 }} />
+                </a>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -117,7 +136,10 @@ export default function HrPage() {
                   >
                     {n.type}
                   </span>
-                  <span className="board-item-title">{n.title}</span>
+                  <span className="board-item-title flex items-center gap-1">
+                    {n.title}
+                    {parseImages(n.images).length > 0 && <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />}
+                  </span>
                   <span className="board-item-date shrink-0">{dateStr}</span>
                   <ChevronRight size={12} style={{ color: "var(--kino-muted)" }} className="shrink-0" />
                 </div>

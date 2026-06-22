@@ -6,7 +6,8 @@ import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X, Image as ImageIcon } from "lucide-react";
+import ImageUploader from "@/components/ImageUploader";
 
 type HrType = "입사" | "퇴직" | "발령" | "승진";
 
@@ -16,7 +17,17 @@ type FormData = {
   content: string;
   effectiveDate: string;
   authorName: string;
+  images: string[];
 };
+
+function parseImages(images: unknown): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images as string[];
+  if (typeof images === "string") {
+    try { return JSON.parse(images) as string[]; } catch { return []; }
+  }
+  return [];
+}
 
 const DEFAULT_FORM: FormData = {
   type: "입사",
@@ -24,6 +35,7 @@ const DEFAULT_FORM: FormData = {
   content: "",
   effectiveDate: "",
   authorName: "",
+  images: [],
 };
 
 const TYPE_COLORS: Record<HrType, { bg: string; color: string }> = {
@@ -40,6 +52,7 @@ export default function AdminHrPage() {
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
+  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: hrList, isLoading } = trpc.hrNotices.list.useQuery({ limit: 50 });
 
@@ -90,6 +103,7 @@ export default function AdminHrPage() {
       content: h.content ?? "",
       effectiveDate: h.effectiveDate ?? "",
       authorName: h.authorName ?? "",
+      images: parseImages(h.images),
     });
     setShowForm(true);
   };
@@ -182,6 +196,10 @@ export default function AdminHrPage() {
                 className="w-full px-3 py-2 rounded-md text-sm outline-none"
                 style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
               />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (선택 · 최대 5장)</label>
+              <ImageUploader images={form.images} onChange={(imgs) => setForm(f => ({ ...f, images: imgs }))} />
             </div>
             <div className="flex gap-2 justify-end">
               <button

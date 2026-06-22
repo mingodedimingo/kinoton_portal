@@ -1,11 +1,12 @@
 /**
- * BoardPage.tsx — 게시판 (전체 직원 글쓰기 가능, DB 연동)
+ * BoardPage.tsx — 게시판 (전체 직원 글쓰기 가능, DB 연동, 이미지 첨부 지원)
  */
 import { useState } from "react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Search, Plus, ChevronRight, BookOpen, Loader2, X, ExternalLink, Trash2 } from "lucide-react";
+import { Search, Plus, BookOpen, Loader2, X, ExternalLink, Trash2, Image as ImageIcon, ChevronDown, ChevronUp } from "lucide-react";
+import ImageUploader from "@/components/ImageUploader";
 
 const CATEGORIES = [
   { key: "all", label: "전체" },
@@ -22,6 +23,7 @@ type WriteForm = {
   content: string;
   link: string;
   authorName: string;
+  images: string[];
 };
 
 const DEFAULT_WRITE: WriteForm = {
@@ -30,7 +32,18 @@ const DEFAULT_WRITE: WriteForm = {
   content: "",
   link: "",
   authorName: "",
+  images: [],
 };
+
+// 이미지 URL 파싱 헬퍼
+function parseImages(images: unknown): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images as string[];
+  if (typeof images === "string") {
+    try { return JSON.parse(images) as string[]; } catch { return []; }
+  }
+  return [];
+}
 
 export default function BoardPage() {
   const utils = trpc.useUtils();
@@ -38,6 +51,7 @@ export default function BoardPage() {
   const [search, setSearch] = useState("");
   const [showWrite, setShowWrite] = useState(false);
   const [writeForm, setWriteForm] = useState<WriteForm>(DEFAULT_WRITE);
+  const [expandedPost, setExpandedPost] = useState<number | null>(null);
 
   const { data: posts, isLoading } = trpc.board.list.useQuery({
     category: activeCategory === "all" ? undefined : activeCategory,
@@ -201,6 +215,16 @@ export default function BoardPage() {
                       style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
                     />
                   </div>
+                  {/* 이미지 첨부 */}
+                  <div>
+                    <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>
+                      이미지 첨부 (선택 · 최대 5장)
+                    </label>
+                    <ImageUploader
+                      images={writeForm.images}
+                      onChange={(imgs) => setWriteForm(f => ({ ...f, images: imgs }))}
+                    />
+                  </div>
                   <div className="flex gap-2 justify-end">
                     <button
                       type="button"
@@ -284,64 +308,97 @@ export default function BoardPage() {
                   게시글이 없습니다. 첫 번째 글을 작성해보세요!
                 </div>
               ) : (
-                posts.map((p) => (
-                  <div
-                    key={p.id}
-                    className="grid items-center px-3 py-2.5 text-sm"
-                    style={{
-                      gridTemplateColumns: "70px 1fr 80px 80px 40px",
-                      borderBottom: "1px solid var(--kino-pale)",
-                    }}
-                  >
-                    <span
-                      className="badge-tag"
-                      style={{ width: "fit-content" }}
-                    >
-                      {p.category}
-                    </span>
-                    <span className="flex items-center gap-1.5 min-w-0">
-                      <span
-                        className="truncate cursor-pointer"
-                        style={{ color: "var(--kino-charcoal)" }}
-                        onClick={() => p.link ? window.open(p.link, "_blank") : toast(`"${p.title}" 상세 보기`)}
+                posts.map((p) => {
+                  const imgs = parseImages(p.images);
+                  const isExpanded = expandedPost === p.id;
+                  const hasDetail = (p.content && p.content.trim()) || imgs.length > 0;
+                  return (
+                    <div key={p.id} style={{ borderBottom: "1px solid var(--kino-pale)" }}>
+                      {/* 목록 행 */}
+                      <div
+                        className="grid items-center px-3 py-2.5 text-sm"
+                        style={{ gridTemplateColumns: "70px 1fr 80px 80px 40px" }}
                       >
-                        {p.title}
-                      </span>
-                      {p.isNew && (
-                        <span className="badge-new shrink-0">N</span>
+                        <span className="badge-tag" style={{ width: "fit-content" }}>{p.category}</span>
+                        <span className="flex items-center gap-1.5 min-w-0">
+                          <button
+                            className="truncate text-left"
+                            style={{ color: "var(--kino-charcoal)" }}
+                            onClick={() => {
+                              if (hasDetail) setExpandedPost(isExpanded ? null : p.id);
+                              else if (p.link) window.open(p.link, "_blank");
+                            }}
+                          >
+                            {p.title}
+                          </button>
+                          {p.isNew && <span className="badge-new shrink-0">N</span>}
+                          {imgs.length > 0 && (
+                            <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />
+                          )}
+                          {p.link && (
+                            <a href={p.link} target="_blank" rel="noopener noreferrer" className="shrink-0">
+                              <ExternalLink size={11} style={{ color: "var(--kino-muted)" }} />
+                            </a>
+                          )}
+                          {hasDetail && (
+                            <button onClick={() => setExpandedPost(isExpanded ? null : p.id)} className="shrink-0">
+                              {isExpanded
+                                ? <ChevronUp size={12} style={{ color: "var(--kino-muted)" }} />
+                                : <ChevronDown size={12} style={{ color: "var(--kino-muted)" }} />}
+                            </button>
+                          )}
+                        </span>
+                        <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>{p.authorName}</span>
+                        <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>
+                          {new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}
+                        </span>
+                        <span className="text-center">
+                          <button
+                            onClick={() => handleDelete(p.id, p.authorName)}
+                            className="p-1 rounded transition-all"
+                            style={{ color: "var(--kino-light)" }}
+                            title="본인 글 삭제"
+                          >
+                            <Trash2 size={12} />
+                          </button>
+                        </span>
+                      </div>
+
+                      {/* 펼쳐진 상세 (내용 + 이미지) */}
+                      {isExpanded && hasDetail && (
+                        <div
+                          className="px-4 pb-4 pt-1"
+                          style={{ background: "var(--kino-bg)", borderTop: "1px solid var(--kino-pale)" }}
+                        >
+                          {p.content && (
+                            <p className="text-sm mb-3 whitespace-pre-wrap" style={{ color: "var(--kino-mid)" }}>
+                              {p.content}
+                            </p>
+                          )}
+                          {imgs.length > 0 && (
+                            <div className="flex flex-wrap gap-2">
+                              {imgs.map((url, idx) => (
+                                <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                                  <img
+                                    src={url}
+                                    alt={`첨부 이미지 ${idx + 1}`}
+                                    className="rounded-lg object-cover cursor-pointer hover:opacity-90 transition-opacity"
+                                    style={{ width: 160, height: 120 }}
+                                  />
+                                </a>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       )}
-                      {p.link && (
-                        <a href={p.link} target="_blank" rel="noopener noreferrer" className="shrink-0">
-                          <ExternalLink size={11} style={{ color: "var(--kino-muted)" }} />
-                        </a>
-                      )}
-                    </span>
-                    <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>
-                      {p.authorName}
-                    </span>
-                    <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>
-                      {new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}
-                    </span>
-                    <span className="text-center">
-                      <button
-                        onClick={() => handleDelete(p.id, p.authorName)}
-                        className="p-1 rounded transition-all"
-                        style={{ color: "var(--kino-light)" }}
-                        title="본인 글 삭제"
-                      >
-                        <Trash2 size={12} />
-                      </button>
-                    </span>
-                  </div>
-                ))
+                    </div>
+                  );
+                })
               )}
 
-              {/* 페이지네이션 자리 */}
               {posts && posts.length > 0 && (
                 <div className="flex items-center justify-center gap-1 py-3">
-                  <span className="text-xs" style={{ color: "var(--kino-light)" }}>
-                    총 {posts.length}건
-                  </span>
+                  <span className="text-xs" style={{ color: "var(--kino-light)" }}>총 {posts.length}건</span>
                 </div>
               )}
             </div>

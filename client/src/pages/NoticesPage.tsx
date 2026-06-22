@@ -2,7 +2,7 @@
  * NoticesPage.tsx — 공지사항 전체 목록 페이지
  */
 import { useState } from "react";
-import { Megaphone, ChevronRight, X } from "lucide-react";
+import { Megaphone, ChevronRight, X, Image as ImageIcon } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
@@ -11,12 +11,22 @@ type NoticeItem = {
   tag: string;
   title: string;
   content: string | null;
+  images?: unknown;
   createdAt: Date;
   isNew: boolean;
   isPinned: boolean;
   category: "all" | "company" | "dept";
   authorName: string | null;
 };
+
+function parseImages(images: unknown): string[] {
+  if (!images) return [];
+  if (Array.isArray(images)) return images as string[];
+  if (typeof images === "string") {
+    try { return JSON.parse(images) as string[]; } catch { return []; }
+  }
+  return [];
+}
 
 function NoticeDetailModal({ notice, onClose }: { notice: NoticeItem; onClose: () => void }) {
   const dateStr = new Date(notice.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
@@ -42,9 +52,18 @@ function NoticeDetailModal({ notice, onClose }: { notice: NoticeItem; onClose: (
         </div>
         <div className="p-5">
           {notice.content ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--kino-charcoal)" }}>{notice.content}</p>
+            <p className="text-sm leading-relaxed whitespace-pre-wrap mb-4" style={{ color: "var(--kino-charcoal)" }}>{notice.content}</p>
           ) : (
-            <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
+            <p className="text-sm mb-4" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
+          )}
+          {parseImages(notice.images).length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {parseImages(notice.images).map((url, idx) => (
+                <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
+                  <img src={url} alt={`체청 이미지 ${idx + 1}`} className="rounded-lg object-cover hover:opacity-90 transition-opacity" style={{ width: 160, height: 120 }} />
+                </a>
+              ))}
+            </div>
           )}
         </div>
       </div>
@@ -108,7 +127,10 @@ export default function NoticesPage() {
                   onClick={() => setSelected(n)}
                 >
                   <span className="badge-tag company shrink-0">{n.tag}</span>
-                  <span className="board-item-title">{n.title}</span>
+                  <span className="board-item-title flex items-center gap-1">
+                    {n.title}
+                    {parseImages(n.images).length > 0 && <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />}
+                  </span>
                   {n.isNew && <span className="badge-new shrink-0">N</span>}
                   <span className="board-item-date shrink-0">{dateStr}</span>
                   <ChevronRight size={12} style={{ color: "var(--kino-muted)" }} className="shrink-0" />

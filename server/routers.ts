@@ -452,6 +452,7 @@ export const appRouter = router({
         isNew: z.boolean().default(true),
         isPinned: z.boolean().default(false),
         authorName: z.string().optional(),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         if (!verifyAdminToken(input.adminToken)) {
@@ -461,6 +462,7 @@ export const appRouter = router({
           tag: input.tag, title: input.title, content: input.content ?? null,
           category: input.category, isNew: input.isNew, isPinned: input.isPinned,
           authorName: input.authorName ?? null,
+          images: input.images ? JSON.stringify(input.images) : null,
         });
         return { success: true };
       }),
@@ -471,13 +473,14 @@ export const appRouter = router({
         tag: z.string().optional(), title: z.string().min(1).max(300).optional(),
         content: z.string().optional(), category: z.enum(["company", "dept", "all"]).optional(),
         isNew: z.boolean().optional(), isPinned: z.boolean().optional(),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         if (!verifyAdminToken(input.adminToken)) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "어드민 권한이 필요합니다." });
         }
-        const { adminToken, id, ...data } = input;
-        await updateNotice(id, data);
+        const { adminToken, id, images, ...rest } = input;
+        await updateNotice(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
         return { success: true };
       }),
 
@@ -506,6 +509,7 @@ export const appRouter = router({
         content: z.string().optional(),
         effectiveDate: z.string().optional(),
         authorName: z.string().optional(),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         if (!verifyAdminToken(input.adminToken)) {
@@ -514,6 +518,7 @@ export const appRouter = router({
         await insertHrNotice({
           type: input.type, title: input.title, content: input.content ?? null,
           effectiveDate: input.effectiveDate ?? null, authorName: input.authorName ?? null,
+          images: input.images ? JSON.stringify(input.images) : null,
         });
         return { success: true };
       }),
@@ -524,13 +529,14 @@ export const appRouter = router({
         type: z.enum(["입사", "퇴직", "발령", "승진"]).optional(),
         title: z.string().min(1).max(300).optional(),
         content: z.string().optional(), effectiveDate: z.string().optional(),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         if (!verifyAdminToken(input.adminToken)) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "어드민 권한이 필요합니다." });
         }
-        const { adminToken, id, ...data } = input;
-        await updateHrNotice(id, data);
+        const { adminToken, id, images, ...rest } = input;
+        await updateHrNotice(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
         return { success: true };
       }),
 
@@ -559,6 +565,7 @@ export const appRouter = router({
         content: z.string().optional(),
         eventDate: z.string().optional(),
         authorName: z.string().optional(),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         if (!verifyAdminToken(input.adminToken)) {
@@ -567,6 +574,7 @@ export const appRouter = router({
         await insertCondolence({
           type: input.type, name: input.name, content: input.content ?? null,
           eventDate: input.eventDate ?? null, authorName: input.authorName ?? null,
+          images: input.images ? JSON.stringify(input.images) : null,
         });
         return { success: true };
       }),
@@ -577,13 +585,14 @@ export const appRouter = router({
         type: z.enum(["결혼", "출산", "부고", "기타"]).optional(),
         name: z.string().min(1).max(300).optional(),
         content: z.string().optional(), eventDate: z.string().optional(),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         if (!verifyAdminToken(input.adminToken)) {
           throw new TRPCError({ code: "UNAUTHORIZED", message: "어드민 권한이 필요합니다." });
         }
-        const { adminToken, id, ...data } = input;
-        await updateCondolence(id, data);
+        const { adminToken, id, images, ...rest } = input;
+        await updateCondolence(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
         return { success: true };
       }),
 
@@ -617,12 +626,14 @@ export const appRouter = router({
         content: z.string().optional(),
         link: z.string().url().optional().or(z.literal("")),
         authorName: z.string().min(1).max(100),
+        images: z.array(z.string()).optional(),
       }))
       .mutation(async ({ input }) => {
         await insertBoardPost({
           category: input.category, title: input.title, content: input.content ?? null,
           link: input.link || null, authorName: input.authorName,
           isNew: true, isPinned: false, viewCount: 0,
+          images: input.images ? JSON.stringify(input.images) : null,
         });
         return { success: true };
       }),
