@@ -2,7 +2,8 @@
  * HrPage.tsx — 인사발령 전체 목록 페이지
  */
 import { useState } from "react";
-import { UserCheck, ChevronRight, X, Image as ImageIcon } from "lucide-react";
+import { Link } from "wouter";
+import { UserCheck, ChevronRight, Image as ImageIcon } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
@@ -33,50 +34,11 @@ const TYPE_STYLE: Record<string, { bg: string; color: string }> = {
   승진: { bg: "#FFF7ED", color: "#C2410C" },
 };
 
-function HrDetailModal({ item, onClose }: { item: HrItem; onClose: () => void }) {
-  const dateStr = item.effectiveDate ?? new Date(item.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
-  const style = TYPE_STYLE[item.type] ?? TYPE_STYLE["발령"];
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
-      <div className="w-full max-w-lg rounded-lg shadow-xl mx-4" style={{ background: "var(--kino-white)", maxHeight: "80vh", overflowY: "auto" }}>
-        <div className="flex items-start justify-between p-5 border-b" style={{ borderColor: "var(--kino-pale)" }}>
-          <div className="flex-1 pr-4">
-            <div className="flex items-center gap-2 mb-1">
-              <span className="text-xs px-2 py-0.5 rounded font-semibold" style={{ background: style.bg, color: style.color }}>
-                {item.type}
-              </span>
-            </div>
-            <h2 className="text-sm font-bold leading-snug" style={{ color: "var(--kino-charcoal)" }}>{item.title}</h2>
-            <p className="text-xs mt-1" style={{ color: "var(--kino-muted)" }}>발령일: {dateStr}</p>
-          </div>
-          <button onClick={onClose} className="p-1 rounded transition-colors shrink-0" style={{ color: "var(--kino-muted)" }}>
-            <X size={16} />
-          </button>
-        </div>
-        <div className="p-5">
-          {item.content ? (
-            <p className="text-sm leading-relaxed whitespace-pre-wrap mb-4" style={{ color: "var(--kino-charcoal)" }}>{item.content}</p>
-          ) : (
-            <p className="text-sm mb-4" style={{ color: "var(--kino-muted)" }}>상세 내용이 없습니다.</p>
-          )}
-          {parseImages(item.images).length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {parseImages(item.images).map((url, idx) => (
-                <a key={idx} href={url} target="_blank" rel="noopener noreferrer">
-                  <img src={url} alt={`이미지 ${idx + 1}`} className="rounded-lg object-cover hover:opacity-90 transition-opacity" style={{ width: 160, height: 120 }} />
-                </a>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
+
+
 
 export default function HrPage() {
   const [tab, setTab] = useState<"all" | "입사" | "퇴직" | "발령" | "승진">("all");
-  const [selected, setSelected] = useState<HrItem | null>(null);
 
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
@@ -130,10 +92,11 @@ export default function HrPage() {
               const dateStr = n.effectiveDate ?? new Date(n.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
               const style = TYPE_STYLE[n.type] ?? TYPE_STYLE["발령"];
               return (
-                <div
+                <Link
                   key={n.id}
+                  href={`/hr/${n.id}`}
                   className="board-item cursor-pointer"
-                  onClick={() => setSelected(n)}
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}
                 >
                   <span
                     className="badge-tag shrink-0"
@@ -147,7 +110,7 @@ export default function HrPage() {
                   </span>
                   <span className="board-item-date shrink-0">{dateStr}</span>
                   <ChevronRight size={12} style={{ color: "var(--kino-muted)" }} className="shrink-0" />
-                </div>
+                </Link>
               );
             })
           )}
@@ -171,7 +134,6 @@ export default function HrPage() {
         )}
       </div>
 
-      {selected && <HrDetailModal item={selected} onClose={() => setSelected(null)} />}
     </PortalLayout>
   );
 }

@@ -5,9 +5,9 @@ import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import {
   getAttendanceLogs, getTodayStatus, getTodaySummary, insertAttendanceLog,
-  getNotices, insertNotice, updateNotice, deleteNotice,
-  getHrNotices, insertHrNotice, updateHrNotice, deleteHrNotice,
-  getCondolences, insertCondolence, updateCondolence, deleteCondolence,
+  getNotices, getNoticeById, insertNotice, updateNotice, deleteNotice,
+  getHrNotices, getHrNoticeById, insertHrNotice, updateHrNotice, deleteHrNotice,
+  getCondolences, getCondolenceById, insertCondolence, updateCondolence, deleteCondolence,
   getBoardPosts, getBoardPostById, insertBoardPost, updateBoardPost, deleteBoardPost,
   getEmployees, getEmployeeById, insertEmployee, updateEmployee, deleteEmployee,
   getLeaveBalance, getAllLeaveBalances, upsertLeaveBalance, updateLeaveUsed,
@@ -369,6 +369,15 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => getNotices(input.limit ?? 20, input.offset ?? 0)),
 
+    // 단건 조회 (로그인 필수)
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const notice = await getNoticeById(input.id);
+        if (!notice) throw new TRPCError({ code: 'NOT_FOUND', message: '공지사항을 찾을 수 없습니다.' });
+        return notice;
+      }),
+
     // 작성 (어드민 전용)
     create: adminProcedure
       .input(z.object({
@@ -422,6 +431,15 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => getHrNotices(input.limit ?? 20, input.offset ?? 0)),
 
+    // 단건 조회 (로그인 필수)
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const item = await getHrNoticeById(input.id);
+        if (!item) throw new TRPCError({ code: 'NOT_FOUND', message: '인사발령을 찾을 수 없습니다.' });
+        return item;
+      }),
+
     // 작성 (어드민 전용)
     create: adminProcedure
       .input(z.object({
@@ -472,6 +490,15 @@ export const appRouter = router({
     list: protectedProcedure
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => getCondolences(input.limit ?? 20, input.offset ?? 0)),
+
+    // 단건 조회 (로그인 필수)
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const item = await getCondolenceById(input.id);
+        if (!item) throw new TRPCError({ code: 'NOT_FOUND', message: '경조사 정보를 찾을 수 없습니다.' });
+        return item;
+      }),
 
     // 작성 (어드민 전용)
     create: adminProcedure
@@ -552,18 +579,34 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 게시글 수정 (어드민 전용)
-    update: adminProcedure
+    // 게시글 단건 조회 (로그인 필수)
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const rows = await getBoardPostById(input.id);
+        if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
+        return rows[0];
+      }),
+
+    // 게시글 수정 (작성자 본인 또는 어드민)
+    update: protectedProcedure
       .input(z.object({
         id: z.number(),
         category: z.enum(["언론보도", "매뉴얼", "기타"]).optional(),
         title: z.string().min(1).max(300).optional(),
         content: z.string().optional(), link: z.string().optional(),
+        images: z.array(z.string()).optional(),
         isPinned: z.boolean().optional(), isNew: z.boolean().optional(),
       }))
-      .mutation(async ({ input }) => {
-        const { id, ...data } = input;
-        await updateBoardPost(id, data);
+      .mutation(async ({ input, ctx }) => {
+        const rows = await getBoardPostById(input.id);
+        if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
+        const post = rows[0];
+        if (ctx.user.role !== 'admin' && post.authorOpenId !== ctx.user.openId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '수정 권한이 없습니다.' });
+        }
+        const { id, images, ...rest } = input;
+        await updateBoardPost(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
         return { success: true };
       }),
 

@@ -268,6 +268,13 @@ export async function getNotices(limit = 20, offset = 0): Promise<{ items: Notic
   return { items, total: Number(countResult[0]?.count ?? 0) };
 }
 
+export async function getNoticeById(id: number): Promise<Notice | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(notices).where(eq(notices.id, id)).limit(1);
+  return result[0];
+}
+
 export async function insertNotice(data: InsertNotice): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -298,6 +305,13 @@ export async function getHrNotices(limit = 20, offset = 0): Promise<{ items: HrN
   return { items, total: Number(countResult[0]?.count ?? 0) };
 }
 
+export async function getHrNoticeById(id: number): Promise<HrNotice | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(hrNotices).where(eq(hrNotices.id, id)).limit(1);
+  return result[0];
+}
+
 export async function insertHrNotice(data: InsertHrNotice): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
@@ -326,6 +340,13 @@ export async function getCondolences(limit = 20, offset = 0): Promise<{ items: C
     db.select({ count: sql<number>`count(*)` }).from(condolences),
   ]);
   return { items, total: Number(countResult[0]?.count ?? 0) };
+}
+
+export async function getCondolenceById(id: number): Promise<Condolence | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(condolences).where(eq(condolences.id, id)).limit(1);
+  return result[0];
 }
 
 export async function insertCondolence(data: InsertCondolence): Promise<void> {

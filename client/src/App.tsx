@@ -27,8 +27,12 @@ import AdminLeavePage from "./pages/admin/AdminLeavePage";
 import LeavePage from "./pages/LeavePage";
 import MyPage from "./pages/MyPage";
 import NoticesPage from "./pages/NoticesPage";
+import NoticeDetailPage from "./pages/NoticeDetailPage";
 import HrPage from "./pages/HrPage";
+import HrDetailPage from "./pages/HrDetailPage";
 import CondolencesPage from "./pages/CondolencesPage";
+import CondolenceDetailPage from "./pages/CondolenceDetailPage";
+import BoardDetailPage from "./pages/BoardDetailPage";
 import PrivacyPage from "./pages/PrivacyPage";
 
 function Router() {
@@ -68,11 +72,23 @@ function Router() {
       <Route path="/notices">
         <RequireAuth><NoticesPage /></RequireAuth>
       </Route>
+      <Route path="/notices/:id">
+        <RequireAuth><NoticeDetailPage /></RequireAuth>
+      </Route>
       <Route path="/hr">
         <RequireAuth><HrPage /></RequireAuth>
       </Route>
+      <Route path="/hr/:id">
+        <RequireAuth><HrDetailPage /></RequireAuth>
+      </Route>
       <Route path="/condolences">
         <RequireAuth><CondolencesPage /></RequireAuth>
+      </Route>
+      <Route path="/condolences/:id">
+        <RequireAuth><CondolenceDetailPage /></RequireAuth>
+      </Route>
+      <Route path="/board/:id">
+        <RequireAuth><BoardDetailPage /></RequireAuth>
       </Route>
 
       {/* 개인정보처리방침 — 공개 페이지 */}

@@ -166,13 +166,12 @@ function NoticeSection() {
         ) : !filtered || filtered.length === 0 ? (
           <div className="py-4 text-center text-xs" style={{ color: "var(--kino-light)" }}>등록된 공지사항이 없습니다</div>
         ) : filtered.slice(0, 5).map((n) => (
-          <div key={n.id} className="board-item" onClick={() => toast(`"${n.title}"`)}
-            style={{ cursor: "pointer" }}>
+          <Link key={n.id} href={`/notices/${n.id}`} className="board-item" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span className="badge-tag company shrink-0">{n.tag}</span>
             <span className="board-item-title">{n.title}</span>
             {n.isNew && <span className="badge-new shrink-0">N</span>}
             <span className="board-item-date shrink-0">{new Date(n.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -200,7 +199,7 @@ function HRSection() {
         ) : !hrList || hrList.length === 0 ? (
           <div className="py-4 text-center text-xs" style={{ color: "var(--kino-light)" }}>등록된 인사발령이 없습니다</div>
         ) : hrList.slice(0, 5).map((h) => (
-          <div key={h.id} className="board-item" style={{ cursor: "default" }}>
+          <Link key={h.id} href={`/hr/${h.id}`} className="board-item" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span
               className="badge-tag shrink-0"
               style={{
@@ -212,7 +211,7 @@ function HRSection() {
             </span>
             <span className="board-item-title">{h.title}</span>
             <span className="board-item-date shrink-0">{h.effectiveDate ?? new Date(h.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -259,14 +258,12 @@ function BoardSection() {
         ) : !posts || posts.length === 0 ? (
           <div className="py-4 text-center text-xs" style={{ color: "var(--kino-light)" }}>게시글이 없습니다</div>
         ) : posts.slice(0, 5).map((p) => (
-          <div key={p.id} className="board-item" style={{ cursor: "pointer" }}
-            onClick={() => p.link ? window.open(p.link, "_blank") : toast(`"${p.title}"`)}
-          >
+          <Link key={p.id} href={`/board/${p.id}`} className="board-item" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span className="badge-tag shrink-0">{p.category}</span>
             <span className="board-item-title">{p.title}</span>
             {p.isNew && <span className="badge-new shrink-0">N</span>}
             <span className="board-item-date shrink-0">{new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
@@ -295,7 +292,7 @@ function CondolenceSection() {
         ) : !list || list.length === 0 ? (
           <div className="py-4 text-center text-xs" style={{ color: "var(--kino-light)" }}>등록된 경조사가 없습니다</div>
         ) : list.slice(0, 5).map((c) => (
-          <div key={c.id} className="board-item" style={{ cursor: "default" }}>
+          <Link key={c.id} href={`/condolences/${c.id}`} className="board-item" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <span className="text-base shrink-0">{CONDOLENCE_EMOJI[c.type] ?? "📋"}</span>
             <span
               className="badge-tag shrink-0"
@@ -308,7 +305,7 @@ function CondolenceSection() {
             </span>
             <span className="board-item-title" style={{ color: "var(--kino-charcoal)" }}>{c.name}</span>
             <span className="board-item-date shrink-0">{c.eventDate ?? new Date(c.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
-          </div>
+          </Link>
         ))}
       </div>
     </div>
