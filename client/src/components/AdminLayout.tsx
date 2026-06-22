@@ -1,18 +1,19 @@
 /**
  * AdminLayout — 어드민 공통 레이아웃
  * - 사이드바 네비게이션
- * - 인증 가드 (비인증 시 로그인 페이지 표시)
+ * - 인증 가드 (role=admin 체크, 미인증 시 포탈 로그인으로 리다이렉트)
  * - 모노크롬 다크 사이드바 디자인
  */
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import AdminLoginPage from "@/pages/admin/AdminLoginPage";
 import {
   LayoutDashboard, ClipboardList, Megaphone,
   UserCheck, Heart, BookOpen, LogOut,
   Menu, X, ChevronRight, Loader2, Users, CalendarDays,
+  ShieldOff,
 } from "lucide-react";
+import { getLoginUrl } from "@/const";
 
 const ADMIN_NAV = [
   { label: "대시보드",    icon: LayoutDashboard, path: "/admin" },
@@ -33,7 +34,7 @@ interface Props {
 export default function AdminLayout({ children, title }: Props) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isChecking, logout } = useAdminAuth();
+  const { isAuthenticated, isChecking, logout, user } = useAdminAuth();
 
   // 인증 확인 중
   if (isChecking) {
@@ -47,9 +48,41 @@ export default function AdminLayout({ children, title }: Props) {
     );
   }
 
-  // 미인증 → 로그인 페이지
+  // 로그인 안 됨 → Manus 로그인 페이지로 이동
+  if (!user) {
+    window.location.href = getLoginUrl();
+    return null;
+  }
+
+  // 로그인은 됐지만 어드민 권한 없음 → 접근 거부 메시지
   if (!isAuthenticated) {
-    return <AdminLoginPage />;
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--kino-bg)" }}>
+        <div className="flex flex-col items-center gap-4 text-center max-w-sm">
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center"
+            style={{ background: "var(--kino-pale)" }}
+          >
+            <ShieldOff size={24} style={{ color: "var(--kino-muted)" }} />
+          </div>
+          <h2 className="text-lg font-bold" style={{ color: "var(--kino-charcoal)" }}>
+            접근 권한이 없습니다
+          </h2>
+          <p className="text-sm" style={{ color: "var(--kino-muted)" }}>
+            관리자 권한이 필요한 페이지입니다.<br />
+            담당자에게 권한 부여를 요청하세요.
+          </p>
+          <Link href="/">
+            <button
+              className="px-5 py-2.5 rounded-md text-sm font-semibold transition-all active:scale-95"
+              style={{ background: "var(--kino-charcoal)", color: "white" }}
+            >
+              포탈 홈으로 돌아가기
+            </button>
+          </Link>
+        </div>
+      </div>
+    );
   }
 
   const currentNavItem = ADMIN_NAV.find(n => n.path === location);
@@ -209,8 +242,13 @@ export default function AdminLayout({ children, title }: Props) {
             </span>
           </div>
 
-          {/* 우측: 포탈 바로가기 */}
+          {/* 우측: 사용자명 + 포탈 바로가기 + 로그아웃 */}
           <div className="ml-auto flex items-center gap-3">
+            {user?.name && (
+              <span className="text-xs font-medium hidden md:block" style={{ color: "var(--kino-muted)" }}>
+                {user.name}
+              </span>
+            )}
             <Link href="/">
               <span className="text-xs font-medium cursor-pointer" style={{ color: "var(--kino-muted)" }}>
                 ← 포탈로

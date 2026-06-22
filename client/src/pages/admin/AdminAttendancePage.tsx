@@ -12,7 +12,6 @@ import {
   Users, LogIn, LogOut, Clock, RefreshCw,
   Building2, MapPin, Download, Calendar, BarChart2,
 } from "lucide-react";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 // ── 유틸 함수 ─────────────────────────────────────────────────────
 function toDateString(date: Date): string {
@@ -54,7 +53,6 @@ function DailyTab() {
   const [selectedDate, setSelectedDate] = useState(toDateString(today));
   const [deptFilter, setDeptFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
-  const { token: adminToken } = useAdminAuth();
 
   const queryDate = useMemo(() => fromDateString(selectedDate), [selectedDate]);
 
@@ -296,7 +294,6 @@ function MonthlyTab() {
   const today = new Date();
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
-  const { token: adminToken } = useAdminAuth();
 
   // 해당 월의 시작일~종료일 계산
   const { startDate, endDate } = useMemo(() => {
@@ -312,7 +309,7 @@ function MonthlyTab() {
   }, { enabled: false }); // 월별은 exportCsv 사용
 
   const { data: csvData, isLoading: csvLoading, refetch: fetchCsv } = trpc.attendance.exportCsv.useQuery(
-    { adminToken, startDate, endDate },
+    { startDate, endDate },
     { enabled: false }
   );
 

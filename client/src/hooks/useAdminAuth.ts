@@ -1,65 +1,30 @@
 /**
  * useAdminAuth — 어드민 인증 상태 관리 훅
- * localStorage에 토큰을 저장하고, 서버에서 유효성 검증
+ * Manus OAuth 세션 기반으로 role=admin 체크
+ * (기존 localStorage/토큰 방식 제거)
  */
-import { useState, useEffect, useCallback } from "react";
+import { useAuth } from "@/_core/hooks/useAuth";
+import { getLoginUrl } from "@/const";
 import { trpc } from "@/lib/trpc";
-
-const ADMIN_TOKEN_KEY = "kinoton_admin_token";
+import { useCallback } from "react";
 
 export function useAdminAuth() {
-  const [token, setToken] = useState<string | null>(() => {
-    if (typeof window === "undefined") return null;
-    return localStorage.getItem(ADMIN_TOKEN_KEY);
-  });
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
+  const { user, loading, isAuthenticated, logout: authLogout } = useAuth();
 
-  // 토큰 유효성 서버 검증
-  const { data: verifyResult, isLoading: isVerifying } = trpc.admin.verify.useQuery(
-    { token: token ?? "" },
-    {
-      enabled: !!token,
-      retry: false,
-      refetchOnWindowFocus: false,
-    }
-  );
+  const isAdmin = isAuthenticated && user?.role === "admin";
+  const isChecking = loading;
 
-  useEffect(() => {
-    if (!token) {
-      setIsAuthenticated(false);
-      setIsChecking(false);
-      return;
-    }
-    if (!isVerifying) {
-      const valid = verifyResult?.valid ?? false;
-      setIsAuthenticated(valid);
-      if (!valid) {
-        // 유효하지 않은 토큰 제거
-        localStorage.removeItem(ADMIN_TOKEN_KEY);
-        setToken(null);
-      }
-      setIsChecking(false);
-    }
-  }, [token, isVerifying, verifyResult]);
-
-  const login = useCallback((newToken: string) => {
-    localStorage.setItem(ADMIN_TOKEN_KEY, newToken);
-    setToken(newToken);
-    setIsAuthenticated(true);
-  }, []);
-
-  const logout = useCallback(() => {
-    localStorage.removeItem(ADMIN_TOKEN_KEY);
-    setToken(null);
-    setIsAuthenticated(false);
-  }, []);
+  const logout = useCallback(async () => {
+    await authLogout();
+    window.location.href = "/";
+  }, [authLogout]);
 
   return {
-    token: token ?? "",
-    isAuthenticated,
-    isChecking: isChecking || (!!token && isVerifying),
-    login,
+    token: "",          // 레거시 호환용 (사용 안 함)
+    isAuthenticated: isAdmin,
+    isChecking,
+    login: (_token: string) => {},  // 레거시 호환용 (사용 안 함)
     logout,
+    user,
   };
 }

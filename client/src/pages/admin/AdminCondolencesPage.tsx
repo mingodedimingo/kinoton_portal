@@ -4,9 +4,8 @@
 import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 
 type CondolenceType = "결혼" | "출산" | "부고" | "기타";
@@ -53,7 +52,6 @@ const TYPE_COLORS: Record<CondolenceType, { bg: string; color: string }> = {
 };
 
 export default function AdminCondolencesPage() {
-  const { token } = useAdminAuth();
   const utils = trpc.useUtils();
 
   const [showForm, setShowForm] = useState(false);
@@ -95,9 +93,9 @@ export default function AdminCondolencesPage() {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("내용을 입력해주세요."); return; }
     if (editId !== null) {
-      updateMutation.mutate({ adminToken: token, id: editId, ...form });
+      updateMutation.mutate({ id: editId, ...form });
     } else {
-      createMutation.mutate({ adminToken: token, ...form });
+      createMutation.mutate({ ...form });
     }
   };
 
@@ -116,7 +114,7 @@ export default function AdminCondolencesPage() {
 
   const handleDelete = (id: number) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
-    deleteMutation.mutate({ adminToken: token, id });
+    deleteMutation.mutate({ id });
   };
 
   return (

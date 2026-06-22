@@ -8,11 +8,10 @@ import { useState } from "react";
 import { toast } from "sonner";
 import {
   CheckCircle, XCircle, Clock, Loader2, Download,
-  Users, FileText, ChevronDown, ChevronUp,
+  Users, FileText,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 const STATUS_CONFIG: Record<string, { bg: string; color: string; icon: React.ReactNode }> = {
   "대기": { bg: "#FEF9C3", color: "#92400E", icon: <Clock size={11} /> },
@@ -21,7 +20,7 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string; icon: React.Rea
 };
 
 // ── 연차 신청 목록 탭 ─────────────────────────────────────────────
-function LeaveRequestsTab({ adminToken }: { adminToken: string }) {
+function LeaveRequestsTab() {
   const utils = trpc.useUtils();
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
@@ -30,7 +29,6 @@ function LeaveRequestsTab({ adminToken }: { adminToken: string }) {
   const [rejectReason, setRejectReason] = useState("");
 
   const { data: requests, isLoading } = trpc.leave.adminList.useQuery({
-    adminToken,
     year,
     status: statusFilter === "전체" ? undefined : statusFilter,
   });
@@ -56,11 +54,11 @@ function LeaveRequestsTab({ adminToken }: { adminToken: string }) {
 
   const handleApprove = (id: number) => {
     if (!confirm("이 연차 신청을 승인하시겠습니까?")) return;
-    approveMutation.mutate({ adminToken, id, approverName: "관리자" });
+    approveMutation.mutate({ id, approverName: "관리자" });
   };
 
   const handleReject = (id: number) => {
-    rejectMutation.mutate({ adminToken, id, approverName: "관리자", rejectReason: rejectReason || undefined });
+    rejectMutation.mutate({ id, approverName: "관리자", rejectReason: rejectReason || undefined });
   };
 
   // CSV 내보내기 (이카운트 호환 형식)
@@ -235,13 +233,11 @@ function LeaveRequestsTab({ adminToken }: { adminToken: string }) {
 }
 
 // ── 전체 직원 연차 현황 탭 ────────────────────────────────────────
-function LeaveBalancesTab({ adminToken }: { adminToken: string }) {
-  const utils = trpc.useUtils();
+function LeaveBalancesTab() {
   const currentYear = new Date().getFullYear();
   const [year, setYear] = useState(currentYear);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const { data: balances, isLoading } = trpc.employees.allLeaveBalances.useQuery({ adminToken, year });
+  const { data: balances, isLoading } = trpc.employees.allLeaveBalances.useQuery({ year });
 
   // CSV 내보내기 (이카운트 호환)
   const handleExportCSV = () => {
@@ -344,13 +340,11 @@ function LeaveBalancesTab({ adminToken }: { adminToken: string }) {
 
 // ── Main Page ─────────────────────────────────────────────────────
 export default function AdminLeavePage() {
-  const { token: adminToken } = useAdminAuth();
   const [activeTab, setActiveTab] = useState<"requests" | "balances">("requests");
   const currentYear = new Date().getFullYear();
 
   // 대기 건수 조회
   const { data: pendingRequests } = trpc.leave.adminList.useQuery({
-    adminToken,
     year: currentYear,
     status: "대기",
   });
@@ -414,9 +408,9 @@ export default function AdminLeavePage() {
         </div>
 
         {activeTab === "requests" ? (
-          <LeaveRequestsTab adminToken={adminToken} />
+          <LeaveRequestsTab />
         ) : (
-          <LeaveBalancesTab adminToken={adminToken} />
+          <LeaveBalancesTab />
         )}
       </div>
     </AdminLayout>

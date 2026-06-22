@@ -88,7 +88,7 @@ export default function BoardPage() {
     const inputName = prompt("본인 이름을 입력하면 삭제됩니다:");
     if (!inputName) return;
     if (inputName !== authorName) { toast.error("이름이 일치하지 않습니다."); return; }
-    deleteMutation.mutate({ id, authorName });
+    deleteMutation.mutate({ id });
   };
 
   return (

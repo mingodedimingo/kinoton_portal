@@ -4,9 +4,8 @@
 import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
-import { Plus, Pencil, Trash2, Loader2, X, Image as ImageIcon } from "lucide-react";
+import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
 
 type HrType = "입사" | "퇴직" | "발령" | "승진";
@@ -46,13 +45,11 @@ const TYPE_COLORS: Record<HrType, { bg: string; color: string }> = {
 };
 
 export default function AdminHrPage() {
-  const { token } = useAdminAuth();
   const utils = trpc.useUtils();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
-  const [expandedId, setExpandedId] = useState<number | null>(null);
 
   const { data: hrList, isLoading } = trpc.hrNotices.list.useQuery({ limit: 50 });
 
@@ -89,9 +86,9 @@ export default function AdminHrPage() {
     e.preventDefault();
     if (!form.title.trim()) { toast.error("제목을 입력해주세요."); return; }
     if (editId !== null) {
-      updateMutation.mutate({ adminToken: token, id: editId, ...form });
+      updateMutation.mutate({ id: editId, ...form });
     } else {
-      createMutation.mutate({ adminToken: token, ...form });
+      createMutation.mutate({ ...form });
     }
   };
 
@@ -110,7 +107,7 @@ export default function AdminHrPage() {
 
   const handleDelete = (id: number) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
-    deleteMutation.mutate({ adminToken: token, id });
+    deleteMutation.mutate({ id });
   };
 
   return (

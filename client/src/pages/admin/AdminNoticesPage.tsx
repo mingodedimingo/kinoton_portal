@@ -4,7 +4,6 @@
 import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X, Pin, Image as ImageIcon } from "lucide-react";
 import ImageUploader from "@/components/ImageUploader";
@@ -39,7 +38,6 @@ function parseImages(images: unknown): string[] {
 }
 
 export default function AdminNoticesPage() {
-  const { token } = useAdminAuth();
   const utils = trpc.useUtils();
 
   const [showForm, setShowForm] = useState(false);
@@ -82,9 +80,9 @@ export default function AdminNoticesPage() {
     e.preventDefault();
     if (!form.title.trim()) { toast.error("제목을 입력해주세요."); return; }
     if (editId !== null) {
-      updateMutation.mutate({ adminToken: token, id: editId, ...form });
+      updateMutation.mutate({ id: editId, ...form });
     } else {
-      createMutation.mutate({ adminToken: token, ...form });
+      createMutation.mutate({ ...form });
     }
   };
 
@@ -104,7 +102,7 @@ export default function AdminNoticesPage() {
 
   const handleDelete = (id: number) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
-    deleteMutation.mutate({ adminToken: token, id });
+    deleteMutation.mutate({ id });
   };
 
   const categoryLabel = { all: "전체", company: "회사", dept: "부서" };

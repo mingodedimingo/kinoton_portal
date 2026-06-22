@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 type Employee = {
   id: number;
@@ -27,12 +26,10 @@ type Employee = {
 // ── 직원 폼 모달 ──────────────────────────────────────────────────
 function EmployeeFormModal({
   employee,
-  adminToken,
   onClose,
   onSaved,
 }: {
   employee: Employee | null;
-  adminToken: string;
   onClose: () => void;
   onSaved: () => void;
 }) {
@@ -70,7 +67,6 @@ function EmployeeFormModal({
     e.preventDefault();
     if (employee) {
       updateMutation.mutate({
-        adminToken,
         id: employee.id,
         name: form.name,
         department: form.department,
@@ -81,7 +77,7 @@ function EmployeeFormModal({
         profileImage: form.profileImage || undefined,
       });
     } else {
-      createMutation.mutate({ adminToken, ...form });
+      createMutation.mutate({ ...form });
     }
   };
 
@@ -167,11 +163,9 @@ function EmployeeFormModal({
 // ── 연차 부여 모달 ────────────────────────────────────────────────
 function LeaveGrantModal({
   employee,
-  adminToken,
   onClose,
 }: {
   employee: Employee;
-  adminToken: string;
   onClose: () => void;
 }) {
   const utils = trpc.useUtils();
@@ -241,7 +235,7 @@ function LeaveGrantModal({
         <div className="flex gap-2 mt-4">
           <button onClick={onClose} className="flex-1 py-2 rounded text-xs font-semibold" style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}>취소</button>
           <button
-            onClick={() => mutation.mutate({ adminToken, employeeId: employee.id, year, totalDays })}
+            onClick={() => mutation.mutate({ employeeId: employee.id, year, totalDays })}
             disabled={mutation.isPending}
             className="flex-1 py-2 rounded text-xs font-semibold flex items-center justify-center gap-1"
             style={{ background: "var(--kino-charcoal)", color: "white", opacity: mutation.isPending ? 0.7 : 1 }}
@@ -257,7 +251,6 @@ function LeaveGrantModal({
 
 // ── Main Page ─────────────────────────────────────────────────────
 export default function AdminEmployeesPage() {
-  const { token: adminToken } = useAdminAuth();
   const utils = trpc.useUtils();
   const [showForm, setShowForm] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
@@ -284,13 +277,13 @@ export default function AdminEmployeesPage() {
 
   const handleDelete = (emp: Employee) => {
     if (!confirm(`"${emp.name}" 직원을 삭제하시겠습니까? 출퇴근 기록도 함께 삭제됩니다.`)) return;
-    deleteMutation.mutate({ adminToken, id: emp.id });
+    deleteMutation.mutate({ id: emp.id });
   };
 
   const handleDeactivate = (emp: Employee) => {
     const action = emp.isActive ? "비활성화" : "활성화";
     if (!confirm(`"${emp.name}" 직원을 ${action}하시겠습니까?`)) return;
-    deactivateMutation.mutate({ adminToken, id: emp.id, isActive: !emp.isActive });
+    deactivateMutation.mutate({ id: emp.id, isActive: !emp.isActive });
   };
 
   return (
@@ -425,7 +418,6 @@ export default function AdminEmployeesPage() {
       {showForm && (
         <EmployeeFormModal
           employee={editEmployee}
-          adminToken={adminToken}
           onClose={() => { setShowForm(false); setEditEmployee(null); }}
           onSaved={() => { setShowForm(false); setEditEmployee(null); }}
         />
@@ -435,7 +427,6 @@ export default function AdminEmployeesPage() {
       {grantEmployee && (
         <LeaveGrantModal
           employee={grantEmployee}
-          adminToken={adminToken}
           onClose={() => setGrantEmployee(null)}
         />
       )}

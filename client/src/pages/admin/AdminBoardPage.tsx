@@ -5,7 +5,6 @@
 import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { toast } from "sonner";
 import { Pencil, Trash2, Loader2, X, Pin, ExternalLink } from "lucide-react";
 
@@ -21,7 +20,6 @@ type EditFormData = {
 };
 
 export default function AdminBoardPage() {
-  const { token } = useAdminAuth();
   const utils = trpc.useUtils();
 
   const [categoryFilter, setCategoryFilter] = useState("all");
@@ -66,12 +64,12 @@ export default function AdminBoardPage() {
   const handleEditSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!editForm || editId === null) return;
-    updateMutation.mutate({ adminToken: token, id: editId, ...editForm });
+    updateMutation.mutate({ id: editId, ...editForm });
   };
 
   const handleDelete = (id: number) => {
     if (!confirm("정말 삭제하시겠습니까?")) return;
-    deleteMutation.mutate({ adminToken: token, id });
+    deleteMutation.mutate({ id });
   };
 
   const CATEGORIES = ["all", "언론보도", "매뉴얼", "기타"];
