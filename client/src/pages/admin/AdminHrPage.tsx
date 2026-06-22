@@ -51,7 +51,8 @@ export default function AdminHrPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
 
-  const { data: hrList, isLoading } = trpc.hrNotices.list.useQuery({ limit: 50 });
+  const { data: hrData, isLoading } = trpc.hrNotices.list.useQuery({ limit: 50 });
+  const hrList = hrData?.items;
 
   const createMutation = trpc.hrNotices.create.useMutation({
     onSuccess: () => {

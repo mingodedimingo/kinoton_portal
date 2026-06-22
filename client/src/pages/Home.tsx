@@ -129,7 +129,8 @@ function QuickMenuSection({ card = false }: { card?: boolean }) {
 // ── Notice Section (DB 연동) ─────────────────────────────────────
 function NoticeSection() {
   const [tab, setTab] = useState<"all"|"company"|"dept">("all");
-  const { data: notices, isLoading } = trpc.notices.list.useQuery({ limit: 5 });
+  const { data: noticesData, isLoading } = trpc.notices.list.useQuery({ limit: 5 });
+  const notices = noticesData?.items;
   const filtered = tab === "all" ? notices : notices?.filter(n => n.category === tab);
   return (
     <div className="portal-card animate-fade-in-up stagger-2">
@@ -180,7 +181,8 @@ function NoticeSection() {
 
 // ── HR Section (DB 연동) ─────────────────────────────────────────
 function HRSection() {
-  const { data: hrList, isLoading } = trpc.hrNotices.list.useQuery({ limit: 5 });
+  const { data: hrData, isLoading } = trpc.hrNotices.list.useQuery({ limit: 5 });
+  const hrList = hrData?.items;
   return (
     <div className="portal-card animate-fade-in-up stagger-3">
       <div className="section-header">
@@ -221,7 +223,8 @@ function HRSection() {
 function BoardSection() {
   const [tab, setTab] = useState<"all"|"press"|"manual"|"etc">("all");
   const categoryMap: Record<string, string | undefined> = { all: undefined, press: "언론보도", manual: "매뉴얼", etc: "기타" };
-  const { data: posts, isLoading } = trpc.board.list.useQuery({ category: categoryMap[tab], limit: 5 });
+  const { data: boardData, isLoading } = trpc.board.list.useQuery({ category: categoryMap[tab], limit: 5 });
+  const posts = boardData?.items;
   return (
     <div className="portal-card animate-fade-in-up stagger-2">
       <div className="section-header">
@@ -273,7 +276,8 @@ function BoardSection() {
 // ── Condolence Section (DB 연동) ─────────────────────────────────
 const CONDOLENCE_EMOJI: Record<string, string> = { 결혼: "💍", 출산: "👶", 부고: "🕯️", 기타: "📋" };
 function CondolenceSection() {
-  const { data: list, isLoading } = trpc.condolences.list.useQuery({ limit: 5 });
+  const { data: condData, isLoading } = trpc.condolences.list.useQuery({ limit: 5 });
+  const list = condData?.items;
   return (
     <div className="portal-card animate-fade-in-up stagger-3">
       <div className="section-header">

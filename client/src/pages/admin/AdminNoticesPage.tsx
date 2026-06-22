@@ -45,7 +45,8 @@ export default function AdminNoticesPage() {
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const { data: notices, isLoading } = trpc.notices.list.useQuery({ limit: 50 });
+  const { data: noticesData, isLoading } = trpc.notices.list.useQuery({ limit: 50 });
+  const notices = noticesData?.items;
 
   const createMutation = trpc.notices.create.useMutation({
     onSuccess: () => {
@@ -213,7 +214,7 @@ export default function AdminNoticesPage() {
       <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--kino-pale)" }}>
         {isLoading ? (
           <div className="flex justify-center py-10"><Loader2 size={20} className="animate-spin" style={{ color: "var(--kino-muted)" }} /></div>
-        ) : !notices || notices.length === 0 ? (
+        ) : !notices || (notices as any[]).length === 0 ? (
           <div className="text-center py-10"><p className="text-sm" style={{ color: "var(--kino-light)" }}>등록된 공지사항이 없습니다</p></div>
         ) : (
           <table className="w-full text-sm">

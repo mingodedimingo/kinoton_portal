@@ -102,7 +102,16 @@
 - [x] 개인정보처리방침 페이지 추가 (/privacy)
 
 ## 백엔드 보안 강화 1단계
-- [ ] 모든 API publicProcedure → protectedProcedure 교체 (로그인 필수)
-- [ ] 어드민 토큰을 실제 JWT 서명 방식으로 교체 (adminProcedure 활용)
-- [ ] 이미지 업로드 엔드포인트(/api/upload-image) 인증 추가
-- [ ] 게시판 삭제 권한을 작성자 계정 기반으로 변경
+- [x] 모든 API publicProcedure → protectedProcedure 교체 (로그인 필수)
+- [x] 어드민 토큰을 실제 JWT 서명 방식으로 교체 (adminProcedure 활용 + Manus OAuth)
+- [x] 이미지 업로드 엔드포인트(/api/upload-image) 인증 추가
+- [x] 게시판 삭제 권한을 작성자 계정 기반으로 변경
+
+## 백엔드 보안 강화 2단계 (우선순위 순)
+
+- [x] [높음] 모든 API publicProcedure → protectedProcedure 교체 (로그인 필수)
+- [x] [높음] 어드민 전용 API에 adminProcedure 적용
+- [x] [높음] 이미지 업로드 엔드포인트(/api/upload-image) 인증 추가
+- [x] [높음] 게시판 삭제 권한을 작성자 계정(openId) 기반으로 변경
+- [x] [낮음] 공지사항/게시판 페이지네이션 추가
+- [x] [낮음] 조직도 DB 연동 (하드코딩 → employees DB 기반)

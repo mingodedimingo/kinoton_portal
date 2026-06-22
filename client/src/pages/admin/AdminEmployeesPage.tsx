@@ -16,6 +16,7 @@ type Employee = {
   name: string;
   department: string;
   position: string;
+  ext: string | null;
   email: string | null;
   phone: string | null;
   joinDate: string;
@@ -38,6 +39,7 @@ function EmployeeFormModal({
     name: employee?.name ?? "",
     department: employee?.department ?? "",
     position: employee?.position ?? "",
+    ext: employee?.ext ?? "",
     email: employee?.email ?? "",
     phone: employee?.phone ?? "",
     joinDate: employee?.joinDate ?? new Date().toISOString().split("T")[0],
@@ -100,6 +102,7 @@ function EmployeeFormModal({
             { label: "이름 *", key: "name", type: "text", placeholder: "홍길동" },
             { label: "부서 *", key: "department", type: "text", placeholder: "경영기획팀" },
             { label: "직위 *", key: "position", type: "text", placeholder: "선임" },
+            { label: "내선번호", key: "ext", type: "text", placeholder: "1928" },
             { label: "이메일", key: "email", type: "email", placeholder: "hong@kinoton.co.kr" },
             { label: "연락처", key: "phone", type: "tel", placeholder: "010-0000-0000" },
             { label: "입사일 *", key: "joinDate", type: "date", placeholder: "" },

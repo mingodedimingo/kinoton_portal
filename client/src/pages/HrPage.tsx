@@ -78,9 +78,14 @@ export default function HrPage() {
   const [tab, setTab] = useState<"all" | "입사" | "퇴직" | "발령" | "승진">("all");
   const [selected, setSelected] = useState<HrItem | null>(null);
 
-  const { data: hrNotices, isLoading } = trpc.hrNotices.list.useQuery({ limit: 100 });
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+  const { data: hrData, isLoading } = trpc.hrNotices.list.useQuery({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  const hrNotices = hrData?.items ?? [];
+  const total = hrData?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = (hrNotices ?? []).filter(n =>
+  const filtered = hrNotices.filter(n =>
     tab === "all" ? true : n.type === tab
   );
 
@@ -147,6 +152,23 @@ export default function HrPage() {
             })
           )}
         </div>
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+              className="px-3 py-1 rounded text-xs font-medium"
+              style={{ background: page === 0 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page === 0 ? 'var(--kino-muted)' : 'white' }}>
+              이전
+            </button>
+            <span className="text-xs" style={{ color: 'var(--kino-mid)' }}>{page + 1} / {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+              className="px-3 py-1 rounded text-xs font-medium"
+              style={{ background: page >= totalPages - 1 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page >= totalPages - 1 ? 'var(--kino-muted)' : 'white' }}>
+              다음
+            </button>
+          </div>
+        )}
       </div>
 
       {selected && <HrDetailModal item={selected} onClose={() => setSelected(null)} />}

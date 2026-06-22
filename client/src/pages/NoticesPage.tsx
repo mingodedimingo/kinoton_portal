@@ -75,9 +75,14 @@ export default function NoticesPage() {
   const [tab, setTab] = useState<"all" | "company" | "dept">("all");
   const [selected, setSelected] = useState<NoticeItem | null>(null);
 
-  const { data: notices, isLoading } = trpc.notices.list.useQuery({ limit: 100 });
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+  const { data: noticesData, isLoading } = trpc.notices.list.useQuery({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  const notices = noticesData?.items ?? [];
+  const total = noticesData?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = (notices ?? []).filter(n =>
+  const filtered = notices.filter(n =>
     tab === "all" ? true : n.category === tab
   );
 
@@ -139,6 +144,29 @@ export default function NoticesPage() {
             })
           )}
         </div>
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button
+              onClick={() => setPage(p => Math.max(0, p - 1))}
+              disabled={page === 0}
+              className="px-3 py-1 rounded text-xs font-medium transition-colors"
+              style={{ background: page === 0 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page === 0 ? 'var(--kino-muted)' : 'white' }}
+            >
+              이전
+            </button>
+            <span className="text-xs" style={{ color: 'var(--kino-mid)' }}>{page + 1} / {totalPages}</span>
+            <button
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1}
+              className="px-3 py-1 rounded text-xs font-medium transition-colors"
+              style={{ background: page >= totalPages - 1 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page >= totalPages - 1 ? 'var(--kino-muted)' : 'white' }}
+            >
+              다음
+            </button>
+          </div>
+        )}
       </div>
 
       {selected && <NoticeDetailModal notice={selected} onClose={() => setSelected(null)} />}

@@ -10,6 +10,7 @@ import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import multer from "multer";
 import { storagePut } from "../storage";
+import { sdk } from "./sdk";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -51,6 +52,18 @@ async function startServer() {
 
   app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     try {
+      // 인증 확인 — 로그인된 사용자만 업로드 가능
+      let user = null;
+      try {
+        user = await sdk.authenticateRequest(req);
+      } catch {
+        res.status(401).json({ error: "로그인이 필요합니다." });
+        return;
+      }
+      if (!user) {
+        res.status(401).json({ error: "로그인이 필요합니다." });
+        return;
+      }
       if (!req.file) {
         res.status(400).json({ error: "파일이 없습니다." });
         return;

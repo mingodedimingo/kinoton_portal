@@ -28,6 +28,7 @@ export const employees = mysqlTable("employees", {
   phone: varchar("phone", { length: 20 }),
   joinDate: varchar("joinDate", { length: 10 }).notNull(), // YYYY-MM-DD
   profileImage: varchar("profileImage", { length: 500 }), // 프로필 사진 URL
+  ext: varchar("ext", { length: 20 }), // 내선번호
   isActive: boolean("isActive").default(true).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -146,6 +147,7 @@ export const boardPosts = mysqlTable("board_posts", {
   content: text("content"),
   link: varchar("link", { length: 500 }),
   authorName: varchar("authorName", { length: 100 }).notNull(),
+  authorOpenId: varchar("authorOpenId", { length: 64 }), // 작성자 openId (삭제 권한 확인용)
   isNew: boolean("isNew").default(true).notNull(),
   isPinned: boolean("isPinned").default(false).notNull(),
   viewCount: int("viewCount").default(0).notNull(),

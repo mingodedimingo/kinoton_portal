@@ -8,7 +8,7 @@ import {
   getNotices, insertNotice, updateNotice, deleteNotice,
   getHrNotices, insertHrNotice, updateHrNotice, deleteHrNotice,
   getCondolences, insertCondolence, updateCondolence, deleteCondolence,
-  getBoardPosts, insertBoardPost, updateBoardPost, deleteBoardPost,
+  getBoardPosts, getBoardPostById, insertBoardPost, updateBoardPost, deleteBoardPost,
   getEmployees, getEmployeeById, insertEmployee, updateEmployee, deleteEmployee,
   getLeaveBalance, getAllLeaveBalances, upsertLeaveBalance, updateLeaveUsed,
   getLeaveRequests, insertLeaveRequest, updateLeaveRequestStatus, getLeaveRequestById,
@@ -47,6 +47,7 @@ export const appRouter = router({
         name: z.string().min(1).max(100),
         department: z.string().min(1).max(100),
         position: z.string().min(1).max(50),
+        ext: z.string().max(20).optional(),
         email: z.string().email().optional().or(z.literal("")),
         phone: z.string().optional(),
         joinDate: z.string().min(1),
@@ -58,6 +59,7 @@ export const appRouter = router({
           name: input.name,
           department: input.department,
           position: input.position,
+          ext: input.ext || null,
           email: input.email || null,
           phone: input.phone || null,
           joinDate: input.joinDate,
@@ -76,6 +78,7 @@ export const appRouter = router({
         name: z.string().min(1).max(100).optional(),
         department: z.string().min(1).max(100).optional(),
         position: z.string().min(1).max(50).optional(),
+        ext: z.string().max(20).optional(),
         email: z.string().optional(),
         phone: z.string().optional(),
         joinDate: z.string().optional(),
@@ -363,8 +366,8 @@ export const appRouter = router({
   notices: router({
     // 목록 조회 (로그인 필수)
     list: protectedProcedure
-      .input(z.object({ limit: z.number().optional() }))
-      .query(async ({ input }) => getNotices(input.limit)),
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
+      .query(async ({ input }) => getNotices(input.limit ?? 20, input.offset ?? 0)),
 
     // 작성 (어드민 전용)
     create: adminProcedure
@@ -416,8 +419,8 @@ export const appRouter = router({
   hrNotices: router({
     // 목록 조회 (로그인 필수)
     list: protectedProcedure
-      .input(z.object({ limit: z.number().optional() }))
-      .query(async ({ input }) => getHrNotices(input.limit)),
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
+      .query(async ({ input }) => getHrNotices(input.limit ?? 20, input.offset ?? 0)),
 
     // 작성 (어드민 전용)
     create: adminProcedure
@@ -467,8 +470,8 @@ export const appRouter = router({
   condolences: router({
     // 목록 조회 (로그인 필수)
     list: protectedProcedure
-      .input(z.object({ limit: z.number().optional() }))
-      .query(async ({ input }) => getCondolences(input.limit)),
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
+      .query(async ({ input }) => getCondolences(input.limit ?? 20, input.offset ?? 0)),
 
     // 작성 (어드민 전용)
     create: adminProcedure
@@ -522,25 +525,27 @@ export const appRouter = router({
         category: z.string().optional(),
         search: z.string().optional(),
         limit: z.number().optional(),
+        offset: z.number().optional(),
       }))
       .query(async ({ input }) => getBoardPosts({
-        category: input.category, search: input.search, limit: input.limit,
+        category: input.category, search: input.search, limit: input.limit, offset: input.offset,
       })),
 
     // 게시글 작성 (로그인 필수 — 전 직원 가능)
     create: protectedProcedure
       .input(z.object({
-        category: z.enum(["언론보도", "매뉴얼", "기타"]).default("기타"),
+        category: z.enum(["\uc5b8\ub860\ubcf4\ub3c4", "\ub9e4\ub274\uc5bc", "\uae30\ud0c0"]).default("\uae30\ud0c0"),
         title: z.string().min(1).max(300),
         content: z.string().optional(),
         link: z.string().url().optional().or(z.literal("")),
         authorName: z.string().min(1).max(100),
         images: z.array(z.string()).optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
         await insertBoardPost({
           category: input.category, title: input.title, content: input.content ?? null,
           link: input.link || null, authorName: input.authorName,
+          authorOpenId: ctx.user.openId, // \uc791\uc131\uc790 openId \uc800\uc7a5
           isNew: true, isPinned: false, viewCount: 0,
           images: input.images ? JSON.stringify(input.images) : null,
         });
@@ -562,24 +567,25 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 게시글 삭제 (어드민 또는 작성자 본인 — openId 기반)
+    // 게시글 삭제 (어드민 또는 작성자 본인 — DB에서 openId 조회하여 확인)
     delete: protectedProcedure
-      .input(z.object({
-        id: z.number(),
-        authorOpenId: z.string().optional(), // 작성자 본인 확인용
-      }))
+      .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
+        // DB에서 게시글 직접 조회 (getBoardPostById)
+        const rows = await getBoardPostById(input.id);
+        if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
+        const post = rows[0];
         // 어드민은 무조건 삭제 가능
         if (ctx.user.role === 'admin') {
           await deleteBoardPost(input.id);
           return { success: true };
         }
-        // 일반 사용자는 본인 글만 삭제 (openId 일치 확인)
-        if (input.authorOpenId && input.authorOpenId === ctx.user.openId) {
+        // 일반 사용자는 본인 글만 삭제 (DB의 authorOpenId와 세션 openId 비교)
+        if (post.authorOpenId && post.authorOpenId === ctx.user.openId) {
           await deleteBoardPost(input.id);
           return { success: true };
         }
-        throw new TRPCError({ code: "FORBIDDEN", message: "삭제 권한이 없습니다." });
+        throw new TRPCError({ code: 'FORBIDDEN', message: '삭제 권한이 없습니다.' });
       }),
   }),
 });

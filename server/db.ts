@@ -258,10 +258,14 @@ export async function getLeaveRequestById(id: number): Promise<LeaveRequest | un
 
 // ── 공지사항 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getNotices(limit = 20): Promise<Notice[]> {
+export async function getNotices(limit = 20, offset = 0): Promise<{ items: Notice[]; total: number }> {
   const db = await getDb();
-  if (!db) return [];
-  return db.select().from(notices).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit);
+  if (!db) return { items: [], total: 0 };
+  const [items, countResult] = await Promise.all([
+    db.select().from(notices).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(notices),
+  ]);
+  return { items, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function insertNotice(data: InsertNotice): Promise<void> {
@@ -284,10 +288,14 @@ export async function deleteNotice(id: number): Promise<void> {
 
 // ── 인사발령 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getHrNotices(limit = 20): Promise<HrNotice[]> {
+export async function getHrNotices(limit = 20, offset = 0): Promise<{ items: HrNotice[]; total: number }> {
   const db = await getDb();
-  if (!db) return [];
-  return db.select().from(hrNotices).orderBy(desc(hrNotices.createdAt)).limit(limit);
+  if (!db) return { items: [], total: 0 };
+  const [items, countResult] = await Promise.all([
+    db.select().from(hrNotices).orderBy(desc(hrNotices.createdAt)).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(hrNotices),
+  ]);
+  return { items, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function insertHrNotice(data: InsertHrNotice): Promise<void> {
@@ -310,10 +318,14 @@ export async function deleteHrNotice(id: number): Promise<void> {
 
 // ── 경조사 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getCondolences(limit = 20): Promise<Condolence[]> {
+export async function getCondolences(limit = 20, offset = 0): Promise<{ items: Condolence[]; total: number }> {
   const db = await getDb();
-  if (!db) return [];
-  return db.select().from(condolences).orderBy(desc(condolences.createdAt)).limit(limit);
+  if (!db) return { items: [], total: 0 };
+  const [items, countResult] = await Promise.all([
+    db.select().from(condolences).orderBy(desc(condolences.createdAt)).limit(limit).offset(offset),
+    db.select({ count: sql<number>`count(*)` }).from(condolences),
+  ]);
+  return { items, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function insertCondolence(data: InsertCondolence): Promise<void> {
@@ -340,9 +352,10 @@ export async function getBoardPosts(filters?: {
   category?: string;
   search?: string;
   limit?: number;
-}): Promise<BoardPost[]> {
+  offset?: number;
+}): Promise<{ items: BoardPost[]; total: number }> {
   const db = await getDb();
-  if (!db) return [];
+  if (!db) return { items: [], total: 0 };
   const conditions = [];
   if (filters?.category && filters.category !== 'all') {
     conditions.push(eq(boardPosts.category, filters.category as any));
@@ -350,11 +363,24 @@ export async function getBoardPosts(filters?: {
   if (filters?.search) {
     conditions.push(like(boardPosts.title, `%${filters.search}%`));
   }
-  const limit = filters?.limit ?? 50;
-  const query = conditions.length > 0
-    ? db.select().from(boardPosts).where(and(...conditions)).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit)
-    : db.select().from(boardPosts).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit);
-  return query;
+  const limit = filters?.limit ?? 20;
+  const offset = filters?.offset ?? 0;
+  const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+  const [items, countResult] = await Promise.all([
+    whereClause
+      ? db.select().from(boardPosts).where(whereClause).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit).offset(offset)
+      : db.select().from(boardPosts).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit).offset(offset),
+    whereClause
+      ? db.select({ count: sql<number>`count(*)` }).from(boardPosts).where(whereClause)
+      : db.select({ count: sql<number>`count(*)` }).from(boardPosts),
+  ]);
+  return { items, total: Number(countResult[0]?.count ?? 0) };
+}
+
+export async function getBoardPostById(id: number): Promise<BoardPost[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(boardPosts).where(eq(boardPosts.id, id)).limit(1);
 }
 
 export async function insertBoardPost(data: InsertBoardPost): Promise<void> {

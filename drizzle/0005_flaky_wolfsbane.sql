@@ -1,0 +1,1 @@
+ALTER TABLE `board_posts` ADD `authorOpenId` varchar(64);

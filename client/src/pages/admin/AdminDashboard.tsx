@@ -89,10 +89,14 @@ export default function AdminDashboard() {
   const today = useMemo(() => new Date(), []);
 
   const { data: summary, isLoading: summaryLoading } = trpc.attendance.todaySummary.useQuery();
-  const { data: notices } = trpc.notices.list.useQuery({ limit: 3 });
-  const { data: hrList } = trpc.hrNotices.list.useQuery({ limit: 3 });
-  const { data: condolenceList } = trpc.condolences.list.useQuery({ limit: 3 });
-  const { data: boardList } = trpc.board.list.useQuery({ limit: 3 });
+  const { data: noticesData } = trpc.notices.list.useQuery({ limit: 3 });
+  const notices = noticesData?.items;
+  const { data: hrData } = trpc.hrNotices.list.useQuery({ limit: 3 });
+  const hrList = hrData?.items;
+  const { data: condData } = trpc.condolences.list.useQuery({ limit: 3 });
+  const condolenceList = condData?.items;
+  const { data: boardData } = trpc.board.list.useQuery({ limit: 3 });
+  const boardList = boardData?.items;
 
   const todayStr = `${today.getFullYear()}.${String(today.getMonth() + 1).padStart(2, "0")}.${String(today.getDate()).padStart(2, "0")}`;
 

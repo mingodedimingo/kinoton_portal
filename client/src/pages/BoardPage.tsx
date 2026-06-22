@@ -53,11 +53,17 @@ export default function BoardPage() {
   const [writeForm, setWriteForm] = useState<WriteForm>(DEFAULT_WRITE);
   const [expandedPost, setExpandedPost] = useState<number | null>(null);
 
-  const { data: posts, isLoading } = trpc.board.list.useQuery({
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+  const { data: boardData, isLoading } = trpc.board.list.useQuery({
     category: activeCategory === "all" ? undefined : activeCategory,
     search: search || undefined,
-    limit: 50,
+    limit: PAGE_SIZE,
+    offset: page * PAGE_SIZE,
   });
+  const posts = boardData?.items;
+  const total = boardData?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   const createMutation = trpc.board.create.useMutation({
     onSuccess: () => {
@@ -84,10 +90,8 @@ export default function BoardPage() {
     createMutation.mutate(writeForm);
   };
 
-  const handleDelete = (id: number, authorName: string) => {
-    const inputName = prompt("본인 이름을 입력하면 삭제됩니다:");
-    if (!inputName) return;
-    if (inputName !== authorName) { toast.error("이름이 일치하지 않습니다."); return; }
+  const handleDelete = (id: number) => {
+    if (!confirm("이 게시글을 삭제하시겠습니까?")) return;
     deleteMutation.mutate({ id });
   };
 
@@ -354,7 +358,7 @@ export default function BoardPage() {
                         </span>
                         <span className="text-center">
                           <button
-                            onClick={() => handleDelete(p.id, p.authorName)}
+                            onClick={() => handleDelete(p.id)}
                             className="p-1 rounded transition-all"
                             style={{ color: "var(--kino-light)" }}
                             title="본인 글 삭제"
@@ -396,9 +400,25 @@ export default function BoardPage() {
                 })
               )}
 
-              {posts && posts.length > 0 && (
+              {/* 페이지네이션 */}
+              {totalPages > 1 && (
+                <div className="flex items-center justify-center gap-2 py-3">
+                  <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+                    className="px-3 py-1 rounded text-xs font-medium"
+                    style={{ background: page === 0 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page === 0 ? 'var(--kino-muted)' : 'white' }}>
+                    이전
+                  </button>
+                  <span className="text-xs" style={{ color: 'var(--kino-mid)' }}>{page + 1} / {totalPages} (열 {total}건)</span>
+                  <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+                    className="px-3 py-1 rounded text-xs font-medium"
+                    style={{ background: page >= totalPages - 1 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page >= totalPages - 1 ? 'var(--kino-muted)' : 'white' }}>
+                    다음
+                  </button>
+                </div>
+              )}
+              {totalPages <= 1 && posts && posts.length > 0 && (
                 <div className="flex items-center justify-center gap-1 py-3">
-                  <span className="text-xs" style={{ color: "var(--kino-light)" }}>총 {posts.length}건</span>
+                  <span className="text-xs" style={{ color: "var(--kino-light)" }}>열 {total}건</span>
                 </div>
               )}
             </div>

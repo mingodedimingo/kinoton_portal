@@ -58,7 +58,8 @@ export default function AdminCondolencesPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [form, setForm] = useState<FormData>(DEFAULT_FORM);
 
-  const { data: list, isLoading } = trpc.condolences.list.useQuery({ limit: 50 });
+  const { data: listData, isLoading } = trpc.condolences.list.useQuery({ limit: 50 });
+  const list = listData?.items;
 
   const createMutation = trpc.condolences.create.useMutation({
     onSuccess: () => {

@@ -86,9 +86,14 @@ export default function CondolencesPage() {
   const [tab, setTab] = useState<"all" | "결혼" | "출산" | "부고" | "기타">("all");
   const [selected, setSelected] = useState<CondolenceItem | null>(null);
 
-  const { data: condolences, isLoading } = trpc.condolences.list.useQuery({ limit: 100 });
+  const [page, setPage] = useState(0);
+  const PAGE_SIZE = 20;
+  const { data: condData, isLoading } = trpc.condolences.list.useQuery({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
+  const condolences = condData?.items ?? [];
+  const total = condData?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  const filtered = (condolences ?? []).filter(n =>
+  const filtered = condolences.filter(n =>
     tab === "all" ? true : n.type === tab
   );
 
@@ -156,6 +161,23 @@ export default function CondolencesPage() {
             })
           )}
         </div>
+
+        {/* 페이지네이션 */}
+        {totalPages > 1 && (
+          <div className="flex items-center justify-center gap-2 mt-4">
+            <button onClick={() => setPage(p => Math.max(0, p - 1))} disabled={page === 0}
+              className="px-3 py-1 rounded text-xs font-medium"
+              style={{ background: page === 0 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page === 0 ? 'var(--kino-muted)' : 'white' }}>
+              이전
+            </button>
+            <span className="text-xs" style={{ color: 'var(--kino-mid)' }}>{page + 1} / {totalPages}</span>
+            <button onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))} disabled={page >= totalPages - 1}
+              className="px-3 py-1 rounded text-xs font-medium"
+              style={{ background: page >= totalPages - 1 ? 'var(--kino-pale)' : 'var(--kino-charcoal)', color: page >= totalPages - 1 ? 'var(--kino-muted)' : 'white' }}>
+              다음
+            </button>
+          </div>
+        )}
       </div>
 
       {selected && <CondolenceDetailModal item={selected} onClose={() => setSelected(null)} />}

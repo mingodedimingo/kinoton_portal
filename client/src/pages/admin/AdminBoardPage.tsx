@@ -26,10 +26,11 @@ export default function AdminBoardPage() {
   const [editId, setEditId] = useState<number | null>(null);
   const [editForm, setEditForm] = useState<EditFormData | null>(null);
 
-  const { data: posts, isLoading } = trpc.board.list.useQuery({
+  const { data: boardData, isLoading } = trpc.board.list.useQuery({
     category: categoryFilter === "all" ? undefined : categoryFilter,
     limit: 100,
   });
+  const posts = boardData?.items;
 
   const updateMutation = trpc.board.update.useMutation({
     onSuccess: () => {
