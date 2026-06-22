@@ -3,6 +3,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
+import RequireAuth from "./components/RequireAuth";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import MailPage from "./pages/MailPage";
@@ -28,26 +29,56 @@ import MyPage from "./pages/MyPage";
 import NoticesPage from "./pages/NoticesPage";
 import HrPage from "./pages/HrPage";
 import CondolencesPage from "./pages/CondolencesPage";
+import PrivacyPage from "./pages/PrivacyPage";
 
 function Router() {
   return (
     <Switch>
-      {/* 일반 페이지 */}
-      <Route path="/" component={Home} />
-      <Route path="/mail" component={MailPage} />
-      <Route path="/approve" component={ApprovePage} />
-      <Route path="/board" component={BoardPage} />
-      <Route path="/calendar" component={CalendarPage} />
-      <Route path="/orgchart" component={OrgChartPage} />
-      <Route path="/reserve" component={ReservePage} />
-      <Route path="/work" component={WorkPage} />
-      <Route path="/leave" component={LeavePage} />
-      <Route path="/mypage" component={MyPage} />
-      <Route path="/notices" component={NoticesPage} />
-      <Route path="/hr" component={HrPage} />
-      <Route path="/condolences" component={CondolencesPage} />
+      {/* 일반 페이지 — 로그인 필수 */}
+      <Route path="/">
+        <RequireAuth><Home /></RequireAuth>
+      </Route>
+      <Route path="/mail">
+        <RequireAuth><MailPage /></RequireAuth>
+      </Route>
+      <Route path="/approve">
+        <RequireAuth><ApprovePage /></RequireAuth>
+      </Route>
+      <Route path="/board">
+        <RequireAuth><BoardPage /></RequireAuth>
+      </Route>
+      <Route path="/calendar">
+        <RequireAuth><CalendarPage /></RequireAuth>
+      </Route>
+      <Route path="/orgchart">
+        <RequireAuth><OrgChartPage /></RequireAuth>
+      </Route>
+      <Route path="/reserve">
+        <RequireAuth><ReservePage /></RequireAuth>
+      </Route>
+      <Route path="/work">
+        <RequireAuth><WorkPage /></RequireAuth>
+      </Route>
+      <Route path="/leave">
+        <RequireAuth><LeavePage /></RequireAuth>
+      </Route>
+      <Route path="/mypage">
+        <RequireAuth><MyPage /></RequireAuth>
+      </Route>
+      <Route path="/notices">
+        <RequireAuth><NoticesPage /></RequireAuth>
+      </Route>
+      <Route path="/hr">
+        <RequireAuth><HrPage /></RequireAuth>
+      </Route>
+      <Route path="/condolences">
+        <RequireAuth><CondolencesPage /></RequireAuth>
+      </Route>
 
-      {/* 어드민 페이지 */}
+      {/* 개인정보처리방침 — 공개 페이지 */}
+      <Route path="/privacy" component={PrivacyPage} />
+
+      {/* 어드민 페이지 — AdminAuthGuard로 별도 보호 */}
       <Route path="/admin/login" component={AdminLoginPage} />
       <Route path="/admin" component={AdminDashboard} />
       <Route path="/admin/attendance" component={AdminAttendancePage} />

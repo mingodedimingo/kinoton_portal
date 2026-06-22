@@ -246,7 +246,8 @@ export default function PortalLayout({ children }: Props) {
         className="text-center py-3 text-xs"
         style={{ color: "var(--kino-light)", borderTop: "1px solid var(--kino-pale)", background: "var(--kino-white)" }}
       >
-        © 2026 Kinoton Inc. All rights reserved. &nbsp;|&nbsp; Imagineering Company
+        © 2026 Kinoton Inc. All rights reserved. &nbsp;|&nbsp; Imagineering Company &nbsp;|&nbsp;
+        <a href="/privacy" className="hover:underline" style={{ color: "var(--kino-muted)" }}>개인정보처리방침</a>
       </footer>
     </div>
   );
