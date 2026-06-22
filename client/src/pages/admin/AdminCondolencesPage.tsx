@@ -6,7 +6,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
-import ImageUploader from "@/components/ImageUploader";
+import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
 type CondolenceType = "결혼" | "출산" | "부고" | "기타";
 
@@ -16,7 +16,7 @@ type FormData = {
   content: string;
   eventDate: string;
   authorName: string;
-  images: string[];
+  attachments: AttachmentItem[];
 };
 
 function parseImages(images: unknown): string[] {
@@ -34,7 +34,7 @@ const DEFAULT_FORM: FormData = {
   content: "",
   eventDate: "",
   authorName: "",
-  images: [],
+  attachments: [],
 };
 
 const TYPE_EMOJI: Record<CondolenceType, string> = {
@@ -93,22 +93,41 @@ export default function AdminCondolencesPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name.trim()) { toast.error("내용을 입력해주세요."); return; }
+    const imageAttachments = form.attachments.filter(a => a.mimeType.startsWith('image/'));
+    const payload = { ...form, images: imageAttachments.map(a => a.url), attachments: form.attachments };
     if (editId !== null) {
-      updateMutation.mutate({ id: editId, ...form });
+      updateMutation.mutate({ id: editId, ...payload });
     } else {
-      createMutation.mutate({ ...form });
+      createMutation.mutate({ ...payload });
     }
   };
 
   const handleEdit = (c: NonNullable<typeof list>[0]) => {
     setEditId(c.id);
+    let existingAttachments: AttachmentItem[] = [];
+    if ((c as any).attachments) {
+      try {
+        const parsed = typeof (c as any).attachments === 'string'
+          ? JSON.parse((c as any).attachments)
+          : (c as any).attachments;
+        if (Array.isArray(parsed)) existingAttachments = parsed;
+      } catch { /* ignore */ }
+    }
+    if (existingAttachments.length === 0) {
+      existingAttachments = parseImages(c.images).map(url => ({
+        name: url.split('/').pop() || 'image',
+        url,
+        mimeType: 'image/jpeg',
+        size: 0,
+      }));
+    }
     setForm({
       type: c.type,
       name: c.name,
       content: c.content ?? "",
       eventDate: c.eventDate ?? "",
       authorName: c.authorName ?? "",
-      images: parseImages(c.images),
+      attachments: existingAttachments,
     });
     setShowForm(true);
   };
@@ -192,8 +211,8 @@ export default function AdminCondolencesPage() {
               />
             </div>
             <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (선택 · 최대 5장)</label>
-              <ImageUploader images={form.images} onChange={(imgs) => setForm(f => ({ ...f, images: imgs }))} />
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>파일 첨부 (이미지·동영상·문서 등 · 최대 10개)</label>
+              <FileUploader attachments={form.attachments} onChange={(files) => setForm(f => ({ ...f, attachments: files }))} />
             </div>
             <div className="flex gap-2 justify-end">
               <button

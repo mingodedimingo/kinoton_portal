@@ -50,6 +50,13 @@
       "when": 1782117440163,
       "tag": "0006_natural_franklin_storm",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1782124894927,
+      "tag": "0007_lethal_psylocke",
+      "breakpoints": true
     }
   ]
 }

@@ -128,3 +128,14 @@
 - [x] 공지사항 수정 폼에 이미지 업로드/교체 기능 추가
 - [x] 인사발령 수정 폼에 이미지 업로드/교체 기능 추가
 - [x] 경조사 수정 폼에 이미지 업로드/교체 기능 추가
+
+## UI 개선 6차 작업 - 파일 첨부 전면 확장
+
+- [ ] /api/upload-image 엔드포인트를 /api/upload-file로 확장 (mp4, mov, ppt, pdf, docx 등 전체 지원)
+- [ ] DB 스키마에 attachments 컬럼 추가 (파일명, URL, 타입, 크기 메타데이터 JSON)
+- [ ] FileUploader 컴포넌트 생성 (이미지 미리보기 + 동영상/문서 아이콘 표시)
+- [ ] 게시판 작성/수정 폼에 FileUploader 적용
+- [ ] 공지사항 작성/수정 폼에 FileUploader 적용
+- [ ] 인사발령 작성/수정 폼에 FileUploader 적용
+- [ ] 경조사 작성/수정 폼에 FileUploader 적용
+- [ ] 상세 페이지에서 첨부 파일 다운로드/미리보기 링크 노출

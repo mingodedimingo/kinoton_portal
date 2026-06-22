@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2, Pencil, Trash2, X, Save } from "lucide-react";
-import ImageUploader from "@/components/ImageUploader";
+import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -33,7 +33,7 @@ type EditForm = {
   name: string;
   content: string;
   eventDate: string;
-  images: string[];
+  attachments: AttachmentItem[];
 };
 
 export default function CondolenceDetailPage() {
@@ -72,12 +72,29 @@ export default function CondolenceDetailPage() {
 
   const handleEditStart = () => {
     if (!item) return;
+    let existingAttachments: AttachmentItem[] = [];
+    if ((item as any).attachments) {
+      try {
+        const parsed = typeof (item as any).attachments === 'string'
+          ? JSON.parse((item as any).attachments)
+          : (item as any).attachments;
+        if (Array.isArray(parsed)) existingAttachments = parsed;
+      } catch { /* ignore */ }
+    }
+    if (existingAttachments.length === 0) {
+      existingAttachments = parseImages(item.images).map(url => ({
+        name: url.split('/').pop() || 'image',
+        url,
+        mimeType: 'image/jpeg',
+        size: 0,
+      }));
+    }
     setEditForm({
       type: item.type as "결혼" | "출산" | "부고" | "기타",
       name: item.name,
       content: item.content ?? "",
       eventDate: item.eventDate ?? "",
-      images: parseImages(item.images),
+      attachments: existingAttachments,
     });
     setIsEditing(true);
   };
@@ -86,7 +103,13 @@ export default function CondolenceDetailPage() {
     e.preventDefault();
     if (!editForm) return;
     if (!editForm.name.trim()) { toast.error("내용을 입력해주세요."); return; }
-    updateMutation.mutate({ id: itemId, ...editForm });
+    const imageAttachments = editForm.attachments.filter(a => a.mimeType.startsWith('image/'));
+    updateMutation.mutate({
+      id: itemId,
+      ...editForm,
+      images: imageAttachments.map(a => a.url),
+      attachments: editForm.attachments,
+    });
   };
 
   const handleDelete = () => {
@@ -198,10 +221,10 @@ export default function CondolenceDetailPage() {
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>이미지</label>
-                    <ImageUploader
-                      images={editForm.images}
-                      onChange={(imgs) => setEditForm({ ...editForm, images: imgs })}
+                    <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>파일 첨부 (이미지·동영상·문서 등 · 최대 10개)</label>
+                    <FileUploader
+                      attachments={editForm.attachments}
+                      onChange={(files) => setEditForm({ ...editForm, attachments: files })}
                     />
                   </div>
                 </div>

@@ -99,7 +99,8 @@ export const notices = mysqlTable("notices", {
   isNew: boolean("isNew").default(true).notNull(),
   isPinned: boolean("isPinned").default(false).notNull(),
   authorName: varchar("authorName", { length: 100 }),
-  images: text("images"), // JSON array of image URLs
+  images: text("images"), // JSON array of image URLs (legacy)
+  attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -115,7 +116,8 @@ export const hrNotices = mysqlTable("hr_notices", {
   content: text("content"),
   effectiveDate: varchar("effectiveDate", { length: 20 }),
   authorName: varchar("authorName", { length: 100 }),
-  images: text("images"), // JSON array of image URLs
+  images: text("images"), // JSON array of image URLs (legacy)
+  attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -131,7 +133,8 @@ export const condolences = mysqlTable("condolences", {
   content: text("content"),
   eventDate: varchar("eventDate", { length: 20 }),
   authorName: varchar("authorName", { length: 100 }),
-  images: text("images"), // JSON array of image URLs
+  images: text("images"), // JSON array of image URLs (legacy)
+  attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -151,7 +154,8 @@ export const boardPosts = mysqlTable("board_posts", {
   isNew: boolean("isNew").default(true).notNull(),
   isPinned: boolean("isPinned").default(false).notNull(),
   viewCount: int("viewCount").default(0).notNull(),
-  images: text("images"), // JSON array of image URLs
+  images: text("images"), // JSON array of image URLs (legacy)
+  attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

@@ -9,7 +9,7 @@ import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2, Pencil, Trash2, X, Save } from "lucide-react";
-import ImageUploader from "@/components/ImageUploader";
+import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -27,7 +27,7 @@ type EditForm = {
   category: "company" | "dept" | "all";
   isNew: boolean;
   isPinned: boolean;
-  images: string[];
+  attachments: AttachmentItem[];
 };
 
 export default function NoticeDetailPage() {
@@ -66,6 +66,23 @@ export default function NoticeDetailPage() {
 
   const handleEditStart = () => {
     if (!notice) return;
+    let existingAttachments: AttachmentItem[] = [];
+    if ((notice as any).attachments) {
+      try {
+        const parsed = typeof (notice as any).attachments === 'string'
+          ? JSON.parse((notice as any).attachments)
+          : (notice as any).attachments;
+        if (Array.isArray(parsed)) existingAttachments = parsed;
+      } catch { /* ignore */ }
+    }
+    if (existingAttachments.length === 0) {
+      existingAttachments = parseImages(notice.images).map(url => ({
+        name: url.split('/').pop() || 'image',
+        url,
+        mimeType: 'image/jpeg',
+        size: 0,
+      }));
+    }
     setEditForm({
       tag: notice.tag ?? "공지",
       title: notice.title,
@@ -73,7 +90,7 @@ export default function NoticeDetailPage() {
       category: (notice.category as "company" | "dept" | "all") ?? "all",
       isNew: notice.isNew ?? false,
       isPinned: notice.isPinned ?? false,
-      images: parseImages(notice.images),
+      attachments: existingAttachments,
     });
     setIsEditing(true);
   };
@@ -82,7 +99,13 @@ export default function NoticeDetailPage() {
     e.preventDefault();
     if (!editForm) return;
     if (!editForm.title.trim()) { toast.error("제목을 입력해주세요."); return; }
-    updateMutation.mutate({ id: noticeId, ...editForm });
+    const imageAttachments = editForm.attachments.filter(a => a.mimeType.startsWith('image/'));
+    updateMutation.mutate({
+      id: noticeId,
+      ...editForm,
+      images: imageAttachments.map(a => a.url),
+      attachments: editForm.attachments,
+    });
   };
 
   const handleDelete = () => {
@@ -200,10 +223,10 @@ export default function NoticeDetailPage() {
                     </label>
                   </div>
                   <div>
-                    <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>이미지</label>
-                    <ImageUploader
-                      images={editForm.images}
-                      onChange={(imgs) => setEditForm({ ...editForm, images: imgs })}
+                    <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>파일 첨부 (이미지·동영상·문서 등 · 최대 10개)</label>
+                    <FileUploader
+                      attachments={editForm.attachments}
+                      onChange={(files) => setEditForm({ ...editForm, attachments: files })}
                     />
                   </div>
                 </div>

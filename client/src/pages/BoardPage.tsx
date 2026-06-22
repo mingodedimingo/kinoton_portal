@@ -7,7 +7,7 @@ import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Search, Plus, BookOpen, Loader2, X, ExternalLink, Trash2, Image as ImageIcon } from "lucide-react";
-import ImageUploader from "@/components/ImageUploader";
+import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
 const CATEGORIES = [
   { key: "all", label: "전체" },
@@ -24,7 +24,7 @@ type WriteForm = {
   content: string;
   link: string;
   authorName: string;
-  images: string[];
+  attachments: AttachmentItem[];
 };
 
 const DEFAULT_WRITE: WriteForm = {
@@ -33,7 +33,7 @@ const DEFAULT_WRITE: WriteForm = {
   content: "",
   link: "",
   authorName: "",
-  images: [],
+  attachments: [],
 };
 
 // 이미지 URL 파싱 헬퍼
@@ -86,7 +86,12 @@ export default function BoardPage() {
     e.preventDefault();
     if (!writeForm.title.trim()) { toast.error("제목을 입력해주세요."); return; }
     if (!writeForm.authorName.trim()) { toast.error("이름을 입력해주세요."); return; }
-    createMutation.mutate(writeForm);
+    const imageAttachments = writeForm.attachments.filter(a => a.mimeType.startsWith('image/'));
+    createMutation.mutate({
+      ...writeForm,
+      images: imageAttachments.map(a => a.url),
+      attachments: writeForm.attachments,
+    });
   };
 
   const handleDelete = (id: number) => {
@@ -218,14 +223,14 @@ export default function BoardPage() {
                       style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
                     />
                   </div>
-                  {/* 이미지 첨부 */}
+                  {/* 파일 첨부 */}
                   <div>
                     <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>
-                      이미지 첨부 (선택 · 최대 5장)
+                      파일 첨부 (이미지·동영상·문서 등 · 최대 10개)
                     </label>
-                    <ImageUploader
-                      images={writeForm.images}
-                      onChange={(imgs) => setWriteForm(f => ({ ...f, images: imgs }))}
+                    <FileUploader
+                      attachments={writeForm.attachments}
+                      onChange={(files) => setWriteForm(f => ({ ...f, attachments: files }))}
                     />
                   </div>
                   <div className="flex gap-2 justify-end">

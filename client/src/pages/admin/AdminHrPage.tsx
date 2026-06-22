@@ -6,7 +6,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
-import ImageUploader from "@/components/ImageUploader";
+import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
 type HrType = "입사" | "퇴직" | "발령" | "승진";
 
@@ -16,7 +16,7 @@ type FormData = {
   content: string;
   effectiveDate: string;
   authorName: string;
-  images: string[];
+  attachments: AttachmentItem[];
 };
 
 function parseImages(images: unknown): string[] {
@@ -34,7 +34,7 @@ const DEFAULT_FORM: FormData = {
   content: "",
   effectiveDate: "",
   authorName: "",
-  images: [],
+  attachments: [],
 };
 
 const TYPE_COLORS: Record<HrType, { bg: string; color: string }> = {
@@ -86,22 +86,41 @@ export default function AdminHrPage() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.title.trim()) { toast.error("제목을 입력해주세요."); return; }
+    const imageAttachments = form.attachments.filter(a => a.mimeType.startsWith('image/'));
+    const payload = { ...form, images: imageAttachments.map(a => a.url), attachments: form.attachments };
     if (editId !== null) {
-      updateMutation.mutate({ id: editId, ...form });
+      updateMutation.mutate({ id: editId, ...payload });
     } else {
-      createMutation.mutate({ ...form });
+      createMutation.mutate({ ...payload });
     }
   };
 
   const handleEdit = (h: NonNullable<typeof hrList>[0]) => {
     setEditId(h.id);
+    let existingAttachments: AttachmentItem[] = [];
+    if ((h as any).attachments) {
+      try {
+        const parsed = typeof (h as any).attachments === 'string'
+          ? JSON.parse((h as any).attachments)
+          : (h as any).attachments;
+        if (Array.isArray(parsed)) existingAttachments = parsed;
+      } catch { /* ignore */ }
+    }
+    if (existingAttachments.length === 0) {
+      existingAttachments = parseImages(h.images).map(url => ({
+        name: url.split('/').pop() || 'image',
+        url,
+        mimeType: 'image/jpeg',
+        size: 0,
+      }));
+    }
     setForm({
       type: h.type,
       title: h.title,
       content: h.content ?? "",
       effectiveDate: h.effectiveDate ?? "",
       authorName: h.authorName ?? "",
-      images: parseImages(h.images),
+      attachments: existingAttachments,
     });
     setShowForm(true);
   };
@@ -197,7 +216,7 @@ export default function AdminHrPage() {
             </div>
             <div>
               <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (선택 · 최대 5장)</label>
-              <ImageUploader images={form.images} onChange={(imgs) => setForm(f => ({ ...f, images: imgs }))} />
+              <FileUploader attachments={form.attachments} onChange={(files) => setForm(f => ({ ...f, attachments: files }))} />
             </div>
             <div className="flex gap-2 justify-end">
               <button

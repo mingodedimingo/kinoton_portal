@@ -389,6 +389,7 @@ export const appRouter = router({
         isPinned: z.boolean().default(false),
         authorName: z.string().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await insertNotice({
@@ -396,6 +397,7 @@ export const appRouter = router({
           category: input.category, isNew: input.isNew, isPinned: input.isPinned,
           authorName: input.authorName ?? ctx.user.name ?? null,
           images: input.images ? JSON.stringify(input.images) : null,
+          attachments: input.attachments ? JSON.stringify(input.attachments) : null,
         });
         return { success: true };
       }),
@@ -408,10 +410,15 @@ export const appRouter = router({
         content: z.string().optional(), category: z.enum(["company", "dept", "all"]).optional(),
         isNew: z.boolean().optional(), isPinned: z.boolean().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { id, images, ...rest } = input;
-        await updateNotice(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
+        const { id, images, attachments, ...rest } = input;
+        await updateNotice(id, {
+          ...rest,
+          images: images !== undefined ? JSON.stringify(images) : undefined,
+          attachments: attachments !== undefined ? JSON.stringify(attachments) : undefined,
+        });
         return { success: true };
       }),
 
@@ -449,6 +456,7 @@ export const appRouter = router({
         effectiveDate: z.string().optional(),
         authorName: z.string().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await insertHrNotice({
@@ -456,6 +464,7 @@ export const appRouter = router({
           effectiveDate: input.effectiveDate ?? null,
           authorName: input.authorName ?? ctx.user.name ?? null,
           images: input.images ? JSON.stringify(input.images) : null,
+          attachments: input.attachments ? JSON.stringify(input.attachments) : null,
         });
         return { success: true };
       }),
@@ -468,10 +477,15 @@ export const appRouter = router({
         title: z.string().min(1).max(300).optional(),
         content: z.string().optional(), effectiveDate: z.string().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { id, images, ...rest } = input;
-        await updateHrNotice(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
+        const { id, images, attachments, ...rest } = input;
+        await updateHrNotice(id, {
+          ...rest,
+          images: images !== undefined ? JSON.stringify(images) : undefined,
+          attachments: attachments !== undefined ? JSON.stringify(attachments) : undefined,
+        });
         return { success: true };
       }),
 
@@ -509,6 +523,7 @@ export const appRouter = router({
         eventDate: z.string().optional(),
         authorName: z.string().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await insertCondolence({
@@ -516,6 +531,7 @@ export const appRouter = router({
           eventDate: input.eventDate ?? null,
           authorName: input.authorName ?? ctx.user.name ?? null,
           images: input.images ? JSON.stringify(input.images) : null,
+          attachments: input.attachments ? JSON.stringify(input.attachments) : null,
         });
         return { success: true };
       }),
@@ -528,10 +544,15 @@ export const appRouter = router({
         name: z.string().min(1).max(300).optional(),
         content: z.string().optional(), eventDate: z.string().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input }) => {
-        const { id, images, ...rest } = input;
-        await updateCondolence(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
+        const { id, images, attachments, ...rest } = input;
+        await updateCondolence(id, {
+          ...rest,
+          images: images !== undefined ? JSON.stringify(images) : undefined,
+          attachments: attachments !== undefined ? JSON.stringify(attachments) : undefined,
+        });
         return { success: true };
       }),
 
@@ -561,20 +582,22 @@ export const appRouter = router({
     // 게시글 작성 (로그인 필수 — 전 직원 가능)
     create: protectedProcedure
       .input(z.object({
-        category: z.enum(["\uc5b8\ub860\ubcf4\ub3c4", "\ub9e4\ub274\uc5bc", "\uae30\ud0c0"]).default("\uae30\ud0c0"),
+        category: z.enum(["언론보도", "매뉴얼", "기타"]).default("기타"),
         title: z.string().min(1).max(300),
         content: z.string().optional(),
         link: z.string().url().optional().or(z.literal("")),
         authorName: z.string().min(1).max(100),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
       }))
       .mutation(async ({ input, ctx }) => {
         await insertBoardPost({
           category: input.category, title: input.title, content: input.content ?? null,
           link: input.link || null, authorName: input.authorName,
-          authorOpenId: ctx.user.openId, // \uc791\uc131\uc790 openId \uc800\uc7a5
+          authorOpenId: ctx.user.openId, // 작성자 openId 저장
           isNew: true, isPinned: false, viewCount: 0,
           images: input.images ? JSON.stringify(input.images) : null,
+          attachments: input.attachments ? JSON.stringify(input.attachments) : null,
         });
         return { success: true };
       }),
@@ -596,6 +619,7 @@ export const appRouter = router({
         title: z.string().min(1).max(300).optional(),
         content: z.string().optional(), link: z.string().optional(),
         images: z.array(z.string()).optional(),
+        attachments: z.array(z.object({ name: z.string(), url: z.string(), mimeType: z.string(), size: z.number() })).optional(),
         isPinned: z.boolean().optional(), isNew: z.boolean().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
@@ -605,8 +629,12 @@ export const appRouter = router({
         if (ctx.user.role !== 'admin' && post.authorOpenId !== ctx.user.openId) {
           throw new TRPCError({ code: 'FORBIDDEN', message: '수정 권한이 없습니다.' });
         }
-        const { id, images, ...rest } = input;
-        await updateBoardPost(id, { ...rest, images: images !== undefined ? JSON.stringify(images) : undefined });
+        const { id, images, attachments, ...rest } = input;
+        await updateBoardPost(id, {
+          ...rest,
+          images: images !== undefined ? JSON.stringify(images) : undefined,
+          attachments: attachments !== undefined ? JSON.stringify(attachments) : undefined,
+        });
         return { success: true };
       }),
 

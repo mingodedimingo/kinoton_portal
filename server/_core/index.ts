@@ -40,41 +40,75 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
-  // ── 이미지 업로드 엔드포인트 ─────────────────────────────────────
+  // ── 파일 업로드 엔드포인트 (이미지/동영상/문서 전체 지원) ──────────
+  const ALLOWED_MIME_TYPES = new Set([
+    // 이미지
+    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
+    // 동영상
+    "video/mp4", "video/quicktime", "video/x-msvideo", "video/webm",
+    // 문서
+    "application/pdf",
+    "application/msword",
+    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "application/vnd.ms-powerpoint",
+    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+    "application/vnd.ms-excel",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    // 압축
+    "application/zip", "application/x-zip-compressed",
+  ]);
+
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 10 * 1024 * 1024 }, // 10MB
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB (동영상 지원)
     fileFilter: (_req, file, cb) => {
-      if (file.mimetype.startsWith("image/")) cb(null, true);
-      else cb(new Error("이미지 파일만 업로드 가능합니다."));
+      if (ALLOWED_MIME_TYPES.has(file.mimetype)) cb(null, true);
+      else cb(new Error(`지원하지 않는 파일 형식입니다: ${file.mimetype}`));
     },
   });
 
+  // 기존 이미지 업로드 엔드포인트 (하위 호환)
   app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     try {
-      // 인증 확인 — 로그인된 사용자만 업로드 가능
       let user = null;
-      try {
-        user = await sdk.authenticateRequest(req);
-      } catch {
-        res.status(401).json({ error: "로그인이 필요합니다." });
-        return;
+      try { user = await sdk.authenticateRequest(req); } catch {
+        res.status(401).json({ error: "로그인이 필요합니다." }); return;
       }
-      if (!user) {
-        res.status(401).json({ error: "로그인이 필요합니다." });
-        return;
-      }
-      if (!req.file) {
-        res.status(400).json({ error: "파일이 없습니다." });
-        return;
-      }
+      if (!user) { res.status(401).json({ error: "로그인이 필요합니다." }); return; }
+      if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const ext = req.file.originalname.split(".").pop() || "jpg";
-      const key = `portal-images/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
-      res.json({ url, key });
+      res.json({ url, key, name: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype });
     } catch (err) {
-      console.error("Image upload error:", err);
+      console.error("Upload error:", err);
       res.status(500).json({ error: "업로드 실패" });
+    }
+  });
+
+  // 새 범용 파일 업로드 엔드포인트
+  app.post("/api/upload-file", upload.single("file"), async (req, res) => {
+    try {
+      let user = null;
+      try { user = await sdk.authenticateRequest(req); } catch {
+        res.status(401).json({ error: "로그인이 필요합니다." }); return;
+      }
+      if (!user) { res.status(401).json({ error: "로그인이 필요합니다." }); return; }
+      if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
+      const ext = req.file.originalname.split(".").pop() || "bin";
+      const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
+      res.json({
+        url,
+        key,
+        name: req.file.originalname,
+        size: req.file.size,
+        mimeType: req.file.mimetype,
+      });
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "업로드 실패";
+      console.error("File upload error:", err);
+      res.status(500).json({ error: msg });
     }
   });
   // tRPC API

@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   ChevronLeft, Loader2, ExternalLink, Trash2, Pencil, X, Save,
 } from "lucide-react";
-import ImageUploader from "@/components/ImageUploader";
+import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -39,7 +39,7 @@ export default function BoardDetailPage() {
     title: string;
     content: string;
     link: string;
-    images: string[];
+    attachments: AttachmentItem[];
   } | null>(null);
 
   const updateMutation = trpc.board.update.useMutation({
@@ -63,12 +63,30 @@ export default function BoardDetailPage() {
 
   const handleEditStart = () => {
     if (!post) return;
+    // 기존 첸부 데이터 로드 (attachments 우선, 없으면 images에서 변환)
+    let existingAttachments: AttachmentItem[] = [];
+    if ((post as any).attachments) {
+      try {
+        const parsed = typeof (post as any).attachments === 'string'
+          ? JSON.parse((post as any).attachments)
+          : (post as any).attachments;
+        if (Array.isArray(parsed)) existingAttachments = parsed;
+      } catch { /* ignore */ }
+    }
+    if (existingAttachments.length === 0) {
+      existingAttachments = parseImages(post.images).map(url => ({
+        name: url.split('/').pop() || 'image',
+        url,
+        mimeType: 'image/jpeg',
+        size: 0,
+      }));
+    }
     setEditForm({
       category: post.category as Category,
       title: post.title,
       content: post.content ?? "",
       link: post.link ?? "",
-      images: parseImages(post.images),
+      attachments: existingAttachments,
     });
     setIsEditing(true);
   };
@@ -77,7 +95,13 @@ export default function BoardDetailPage() {
     e.preventDefault();
     if (!editForm) return;
     if (!editForm.title.trim()) { toast.error("제목을 입력해주세요."); return; }
-    updateMutation.mutate({ id: postId, ...editForm });
+    const imageAttachments = editForm.attachments.filter(a => a.mimeType.startsWith('image/'));
+    updateMutation.mutate({
+      id: postId,
+      ...editForm,
+      images: imageAttachments.map(a => a.url),
+      attachments: editForm.attachments,
+    });
   };
 
   const handleDelete = () => {
@@ -183,10 +207,10 @@ export default function BoardDetailPage() {
                   />
                 </div>
                 <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (최대 5장)</label>
-                  <ImageUploader
-                    images={editForm.images}
-                    onChange={(imgs) => setEditForm(f => f ? { ...f, images: imgs } : f)}
+                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>파일 첨부 (이미지·동영상·문서 등 · 최대 10개)</label>
+                  <FileUploader
+                    attachments={editForm.attachments}
+                    onChange={(files) => setEditForm(f => f ? { ...f, attachments: files } : f)}
                   />
                 </div>
                 <div className="flex gap-2 justify-end">
