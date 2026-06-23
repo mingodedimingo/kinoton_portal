@@ -141,7 +141,7 @@ export default function BoardDetailPage() {
   return (
     <PortalLayout>
       <div className="container py-6">
-        <div className="max-w-3xl mx-auto">
+        <div>
           {/* 뒤로가기 */}
           <button
             onClick={() => navigate("/board")}
@@ -312,6 +312,18 @@ export default function BoardDetailPage() {
               )}
             </div>
           )}
+
+          {/* 하단 목록 버튼 */}
+          <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--kino-pale)" }}>
+            <button
+              onClick={() => navigate("/board")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium transition-all active:scale-95"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+            >
+              <ChevronLeft size={14} />
+              게시판 목록
+            </button>
+          </div>
         </div>
       </div>
     </PortalLayout>

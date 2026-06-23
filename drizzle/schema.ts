@@ -162,3 +162,21 @@ export const boardPosts = mysqlTable("board_posts", {
 
 export type BoardPost = typeof boardPosts.$inferSelect;
 export type InsertBoardPost = typeof boardPosts.$inferInsert;
+
+// ── 일정(캘린더) 테이블 ────────────────────────────────────────
+export const calendarEvents = mysqlTable("calendar_events", {
+  id: int("id").autoincrement().primaryKey(),
+  title: varchar("title", { length: 300 }).notNull(),
+  description: text("description"),
+  eventDate: varchar("eventDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  startTime: varchar("startTime", { length: 5 }),  // HH:MM (optional)
+  endTime: varchar("endTime", { length: 5 }),      // HH:MM (optional)
+  color: varchar("color", { length: 20 }).default("#1a1a1a").notNull(), // hex color
+  authorName: varchar("authorName", { length: 100 }),
+  authorOpenId: varchar("authorOpenId", { length: 64 }),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type CalendarEvent = typeof calendarEvents.$inferSelect;
+export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;

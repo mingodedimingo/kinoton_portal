@@ -4,14 +4,14 @@
  * PC: 좌(프로필+통계+출퇴근+연차+달력) + 우(퀵메뉴+공지+게시판+인사발령+경조사)
  * Mobile: 퀵메뉴카드 → 프로필카드 → 통계카드 → 출퇴근카드
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   Mail, FileCheck, Calendar, LayoutGrid,
   ChevronRight, Plus, Megaphone, UserCheck,
   Heart, BookOpen, ChevronLeft, LogIn, LogOut,
-  Building2, MapPin, Wifi, Settings2, Loader2, FileText,
+  Building2, MapPin, Wifi, Settings2, Loader2,
 } from "lucide-react";
 import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
@@ -55,7 +55,7 @@ const CONDOLENCES = [
 // 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
 const QUICK_MENUS = [
   { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
-  { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 2 },
+  { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 0 },
   { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
   { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
   { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
@@ -312,19 +312,29 @@ function CondolenceSection() {
   );
 }
 
-// ── Mini Calendar ────────────────────────────────────────────────
+// ── Mini Calendar (DB 연동) ─────────────────────────────────────────
 function MiniCalendar() {
-  const [current, setCurrent] = useState({ year: TODAY.getFullYear(), month: TODAY.getMonth() });
-  const daysInMonth = getDaysInMonth(current.year, current.month);
-  const firstDay = getFirstDayOfMonth(current.year, current.month);
+  const [current, setCurrent] = useState({ year: TODAY.getFullYear(), month: TODAY.getMonth() + 1 });
+  const daysInMonth = getDaysInMonth(current.year, current.month - 1);
+  const firstDay = getFirstDayOfMonth(current.year, current.month - 1);
   const isToday = (d: number) =>
-    d === TODAY.getDate() && current.month === TODAY.getMonth() && current.year === TODAY.getFullYear();
+    d === TODAY.getDate() && current.month === TODAY.getMonth() + 1 && current.year === TODAY.getFullYear();
 
   const cells: (number | null)[] = [...Array(firstDay).fill(null), ...Array.from({ length: daysInMonth }, (_, i) => i + 1)];
   while (cells.length % 7 !== 0) cells.push(null);
 
-  const prevMonth = () => setCurrent(c => c.month === 0 ? { year: c.year - 1, month: 11 } : { ...c, month: c.month - 1 });
-  const nextMonth = () => setCurrent(c => c.month === 11 ? { year: c.year + 1, month: 0 } : { ...c, month: c.month + 1 });
+  const prevMonth = () => setCurrent(c => c.month === 1 ? { year: c.year - 1, month: 12 } : { ...c, month: c.month - 1 });
+  const nextMonth = () => setCurrent(c => c.month === 12 ? { year: c.year + 1, month: 1 } : { ...c, month: c.month + 1 });
+
+  const { data: events } = trpc.calendar.listMonth.useQuery({ year: current.year, month: current.month });
+  const eventMap = useMemo(() => {
+    const map: Record<string, boolean> = {};
+    if (!events) return map;
+    for (const ev of events) { map[ev.eventDate] = true; }
+    return map;
+  }, [events]);
+
+  const getDateStr = (d: number) => `${current.year}-${String(current.month).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
 
   return (
     <div style={{ borderTop: "1px solid var(--kino-pale)", paddingTop: "0.75rem" }}>
@@ -338,13 +348,13 @@ function MiniCalendar() {
         </Link>
       </div>
       <div className="flex items-center justify-between mb-2">
-        <button onClick={prevMonth} className="p-1 rounded hover:bg-gray-100 transition-colors">
+        <button onClick={prevMonth} className="p-1 rounded transition-colors">
           <ChevronLeft size={13} style={{ color: "var(--kino-mid)" }} />
         </button>
         <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>
-          {current.year}.{String(current.month + 1).padStart(2, "0")}
+          {current.year}.{String(current.month).padStart(2, "0")}
         </span>
-        <button onClick={nextMonth} className="p-1 rounded hover:bg-gray-100 transition-colors">
+        <button onClick={nextMonth} className="p-1 rounded transition-colors">
           <ChevronRight size={13} style={{ color: "var(--kino-mid)" }} />
         </button>
       </div>
@@ -363,26 +373,84 @@ function MiniCalendar() {
         {cells.map((day, idx) => {
           if (!day) return <div key={`e-${idx}`} />;
           const dow = (firstDay + day - 1) % 7;
+          const dateStr = getDateStr(day);
+          const hasEvent = eventMap[dateStr];
           return (
             <div key={day} className="flex flex-col items-center">
-              <div
-                className={`cal-day ${isToday(day) ? "today" : ""} ${dow === 0 ? "sunday" : ""} ${dow === 6 ? "saturday" : ""}`}
-                style={{ width: "1.75rem", height: "1.75rem", fontSize: "0.75rem" }}
-                onClick={() => toast(`${current.year}.${current.month + 1}.${day} 일정 기능 준비 중`)}
-              >
-                {day}
-              </div>
+              <Link href="/calendar">
+                <div
+                  className={`cal-day ${isToday(day) ? "today" : ""} ${dow === 0 ? "sunday" : ""} ${dow === 6 ? "saturday" : ""}`}
+                  style={{ width: "1.75rem", height: "1.75rem", fontSize: "0.75rem", position: "relative" }}
+                >
+                  {day}
+                  {hasEvent && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        bottom: "1px",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        width: "4px",
+                        height: "4px",
+                        borderRadius: "50%",
+                        background: isToday(day) ? "white" : "var(--kino-charcoal)",
+                      }}
+                    />
+                  )}
+                </div>
+              </Link>
             </div>
           );
         })}
       </div>
-      <button
+      <Link
+        href="/calendar"
         className="w-full mt-2 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-medium transition-colors"
         style={{ border: "1px dashed var(--kino-pale)", color: "var(--kino-muted)" }}
-        onClick={() => toast("일정 추가 기능 준비 중")}
       >
         <Plus size={11} /> 일정 추가
-      </button>
+      </Link>
+    </div>
+  );
+}
+
+// ── 오늘의 할일 섹션 (DB 연동) ──────────────────────────────────────
+function TodayTasks() {
+  const todayStr = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}-${String(TODAY.getDate()).padStart(2, '0')}`;
+  const { data: tasks, isLoading } = trpc.calendar.today.useQuery({ date: todayStr });
+
+  return (
+    <div className="portal-card animate-fade-in-up stagger-4">
+      <div className="section-header">
+        <span className="section-title flex items-center gap-1.5">
+          <Calendar size={14} style={{ color: "var(--kino-mid)" }} />
+          오늘의 할일
+        </span>
+        <Link href="/calendar" className="section-more flex items-center gap-0.5">
+          일정 관리 <ChevronRight size={12} />
+        </Link>
+      </div>
+      <div>
+        {isLoading ? (
+          <div className="flex justify-center py-4"><Loader2 size={16} className="animate-spin" style={{ color: "var(--kino-muted)" }} /></div>
+        ) : !tasks || tasks.length === 0 ? (
+          <div className="py-4 text-center text-xs" style={{ color: "var(--kino-light)" }}>
+            오늘 등록된 일정이 없습니다.
+            <Link href="/calendar" className="block mt-1 text-xs" style={{ color: "var(--kino-muted)" }}>일정 추가하기 &rarr;</Link>
+          </div>
+        ) : tasks.map((t) => (
+          <Link key={t.id} href="/calendar" className="board-item" style={{ cursor: "pointer", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span
+              className="shrink-0 w-2 h-2 rounded-full"
+              style={{ background: t.color }}
+            />
+            <span className="board-item-title" style={{ color: "var(--kino-charcoal)" }}>{t.title}</span>
+            {t.startTime && (
+              <span className="board-item-date shrink-0" style={{ color: "var(--kino-muted)" }}>{t.startTime}{t.endTime ? ` ~ ${t.endTime}` : ""}</span>
+            )}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
@@ -459,12 +527,6 @@ function LeftPanel() {
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
   const selectedEmployee = FIXED_EMPLOYEE;
   const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(selectedEmployee);
-
-  // 연차 잔액 조회
-  const { data: leaveBalance } = trpc.employees.leaveBalance.useQuery(
-    { employeeId: selectedEmployee.id },
-    { enabled: true }
-  );
 
   const now = new Date();
   const dayStr = DAY_KO[now.getDay()];
@@ -584,50 +646,6 @@ function LeftPanel() {
         </div>
       </div>
 
-      {/* 연차 현황 */}
-      <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
-        <div className="flex justify-between items-center mb-1">
-          <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>연차 현황</span>
-          <button
-            className="text-xs flex items-center gap-0.5 transition-colors"
-            style={{ color: "var(--kino-muted)" }}
-            onClick={() => navigate("/leave")}
-          >
-            신청 <ChevronRight size={10} />
-          </button>
-        </div>
-        {leaveBalance ? (
-          <>
-            <div className="flex justify-between text-xs mb-1">
-              <span style={{ color: "var(--kino-mid)" }}>사용 / 총 연차</span>
-              <span className="font-semibold" style={{ color: "var(--kino-charcoal)" }}>{leaveBalance.usedDays} / {leaveBalance.totalDays}일</span>
-            </div>
-            <div className="flex justify-between text-xs mb-1.5">
-              <span style={{ color: "var(--kino-mid)" }}>잔여</span>
-              <span className="font-semibold" style={{ color: leaveBalance.remainingDays <= 3 ? "var(--kino-red)" : "var(--kino-green)" }}>{leaveBalance.remainingDays}일</span>
-            </div>
-            <div className="w-full rounded-full overflow-hidden" style={{ height: "4px", background: "var(--kino-pale)" }}>
-              <div
-                className="h-full rounded-full transition-all"
-                style={{
-                  width: `${Math.min(100, (leaveBalance.usedDays / leaveBalance.totalDays) * 100)}%`,
-                  background: leaveBalance.remainingDays <= 3 ? "var(--kino-red)" : "var(--kino-charcoal)",
-                }}
-              />
-            </div>
-          </>
-        ) : (
-          <p className="text-xs" style={{ color: "var(--kino-light)" }}>연차 정보 로딩 중...</p>
-        )}
-        <button
-          onClick={() => navigate("/leave")}
-          className="w-full mt-2 flex items-center justify-center gap-1 py-1.5 rounded text-xs font-medium transition-all active:scale-95"
-          style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
-        >
-          <FileText size={11} /> 연차 신청
-        </button>
-      </div>
-
       {/* 달력 */}
       <div className="pt-3">
         <MiniCalendar />
@@ -660,27 +678,21 @@ function MobileProfileCard() {
           <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
         </div>
       </div>
-      <button onClick={() => navigate("/leave")} className="text-xs flex items-center gap-0.5 shrink-0" style={{ color: "var(--kino-muted)" }}>
-        <FileText size={12} /> 연차 신청
-      </button>
+
     </div>
   );
 }
 
 // ── Mobile: 통계 카드 ────────────────────────────────────────────
 function MobileStatsCard() {
+  const todayStr = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}-${String(TODAY.getDate()).padStart(2, '0')}`;
+  const { data: tasks } = trpc.calendar.today.useQuery({ date: todayStr });
+  const taskCount = tasks?.length ?? 0;
   return (
     <div className="portal-card animate-fade-in-up stagger-3">
-      <div className="grid grid-cols-2 divide-x">
-        {[
-          { label: "오늘 일정", value: "2" },
-          { label: "진행 결재", value: "1" },
-        ].map((s) => (
-          <div key={s.label} className="flex flex-col items-center py-5">
-            <span className="text-3xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
-            <span className="text-xs mt-1" style={{ color: "var(--kino-muted)" }}>{s.label}</span>
-          </div>
-        ))}
+      <div className="flex flex-col items-center py-5">
+        <span className="text-3xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{taskCount}</span>
+        <span className="text-xs mt-1" style={{ color: "var(--kino-muted)" }}>오늘 일정</span>
       </div>
     </div>
   );
@@ -798,6 +810,7 @@ export default function Home() {
                 <HRSection />
                 <CondolenceSection />
               </div>
+              <TodayTasks />
             </div>
           </div>
         </div>
@@ -812,6 +825,7 @@ export default function Home() {
           <BoardSection />
           <HRSection />
           <CondolenceSection />
+          <TodayTasks />
         </div>
 
       </div>

@@ -152,7 +152,7 @@ export default function CondolenceDetailPage() {
   return (
     <PortalLayout>
       <div className="container py-6">
-        <div className="max-w-3xl mx-auto">
+        <div>
           {/* 뒤로가기 */}
           <button
             onClick={() => navigate("/condolences")}
@@ -310,6 +310,18 @@ export default function CondolenceDetailPage() {
               )}
             </div>
           )}
+
+          {/* 하단 목록 버튼 */}
+          <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--kino-pale)" }}>
+            <button
+              onClick={() => navigate("/condolences")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium transition-all active:scale-95"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+            >
+              <ChevronLeft size={14} />
+              경조사 목록
+            </button>
+          </div>
         </div>
       </div>
     </PortalLayout>

@@ -45,18 +45,12 @@ const TYPE_STYLE: Record<string, { bg: string; color: string }> = {
 
 
 export default function CondolencesPage() {
-  const [tab, setTab] = useState<"all" | "결혼" | "출산" | "부고" | "기타">("all");
-
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
   const { data: condData, isLoading } = trpc.condolences.list.useQuery({ limit: PAGE_SIZE, offset: page * PAGE_SIZE });
   const condolences = condData?.items ?? [];
   const total = condData?.total ?? 0;
   const totalPages = Math.ceil(total / PAGE_SIZE);
-
-  const filtered = condolences.filter(n =>
-    tab === "all" ? true : n.type === tab
-  );
 
   return (
     <PortalLayout>
@@ -67,35 +61,17 @@ export default function CondolencesPage() {
           <h1 className="text-base font-bold" style={{ color: "var(--kino-charcoal)" }}>경조사</h1>
         </div>
 
-        {/* 탭 */}
-        <div className="flex gap-1 mb-4 flex-wrap">
-          {(["all", "결혼", "출산", "부고", "기타"] as const).map((t) => (
-            <button
-              key={t}
-              onClick={() => setTab(t)}
-              className="px-3 py-1.5 rounded text-xs font-semibold transition-colors"
-              style={{
-                background: tab === t ? "var(--kino-charcoal)" : "transparent",
-                color: tab === t ? "white" : "var(--kino-muted)",
-                border: tab === t ? "none" : "1px solid var(--kino-pale)",
-              }}
-            >
-              {t === "all" ? "전체" : t}
-            </button>
-          ))}
-        </div>
-
         {/* 목록 */}
         <div className="portal-card">
           {isLoading ? (
             <div className="py-10 text-center text-xs" style={{ color: "var(--kino-muted)" }}>불러오는 중...</div>
-          ) : filtered.length === 0 ? (
+          ) : condolences.length === 0 ? (
             <div className="py-10 text-center">
               <Heart size={32} className="mx-auto mb-2" style={{ color: "var(--kino-pale)" }} />
               <p className="text-sm" style={{ color: "var(--kino-muted)" }}>등록된 경조사가 없습니다</p>
             </div>
           ) : (
-            filtered.map((n) => {
+            condolences.map((n) => {
               const dateStr = n.eventDate ?? new Date(n.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
               const style = TYPE_STYLE[n.type] ?? TYPE_STYLE["기타"];
               return (

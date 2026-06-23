@@ -12,6 +12,7 @@ import {
   getEmployees, getEmployeeById, insertEmployee, updateEmployee, deleteEmployee,
   getLeaveBalance, getAllLeaveBalances, upsertLeaveBalance, updateLeaveUsed,
   getLeaveRequests, insertLeaveRequest, updateLeaveRequestStatus, getLeaveRequestById,
+  getCalendarEvents, getTodayEvents, getCalendarEventById, insertCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
 } from "./db";
 
 const COOKIE_NAME = "manus_session";
@@ -657,6 +658,82 @@ export const appRouter = router({
           return { success: true };
         }
         throw new TRPCError({ code: 'FORBIDDEN', message: '삭제 권한이 없습니다.' });
+      }),
+  }),
+  // ── 캘린더 일정 API ───────────────────────────────────────────
+  calendar: router({
+    // 월별 일정 목록
+    listMonth: protectedProcedure
+      .input(z.object({ year: z.number(), month: z.number() }))
+      .query(async ({ input }) => getCalendarEvents(input.year, input.month)),
+
+    // 오늘 일정 목록
+    today: protectedProcedure
+      .input(z.object({ date: z.string() })) // YYYY-MM-DD
+      .query(async ({ input }) => getTodayEvents(input.date)),
+
+    // 단건 조회
+    get: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .query(async ({ input }) => {
+        const rows = await getCalendarEventById(input.id);
+        return rows[0] ?? null;
+      }),
+
+    // 일정 등록
+    create: protectedProcedure
+      .input(z.object({
+        title: z.string().min(1).max(300),
+        description: z.string().optional(),
+        eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/).optional(),
+        color: z.string().default('#1a1a1a'),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await insertCalendarEvent({
+          ...input,
+          authorName: ctx.user.name ?? '',
+          authorOpenId: ctx.user.openId,
+        });
+        return { success: true };
+      }),
+
+    // 일정 수정
+    update: protectedProcedure
+      .input(z.object({
+        id: z.number(),
+        title: z.string().min(1).max(300).optional(),
+        description: z.string().optional(),
+        eventDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        startTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        endTime: z.string().regex(/^\d{2}:\d{2}$/).optional().nullable(),
+        color: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const rows = await getCalendarEventById(input.id);
+        if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '일정을 찾을 수 없습니다.' });
+        const ev = rows[0];
+        if (ctx.user.role !== 'admin' && ev.authorOpenId !== ctx.user.openId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '수정 권한이 없습니다.' });
+        }
+        const { id, ...data } = input;
+        await updateCalendarEvent(id, data);
+        return { success: true };
+      }),
+
+    // 일정 삭제
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const rows = await getCalendarEventById(input.id);
+        if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '일정을 찾을 수 없습니다.' });
+        const ev = rows[0];
+        if (ctx.user.role !== 'admin' && ev.authorOpenId !== ctx.user.openId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '삭제 권한이 없습니다.' });
+        }
+        await deleteCalendarEvent(input.id);
+        return { success: true };
       }),
   }),
 });

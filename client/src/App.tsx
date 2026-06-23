@@ -23,8 +23,6 @@ import AdminHrPage from "./pages/admin/AdminHrPage";
 import AdminCondolencesPage from "./pages/admin/AdminCondolencesPage";
 import AdminBoardPage from "./pages/admin/AdminBoardPage";
 import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
-import AdminLeavePage from "./pages/admin/AdminLeavePage";
-import LeavePage from "./pages/LeavePage";
 import MyPage from "./pages/MyPage";
 import NoticesPage from "./pages/NoticesPage";
 import NoticeDetailPage from "./pages/NoticeDetailPage";
@@ -63,9 +61,6 @@ function Router() {
       <Route path="/work">
         <RequireAuth><WorkPage /></RequireAuth>
       </Route>
-      <Route path="/leave">
-        <RequireAuth><LeavePage /></RequireAuth>
-      </Route>
       <Route path="/mypage">
         <RequireAuth><MyPage /></RequireAuth>
       </Route>
@@ -103,8 +98,6 @@ function Router() {
       <Route path="/admin/condolences" component={AdminCondolencesPage} />
       <Route path="/admin/board" component={AdminBoardPage} />
       <Route path="/admin/employees" component={AdminEmployeesPage} />
-      <Route path="/admin/leave" component={AdminLeavePage} />
-
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -10,6 +10,7 @@ import {
   Employee, InsertEmployee, employees,
   LeaveBalance, InsertLeaveBalance, leaveBalances,
   LeaveRequest, InsertLeaveRequest, leaveRequests,
+  CalendarEvent, InsertCalendarEvent, calendarEvents,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -420,4 +421,47 @@ export async function deleteBoardPost(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(boardPosts).where(eq(boardPosts.id, id));
+}
+
+// ── 캘린더 일정 헬퍼 ────────────────────────────────────────
+export async function getCalendarEvents(year: number, month: number): Promise<CalendarEvent[]> {
+  const db = await getDb();
+  if (!db) return [];
+  // YYYY-MM 형식으로 필터
+  const prefix = `${year}-${String(month).padStart(2, '0')}`;
+  return db.select().from(calendarEvents)
+    .where(like(calendarEvents.eventDate, `${prefix}%`))
+    .orderBy(calendarEvents.eventDate, calendarEvents.startTime);
+}
+
+export async function getTodayEvents(dateStr: string): Promise<CalendarEvent[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(calendarEvents)
+    .where(eq(calendarEvents.eventDate, dateStr))
+    .orderBy(calendarEvents.startTime);
+}
+
+export async function getCalendarEventById(id: number): Promise<CalendarEvent[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(calendarEvents).where(eq(calendarEvents.id, id)).limit(1);
+}
+
+export async function insertCalendarEvent(data: InsertCalendarEvent): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.insert(calendarEvents).values(data);
+}
+
+export async function updateCalendarEvent(id: number, data: Partial<InsertCalendarEvent>): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(calendarEvents).set(data).where(eq(calendarEvents.id, id));
+}
+
+export async function deleteCalendarEvent(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(calendarEvents).where(eq(calendarEvents.id, id));
 }

@@ -146,7 +146,7 @@ export default function NoticeDetailPage() {
   return (
     <PortalLayout>
       <div className="container py-6">
-        <div className="max-w-3xl mx-auto">
+        <div>
           {/* 뒤로가기 */}
           <button
             onClick={() => navigate("/notices")}
@@ -314,6 +314,18 @@ export default function NoticeDetailPage() {
               )}
             </div>
           )}
+
+          {/* 하단 목록 버튼 */}
+          <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--kino-pale)" }}>
+            <button
+              onClick={() => navigate("/notices")}
+              className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium transition-all active:scale-95"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+            >
+              <ChevronLeft size={14} />
+              공지사항 목록
+            </button>
+          </div>
         </div>
       </div>
     </PortalLayout>
