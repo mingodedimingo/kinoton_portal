@@ -162,6 +162,13 @@ export async function updateEmployee(id: number, data: Partial<InsertEmployee>):
   await db.update(employees).set(data).where(eq(employees.id, id));
 }
 
+export async function getEmployeeByEmail(email: string): Promise<Employee | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(employees).where(eq(employees.email, email)).limit(1);
+  return result[0];
+}
+
 export async function deleteEmployee(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");

@@ -30,6 +30,7 @@ export const employees = mysqlTable("employees", {
   profileImage: varchar("profileImage", { length: 500 }), // 프로필 사진 URL
   ext: varchar("ext", { length: 20 }), // 내선번호
   isActive: boolean("isActive").default(true).notNull(),
+  passwordHash: varchar("passwordHash", { length: 255 }), // bcrypt hash
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });

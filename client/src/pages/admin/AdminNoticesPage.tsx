@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X, Pin, Image as ImageIcon } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
+import RichEditor from "@/components/RichEditor";
 
 type FormData = {
   tag: string;
@@ -190,13 +191,11 @@ export default function AdminNoticesPage() {
             </div>
             <div>
               <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>내용</label>
-              <textarea
+              <RichEditor
                 value={form.content}
-                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                onChange={(html) => setForm(f => ({ ...f, content: html }))}
                 placeholder="공지 내용을 입력하세요 (선택)"
-                rows={4}
-                className="w-full px-3 py-2 rounded-md text-sm outline-none resize-none"
-                style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                minHeight={200}
               />
             </div>
             <div>

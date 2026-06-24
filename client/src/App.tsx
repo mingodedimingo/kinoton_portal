@@ -32,6 +32,7 @@ import CondolencesPage from "./pages/CondolencesPage";
 import CondolenceDetailPage from "./pages/CondolenceDetailPage";
 import BoardDetailPage from "./pages/BoardDetailPage";
 import PrivacyPage from "./pages/PrivacyPage";
+import LoginPage from "./pages/LoginPage";
 
 function Router() {
   return (
@@ -86,8 +87,9 @@ function Router() {
         <RequireAuth><BoardDetailPage /></RequireAuth>
       </Route>
 
-      {/* 개인정보처리방침 — 공개 페이지 */}
+      {/* 공개 페이지 */}
       <Route path="/privacy" component={PrivacyPage} />
+      <Route path="/login" component={LoginPage} />
 
       {/* 어드민 페이지 — AdminAuthGuard로 별도 보호 */}
       <Route path="/admin/login" component={AdminLoginPage} />

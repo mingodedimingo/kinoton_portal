@@ -3,6 +3,7 @@ import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
+import { sdk } from "./_core/sdk";
 import {
   getAttendanceLogs, getTodayStatus, getTodaySummary, insertAttendanceLog,
   getNotices, getNoticeById, insertNotice, updateNotice, deleteNotice,
@@ -13,7 +14,9 @@ import {
   getLeaveBalance, getAllLeaveBalances, upsertLeaveBalance, updateLeaveUsed,
   getLeaveRequests, insertLeaveRequest, updateLeaveRequestStatus, getLeaveRequestById,
   getCalendarEvents, getTodayEvents, getCalendarEventById, insertCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
+  getEmployeeByEmail, upsertUser,
 } from "./db";
+import bcrypt from "bcryptjs";
 
 const COOKIE_NAME = "manus_session";
 
@@ -28,6 +31,51 @@ export const appRouter = router({
       ctx.res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
       return { success: true } as const;
     }),
+
+    // 직원 이메일+비밀번호 로그인
+    employeeLogin: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        password: z.string().min(1),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const employee = await getEmployeeByEmail(input.email);
+        if (!employee || !employee.isActive) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
+        }
+        if (!employee.passwordHash) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '비밀번호가 설정되지 않은 계정입니다. 관리자에게 문의하세요.' });
+        }
+        const isValid = await bcrypt.compare(input.password, employee.passwordHash);
+        if (!isValid) {
+          throw new TRPCError({ code: 'UNAUTHORIZED', message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
+        }
+        // 직원 openId: emp_{id} 형식으로 users 테이블에 upsert
+        const openId = `emp_${employee.id}`;
+        await upsertUser({
+          openId,
+          name: employee.name,
+          email: employee.email ?? undefined,
+          loginMethod: 'employee',
+          lastSignedIn: new Date(),
+        });
+        const token = await sdk.createSessionToken(openId, { name: employee.name });
+        const cookieOptions = getSessionCookieOptions(ctx.req);
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 365 * 24 * 60 * 60 * 1000 });
+        return { success: true, name: employee.name };
+      }),
+
+    // 직원 비밀번호 설정 (어드민 전용)
+    setEmployeePassword: adminProcedure
+      .input(z.object({
+        employeeId: z.number(),
+        password: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const hash = await bcrypt.hash(input.password, 10);
+        await updateEmployee(input.employeeId, { passwordHash: hash });
+        return { success: true };
+      }),
   }),
 
   // ── 직원 관리 API ────────────────────────────────────────────────

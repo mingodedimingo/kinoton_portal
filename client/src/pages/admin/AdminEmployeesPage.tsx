@@ -6,7 +6,7 @@
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift,
+  Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift, KeyRound,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
@@ -163,6 +163,84 @@ function EmployeeFormModal({
   );
 }
 
+// ── 비밀번호 설정 모달 ────────────────────────────────────────────
+function SetPasswordModal({
+  employee,
+  onClose,
+}: {
+  employee: Employee;
+  onClose: () => void;
+}) {
+  const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
+
+  const mutation = trpc.auth.setEmployeePassword.useMutation({
+    onSuccess: () => {
+      toast.success(`${employee.name} 님의 비밀번호가 설정되었습니다.`);
+      onClose();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (password.length < 6) { toast.error("비밀번호는 6자 이상이어야 합니다."); return; }
+    if (password !== confirm) { toast.error("비밀번호가 일치하지 않습니다."); return; }
+    mutation.mutate({ employeeId: employee.id, password });
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+      <div className="w-full max-w-sm rounded-lg p-6 shadow-xl" style={{ background: "var(--kino-white)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>
+            비밀번호 설정 — {employee.name}
+          </h3>
+          <button onClick={onClose} className="p-1 rounded" style={{ color: "var(--kino-muted)" }}>
+            <X size={16} />
+          </button>
+        </div>
+        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>새 비밀번호 (6자 이상)</label>
+            <input
+              type="password"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="비밀번호 입력"
+              className="w-full px-3 py-2 rounded text-xs outline-none"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-white)" }}
+            />
+          </div>
+          <div>
+            <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>비밀번호 확인</label>
+            <input
+              type="password"
+              value={confirm}
+              onChange={e => setConfirm(e.target.value)}
+              placeholder="비밀번호 재입력"
+              className="w-full px-3 py-2 rounded text-xs outline-none"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-white)" }}
+            />
+          </div>
+          <div className="flex gap-2 mt-2">
+            <button type="button" onClick={onClose} className="flex-1 py-2 rounded text-xs font-semibold" style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}>취소</button>
+            <button
+              type="submit"
+              disabled={mutation.isPending}
+              className="flex-1 py-2 rounded text-xs font-semibold flex items-center justify-center gap-1"
+              style={{ background: "var(--kino-charcoal)", color: "white", opacity: mutation.isPending ? 0.7 : 1 }}
+            >
+              {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <KeyRound size={12} />}
+              설정
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ── 연차 부여 모달 ────────────────────────────────────────────────
 function LeaveGrantModal({
   employee,
@@ -258,6 +336,7 @@ export default function AdminEmployeesPage() {
   const [showForm, setShowForm] = useState(false);
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [grantEmployee, setGrantEmployee] = useState<Employee | null>(null);
+  const [pwEmployee, setPwEmployee] = useState<Employee | null>(null);
   const [showInactive, setShowInactive] = useState(false);
 
   const { data: employees, isLoading } = trpc.employees.list.useQuery({ activeOnly: !showInactive });
@@ -376,6 +455,14 @@ export default function AdminEmployeesPage() {
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5">
                         <button
+                          onClick={() => setPwEmployee(emp as Employee)}
+                          className="p-1.5 rounded transition-colors"
+                          style={{ color: "#7C3AED" }}
+                          title="비밀번호 설정"
+                        >
+                          <KeyRound size={13} />
+                        </button>
+                        <button
                           onClick={() => setGrantEmployee(emp as Employee)}
                           className="p-1.5 rounded transition-colors"
                           style={{ color: "#16A34A" }}
@@ -431,6 +518,14 @@ export default function AdminEmployeesPage() {
         <LeaveGrantModal
           employee={grantEmployee}
           onClose={() => setGrantEmployee(null)}
+        />
+      )}
+
+      {/* 비밀번호 설정 모달 */}
+      {pwEmployee && (
+        <SetPasswordModal
+          employee={pwEmployee}
+          onClose={() => setPwEmployee(null)}
         />
       )}
     </AdminLayout>

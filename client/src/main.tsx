@@ -18,7 +18,9 @@ const redirectToLoginIfUnauthorized = (error: unknown) => {
 
   if (!isUnauthorized) return;
 
-  window.location.href = getLoginUrl();
+  // 이미 /login 페이지에 있으면 리다이렉트 안 함
+  if (window.location.pathname === '/login') return;
+  window.location.href = '/login';
 };
 
 queryClient.getQueryCache().subscribe(event => {

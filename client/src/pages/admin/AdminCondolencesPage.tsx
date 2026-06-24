@@ -7,6 +7,7 @@ import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
+import RichEditor from "@/components/RichEditor";
 
 type CondolenceType = "결혼" | "출산" | "부고" | "기타";
 
@@ -201,13 +202,11 @@ export default function AdminCondolencesPage() {
             </div>
             <div>
               <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>상세 내용</label>
-              <textarea
+              <RichEditor
                 value={form.content}
-                onChange={e => setForm(f => ({ ...f, content: e.target.value }))}
+                onChange={(html) => setForm(f => ({ ...f, content: html }))}
                 placeholder="장소, 시간 등 추가 정보 (선택)"
-                rows={3}
-                className="w-full px-3 py-2 rounded-md text-sm outline-none resize-none"
-                style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                minHeight={160}
               />
             </div>
             <div>

@@ -1,15 +1,16 @@
 /**
  * BoardDetailPage.tsx — 게시글 상세 페이지
- * 이미지 상단 배치, 본문 하단, 수정/삭제 버튼 (작성자 본인 또는 어드민)
+ * - portal-card 제거, 전체 폭 사용
+ * - 하단 게시글 리스트 (디씨 스타일)
  */
 import { useState } from "react";
-import { useParams, useLocation } from "wouter";
+import { useParams, useLocation, Link } from "wouter";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import {
-  ChevronLeft, Loader2, ExternalLink, Trash2, Pencil, X, Save,
+  ChevronLeft, Loader2, ExternalLink, Trash2, Pencil, X, Save, List,
 } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 
@@ -32,6 +33,7 @@ export default function BoardDetailPage() {
 
   const postId = Number(id);
   const { data: post, isLoading, error } = trpc.board.get.useQuery({ id: postId }, { enabled: !isNaN(postId) });
+  const { data: listData } = trpc.board.list.useQuery({ limit: 10 });
 
   const [isEditing, setIsEditing] = useState(false);
   const [editForm, setEditForm] = useState<{
@@ -63,7 +65,6 @@ export default function BoardDetailPage() {
 
   const handleEditStart = () => {
     if (!post) return;
-    // 기존 첸부 데이터 로드 (attachments 우선, 없으면 images에서 변환)
     let existingAttachments: AttachmentItem[] = [];
     if ((post as any).attachments) {
       try {
@@ -138,122 +139,125 @@ export default function BoardDetailPage() {
   const dateStr = new Date(post.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" })
     .replace(/\. /g, ".").replace(/\.$/, "");
 
+  const posts = (listData as any)?.posts ?? listData ?? [];
+
   return (
     <PortalLayout>
       <div className="container py-6">
-        <div>
-          {/* 뒤로가기 */}
-          <button
-            onClick={() => navigate("/board")}
-            className="flex items-center gap-1 text-sm mb-4 transition-colors"
-            style={{ color: "var(--kino-mid)" }}
-          >
-            <ChevronLeft size={16} />
-            게시판 목록
-          </button>
+        {/* 뒤로가기 */}
+        <button
+          onClick={() => navigate("/board")}
+          className="flex items-center gap-1 text-sm mb-5 transition-colors"
+          style={{ color: "var(--kino-mid)" }}
+        >
+          <ChevronLeft size={16} />
+          게시판 목록
+        </button>
 
-          {/* 수정 폼 */}
-          {isEditing && editForm ? (
-            <div className="portal-card">
-              <div className="section-header mb-4">
-                <span className="section-title">게시글 수정</span>
-                <button onClick={() => setIsEditing(false)} style={{ color: "var(--kino-muted)" }}>
-                  <X size={16} />
+        {/* 수정 폼 */}
+        {isEditing && editForm ? (
+          <div className="portal-card p-5">
+            <div className="flex items-center justify-between mb-4">
+              <span className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>게시글 수정</span>
+              <button onClick={() => setIsEditing(false)} style={{ color: "var(--kino-muted)" }}>
+                <X size={16} />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>분류</label>
+                <select
+                  value={editForm.category}
+                  onChange={e => setEditForm(f => f ? { ...f, category: e.target.value as Category } : f)}
+                  className="w-full px-3 py-2 rounded-md text-sm outline-none"
+                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                >
+                  <option value="언론보도">언론보도</option>
+                  <option value="매뉴얼">매뉴얼</option>
+                  <option value="기타">기타</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>제목</label>
+                <input
+                  type="text"
+                  value={editForm.title}
+                  onChange={e => setEditForm(f => f ? { ...f, title: e.target.value } : f)}
+                  className="w-full px-3 py-2 rounded-md text-sm outline-none"
+                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>내용</label>
+                <textarea
+                  value={editForm.content}
+                  onChange={e => setEditForm(f => f ? { ...f, content: e.target.value } : f)}
+                  rows={6}
+                  className="w-full px-3 py-2 rounded-md text-sm outline-none resize-none"
+                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>외부 링크 (선택)</label>
+                <input
+                  type="text"
+                  value={editForm.link}
+                  onChange={e => setEditForm(f => f ? { ...f, link: e.target.value } : f)}
+                  placeholder="https://..."
+                  className="w-full px-3 py-2 rounded-md text-sm outline-none"
+                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                />
+              </div>
+              <div>
+                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>파일 첨부 (최대 10개)</label>
+                <FileUploader
+                  attachments={editForm.attachments}
+                  onChange={(files) => setEditForm(f => f ? { ...f, attachments: files } : f)}
+                />
+              </div>
+              <div className="flex gap-2 justify-end">
+                <button
+                  type="button"
+                  onClick={() => setIsEditing(false)}
+                  className="px-4 py-2 rounded-md text-sm font-medium"
+                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+                >
+                  취소
+                </button>
+                <button
+                  type="submit"
+                  disabled={updateMutation.isPending}
+                  className="px-4 py-2 rounded-md text-sm font-semibold flex items-center gap-2 transition-all active:scale-95"
+                  style={{ background: "var(--kino-charcoal)", color: "white" }}
+                >
+                  {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
+                  저장
                 </button>
               </div>
-              <form onSubmit={handleEditSubmit} className="flex flex-col gap-4">
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>분류</label>
-                  <select
-                    value={editForm.category}
-                    onChange={e => setEditForm(f => f ? { ...f, category: e.target.value as Category } : f)}
-                    className="w-full px-3 py-2 rounded-md text-sm outline-none"
-                    style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-                  >
-                    <option value="언론보도">언론보도</option>
-                    <option value="매뉴얼">매뉴얼</option>
-                    <option value="기타">기타</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>제목</label>
-                  <input
-                    type="text"
-                    value={editForm.title}
-                    onChange={e => setEditForm(f => f ? { ...f, title: e.target.value } : f)}
-                    className="w-full px-3 py-2 rounded-md text-sm outline-none"
-                    style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>내용</label>
-                  <textarea
-                    value={editForm.content}
-                    onChange={e => setEditForm(f => f ? { ...f, content: e.target.value } : f)}
-                    rows={6}
-                    className="w-full px-3 py-2 rounded-md text-sm outline-none resize-none"
-                    style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>외부 링크 (선택)</label>
-                  <input
-                    type="text"
-                    value={editForm.link}
-                    onChange={e => setEditForm(f => f ? { ...f, link: e.target.value } : f)}
-                    placeholder="https://..."
-                    className="w-full px-3 py-2 rounded-md text-sm outline-none"
-                    style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-                  />
-                </div>
-                <div>
-                  <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>파일 첨부 (이미지·동영상·문서 등 · 최대 10개)</label>
-                  <FileUploader
-                    attachments={editForm.attachments}
-                    onChange={(files) => setEditForm(f => f ? { ...f, attachments: files } : f)}
-                  />
-                </div>
-                <div className="flex gap-2 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => setIsEditing(false)}
-                    className="px-4 py-2 rounded-md text-sm font-medium"
-                    style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
-                  >
-                    취소
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={updateMutation.isPending}
-                    className="px-4 py-2 rounded-md text-sm font-semibold flex items-center gap-2 transition-all active:scale-95"
-                    style={{ background: "var(--kino-charcoal)", color: "white" }}
-                  >
-                    {updateMutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Save size={12} />}
-                    저장
-                  </button>
-                </div>
-              </form>
-            </div>
-          ) : (
-            <div className="portal-card">
-              {/* 이미지 상단 배치 (언론보도 스타일 — 최대 400px 높이) */}
+            </form>
+          </div>
+        ) : (
+          <>
+            {/* ── 본문 영역 (테두리 없음, 전체 폭) ── */}
+            <div className="pb-6" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
+              {/* 이미지 상단 배치 */}
               {imgs.length > 0 && (
-                <div className="mb-5">
+                <div className="mb-6">
                   {imgs.map((url, idx) => (
                     <div key={idx} className="mb-3">
                       <img
                         src={url}
                         alt={`첨부 이미지 ${idx + 1}`}
-                        className="w-full rounded-lg object-contain"
-                        style={{ maxHeight: 400, background: "var(--kino-bg)" }}
+                        className="w-full object-contain"
+                        style={{ maxHeight: 500, background: "var(--kino-bg)" }}
                       />
                     </div>
                   ))}
                 </div>
               )}
 
-              {/* 헤더 (카테고리 + 날짜 + 버튼) */}
-              <div className="flex items-start justify-between mb-3">
+              {/* 메타 정보 행 */}
+              <div className="flex items-center justify-between mb-3" style={{ borderBottom: "1px solid var(--kino-pale)", paddingBottom: "0.75rem" }}>
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="badge-tag">{post.category}</span>
                   {post.isNew && <span className="badge-new">N</span>}
@@ -282,7 +286,7 @@ export default function BoardDetailPage() {
               </div>
 
               {/* 제목 */}
-              <h1 className="text-lg font-bold mb-4 leading-snug" style={{ color: "var(--kino-charcoal)" }}>
+              <h1 className="text-xl font-bold mb-5 leading-snug" style={{ color: "var(--kino-charcoal)" }}>
                 {post.title}
               </h1>
 
@@ -292,7 +296,7 @@ export default function BoardDetailPage() {
                   href={post.link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="flex items-center gap-1.5 text-xs mb-4 underline"
+                  className="flex items-center gap-1.5 text-xs mb-5 underline"
                   style={{ color: "var(--kino-mid)" }}
                 >
                   <ExternalLink size={12} /> 원문 보기
@@ -311,20 +315,69 @@ export default function BoardDetailPage() {
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
               )}
             </div>
-          )}
 
-          {/* 하단 목록 버튼 */}
-          <div className="mt-6 pt-4" style={{ borderTop: "1px solid var(--kino-pale)" }}>
-            <button
-              onClick={() => navigate("/board")}
-              className="flex items-center gap-1.5 px-4 py-2 rounded text-sm font-medium transition-all active:scale-95"
-              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
-            >
-              <ChevronLeft size={14} />
-              게시판 목록
-            </button>
-          </div>
-        </div>
+            {/* ── 하단 게시글 리스트 (디씨 스타일) ── */}
+            <div className="mt-6">
+              <div className="flex items-center gap-2 mb-3">
+                <List size={14} style={{ color: "var(--kino-mid)" }} />
+                <span className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>게시판 목록</span>
+              </div>
+              <div style={{ border: "1px solid var(--kino-pale)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                {/* 헤더 행 */}
+                <div
+                  className="grid text-xs font-semibold px-4 py-2"
+                  style={{
+                    gridTemplateColumns: "1fr auto",
+                    background: "var(--kino-bg)",
+                    borderBottom: "1px solid var(--kino-pale)",
+                    color: "var(--kino-muted)",
+                  }}
+                >
+                  <span>제목</span>
+                  <span>날짜</span>
+                </div>
+                {posts.length === 0 ? (
+                  <div className="py-6 text-center text-xs" style={{ color: "var(--kino-muted)" }}>게시글이 없습니다.</div>
+                ) : (
+                  posts.map((p: any) => {
+                    const pDate = new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
+                    const isCurrent = p.id === postId;
+                    return (
+                      <Link
+                        key={p.id}
+                        href={`/board/${p.id}`}
+                        className="grid px-4 py-2.5 text-sm transition-colors"
+                        style={{
+                          gridTemplateColumns: "1fr auto",
+                          borderBottom: "1px solid var(--kino-pale)",
+                          background: isCurrent ? "var(--kino-pale)" : "transparent",
+                          color: isCurrent ? "var(--kino-charcoal)" : "var(--kino-mid)",
+                          fontWeight: isCurrent ? 600 : 400,
+                          textDecoration: "none",
+                        }}
+                      >
+                        <span className="truncate pr-4">
+                          {isCurrent && <span className="mr-1.5" style={{ color: "var(--kino-red)" }}>▶</span>}
+                          {p.title}
+                        </span>
+                        <span className="text-xs shrink-0" style={{ color: "var(--kino-muted)" }}>{pDate}</span>
+                      </Link>
+                    );
+                  })
+                )}
+              </div>
+              <div className="mt-4 flex justify-center">
+                <button
+                  onClick={() => navigate("/board")}
+                  className="flex items-center gap-1.5 px-5 py-2 rounded text-sm font-medium transition-all active:scale-95"
+                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+                >
+                  <List size={13} /> 전체 목록
+                </button>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </PortalLayout>
   );
