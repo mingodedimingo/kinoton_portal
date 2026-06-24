@@ -2,7 +2,6 @@
  * LoginPage — 직원 이메일+비밀번호 로그인
  */
 import { useState } from "react";
-import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff } from "lucide-react";
 
@@ -10,23 +9,33 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
+  const [loading, setLoading] = useState(false);
 
-  const loginMutation = trpc.auth.employeeLogin.useMutation({
-    onSuccess: () => {
-      window.location.href = "/";
-    },
-    onError: (e) => {
-      toast.error(e.message);
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password.trim()) {
       toast.error("이메일과 비밀번호를 입력해주세요.");
       return;
     }
-    loginMutation.mutate({ email: email.trim(), password });
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/employee-login", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: email.trim(), password }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        toast.error(data.error || "로그인에 실패했습니다.");
+      } else {
+        window.location.href = "/";
+      }
+    } catch {
+      toast.error("네트워크 오류가 발생했습니다.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -116,11 +125,11 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={loginMutation.isPending}
+            disabled={loading}
             className="w-full py-2.5 rounded-lg text-sm font-semibold flex items-center justify-center gap-2 transition-all active:scale-[0.98]"
             style={{ background: "var(--kino-charcoal)", color: "white", marginTop: "0.25rem" }}
           >
-            {loginMutation.isPending && <Loader2 size={14} className="animate-spin" />}
+            {loading && <Loader2 size={14} className="animate-spin" />}
             로그인
           </button>
         </form>
