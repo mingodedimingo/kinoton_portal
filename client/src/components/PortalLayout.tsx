@@ -5,15 +5,17 @@
  * Mobile 헤더: 로고 + [검색아이콘 + 알림(빨간점) + 구분선 + 프로필사진 + 햄버거]
  * GNB: 메일·전자결재·게시판·ERP·영업시스템·전체메뉴
  */
-import { useState } from "react";
-import { Link, useLocation, useRouter } from "wouter";
+import { useState, useRef, useEffect } from "react";
+import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
   Bell, Search, Mail, FileCheck, LayoutGrid,
   BookOpen, Building2, Settings2, Network,
-  Menu, X, ChevronRight, LogOut, Settings,
+  Menu, X, ChevronRight, LogOut, Settings, User,
 } from "lucide-react";
 import FullMenuOverlay from "./FullMenuOverlay";
+import { trpc } from "@/lib/trpc";
+import { useAuth } from "@/_core/hooks/useAuth";
 
 const NAV_ITEMS = [
   { label: "메일",       icon: Mail,       path: "https://wmail.ecount.com/",      external: true },
@@ -42,9 +44,33 @@ export default function PortalLayout({ children }: Props) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [fullMenuOpen, setFullMenuOpen] = useState(false);
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
+
+  const { user } = useAuth();
+  const logoutMutation = trpc.auth.logout.useMutation({
+    onSuccess: () => {
+      window.location.href = "/login";
+    },
+    onError: () => {
+      // 오류가 있어도 로그인 페이지로 이동
+      window.location.href = "/login";
+    },
+  });
 
   // 외부에서 열 수 있도록 등록
   _setFullMenuOpen = setFullMenuOpen;
+
+  // 드롭다운 외부 클릭 시 닫기
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const handleComingSoon = (label: string) => {
     toast(`${label} 기능은 준비 중입니다.`);
@@ -59,6 +85,23 @@ export default function PortalLayout({ children }: Props) {
       window.location.href = item.path;
     }
   };
+
+  const handleLogout = () => {
+    setProfileDropdownOpen(false);
+    logoutMutation.mutate();
+  };
+
+  const handleSwitchAccount = () => {
+    setProfileDropdownOpen(false);
+    // 로그아웃 후 로그인 페이지로 이동
+    logoutMutation.mutate();
+  };
+
+  // 현재 로그인한 사용자 정보 (employee 로그인 또는 OAuth 로그인)
+  const displayName = (user as any)?.name ?? "김민구";
+  const displayDept = (user as any)?.department
+    ? `${(user as any).department}${(user as any).position ? " · " + (user as any).position : ""}`
+    : "경영기획팀 · 선임";
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--kino-bg)" }}>
@@ -147,22 +190,91 @@ export default function PortalLayout({ children }: Props) {
             style={{ width: "1px", height: "20px", background: "var(--kino-pale)" }}
           />
 
-          {/* 프로필 — 증명사진 (모바일: 원형 사진, PC: 사진+이름/부서) */}
-          <div
-            className="flex items-center gap-2 cursor-pointer"
-            onClick={() => window.location.href = "/mypage"}
-          >
-            <img
-              src="/manus-storage/profile-kmg-new_30f1ac23.png"
-              alt="김민구"
-              className="w-9 h-9 rounded-full object-cover"
-              style={{ border: "1.5px solid var(--kino-pale)" }}
-            />
-            {/* PC: 이름/부서 텍스트 */}
-            <div className="hidden md:block mr-1">
-              <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>김민구</p>
-              <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>경영기획팀 · 선임</p>
+          {/* 프로필 드롭다운 */}
+          <div ref={profileRef} className="relative">
+            <div
+              className="flex items-center gap-2 cursor-pointer px-1 py-1 rounded-md hover:bg-gray-50 transition-colors"
+              onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+            >
+              <img
+                src="/manus-storage/profile-kmg-new_30f1ac23.png"
+                alt={displayName}
+                className="w-9 h-9 rounded-full object-cover"
+                style={{ border: "1.5px solid var(--kino-pale)" }}
+              />
+              {/* PC: 이름/부서 텍스트 */}
+              <div className="hidden md:block mr-1">
+                <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>{displayName}</p>
+                <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>{displayDept}</p>
+              </div>
             </div>
+
+            {/* 드롭다운 메뉴 */}
+            {profileDropdownOpen && (
+              <div
+                className="absolute right-0 top-full mt-1 w-52 rounded-lg shadow-lg overflow-hidden z-50"
+                style={{
+                  background: "var(--kino-white)",
+                  border: "1px solid var(--kino-pale)",
+                  boxShadow: "0 4px 16px rgba(0,0,0,0.12)",
+                }}
+              >
+                {/* 사용자 정보 헤더 */}
+                <div
+                  className="px-4 py-3"
+                  style={{ borderBottom: "1px solid var(--kino-pale)", background: "var(--kino-bg)" }}
+                >
+                  <p className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>{displayName}</p>
+                  <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{displayDept}</p>
+                </div>
+
+                {/* 메뉴 항목 */}
+                <div className="py-1">
+                  <button
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50"
+                    style={{ color: "var(--kino-charcoal)" }}
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      window.location.href = "/mypage";
+                    }}
+                  >
+                    <User size={14} style={{ color: "var(--kino-mid)" }} />
+                    내 프로필
+                  </button>
+                  <button
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50"
+                    style={{ color: "var(--kino-charcoal)" }}
+                    onClick={() => {
+                      setProfileDropdownOpen(false);
+                      handleComingSoon("설정");
+                    }}
+                  >
+                    <Settings size={14} style={{ color: "var(--kino-mid)" }} />
+                    설정
+                  </button>
+                </div>
+
+                <div style={{ borderTop: "1px solid var(--kino-pale)" }} className="py-1">
+                  <button
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-gray-50"
+                    style={{ color: "var(--kino-charcoal)" }}
+                    onClick={handleSwitchAccount}
+                  >
+                    <LogOut size={14} style={{ color: "var(--kino-mid)" }} />
+                    다른 계정으로 로그인
+                  </button>
+                  <button
+                    className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-left transition-colors hover:bg-red-50"
+                    style={{ color: "#DC2626" }}
+                    onClick={handleLogout}
+                    disabled={logoutMutation.isPending}
+                  >
+                    <LogOut size={14} />
+                    {logoutMutation.isPending ? "로그아웃 중..." : "로그아웃"}
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* 햄버거 메뉴 — lg 미만에서만 표시 */}
@@ -225,11 +337,16 @@ export default function PortalLayout({ children }: Props) {
               );
             })}
             <div style={{ borderTop: "1px solid var(--kino-pale)", marginTop: "0.5rem", paddingTop: "0.5rem" }}>
-              <button className="gnb-item w-full" onClick={() => handleComingSoon("설정")}>
+              <button className="gnb-item w-full" onClick={() => { setMobileMenuOpen(false); handleComingSoon("설정"); }}>
                 <Settings size={16} /> 설정
               </button>
-              <button className="gnb-item w-full" onClick={() => handleComingSoon("로그아웃")}>
-                <LogOut size={16} /> 로그아웃
+              <button
+                className="gnb-item w-full"
+                style={{ color: "#DC2626" }}
+                onClick={() => { setMobileMenuOpen(false); handleLogout(); }}
+                disabled={logoutMutation.isPending}
+              >
+                <LogOut size={16} /> {logoutMutation.isPending ? "로그아웃 중..." : "로그아웃"}
               </button>
             </div>
           </nav>

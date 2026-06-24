@@ -151,7 +151,7 @@ export default function CondolenceDetailPage() {
     ? item.eventDate
     : new Date(item.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
 
-  const condolenceList = Array.isArray(listData) ? listData : [];
+  const condolenceList = (listData as any)?.items ?? (Array.isArray(listData) ? listData : []);
 
   return (
     <PortalLayout>

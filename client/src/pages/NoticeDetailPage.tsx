@@ -145,7 +145,7 @@ export default function NoticeDetailPage() {
     year: "numeric", month: "2-digit", day: "2-digit",
   }).replace(/\. /g, ".").replace(/\.$/, "");
 
-  const notices = Array.isArray(listData) ? listData : [];
+  const notices = (listData as any)?.items ?? (Array.isArray(listData) ? listData : []);
 
   return (
     <PortalLayout>

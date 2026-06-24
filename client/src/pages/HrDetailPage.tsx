@@ -149,7 +149,7 @@ export default function HrDetailPage() {
     : new Date(item.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" }).replace(/\. /g, ".").replace(/\.$/, "");
   const badge = TYPE_BADGE[item.type] ?? TYPE_BADGE["발령"];
 
-  const hrList = Array.isArray(listData) ? listData : [];
+  const hrList = (listData as any)?.items ?? (Array.isArray(listData) ? listData : []);
 
   return (
     <PortalLayout>

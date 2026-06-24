@@ -139,7 +139,7 @@ export default function BoardDetailPage() {
   const dateStr = new Date(post.createdAt).toLocaleDateString("ko-KR", { year: "numeric", month: "2-digit", day: "2-digit" })
     .replace(/\. /g, ".").replace(/\.$/, "");
 
-  const posts = (listData as any)?.posts ?? listData ?? [];
+  const posts = (listData as any)?.items ?? (listData as any)?.posts ?? [];
 
   return (
     <PortalLayout>
