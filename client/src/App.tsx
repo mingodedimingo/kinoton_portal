@@ -56,6 +56,9 @@ function Router() {
       <Route path="/orgchart">
         <RequireAuth><OrgChartPage /></RequireAuth>
       </Route>
+      <Route path="/org">
+        <RequireAuth><OrgChartPage /></RequireAuth>
+      </Route>
       <Route path="/reserve">
         <RequireAuth><ReservePage /></RequireAuth>
       </Route>

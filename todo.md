@@ -92,10 +92,10 @@
 - [x] 어드민 연차 관리 페이지 승인/반려 버튼 UI 명확화 (연차 메뉴 전체 제거로 대체)
 - [x] 홈 연차 현황에 대기중 신청 건수 표시 (연차 섹션 제거로 대체)
 - [ ] 마이페이지 구현 (/mypage)
-- [ ] 조직도 페이지 활성화 (/org)
+- [x] 조직도 페이지 활성화 (/orgchart) - CSV 83명 DB 입력 + 본부별 계층 조직도 구현
 - [x] 일정 페이지 활성화 (/calendar)
 - [ ] 전자결재 페이지 활성화 (/approve)
-- [ ] 프로필 페이지 복원 - 헤더 프로필 클릭 시 드롭다운 또는 페이지
+- [x] 프로필 페이지 복원 - 헤더 프로필 클릭 시 드롭다운 또는 페이지
 
 ## 보안 강화
 - [x] 모든 페이지 로그인 필수화 (비로그인 시 로그인 페이지로 리다이렉트)
@@ -131,11 +131,11 @@
 
 ## UI 개선 6차 작업 - 파일 첨부 전면 확장
 
-- [ ] /api/upload-image 엔드포인트를 /api/upload-file로 확장 (mp4, mov, ppt, pdf, docx 등 전체 지원)
-- [ ] DB 스키마에 attachments 컬럼 추가 (파일명, URL, 타입, 크기 메타데이터 JSON)
-- [ ] FileUploader 컴포넌트 생성 (이미지 미리보기 + 동영상/문서 아이콘 표시)
-- [ ] 게시판 작성/수정 폼에 FileUploader 적용
-- [ ] 공지사항 작성/수정 폼에 FileUploader 적용
-- [ ] 인사발령 작성/수정 폼에 FileUploader 적용
-- [ ] 경조사 작성/수정 폼에 FileUploader 적용
-- [ ] 상세 페이지에서 첨부 파일 다운로드/미리보기 링크 노출
+- [x] /api/upload-image 엔드포인트를 /api/upload-file로 확장 (mp4, mov, ppt, pdf, docx 등 전체 지원)
+- [x] DB 스키마에 attachments 컬럼 추가 (파일명, URL, 타입, 크기 메타데이터 JSON)
+- [x] FileUploader 컴포넌트 생성 (이미지 미리보기 + 동영상/문서 아이콘 표시)
+- [x] 게시판 작성/수정 폼에 FileUploader 적용
+- [x] 공지사항 작성/수정 폼에 FileUploader 적용
+- [x] 인사발령 작성/수정 폼에 FileUploader 적용
+- [x] 경조사 작성/수정 폼에 FileUploader 적용
+- [x] 상세 페이지에서 첨부 파일 다운로드/미리보기 링크 노출
