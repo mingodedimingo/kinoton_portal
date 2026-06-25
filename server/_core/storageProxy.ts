@@ -38,8 +38,23 @@ export function registerStorageProxy(app: Express) {
         return;
       }
 
-      res.set("Cache-Control", "no-store");
-      res.redirect(307, url);
+      // Fetch the actual file and pipe it directly (no redirect)
+      // 307 redirect to CloudFront signed URL fails in browser due to 403
+      const fileResp = await fetch(url);
+      if (!fileResp.ok) {
+        console.error(`[StorageProxy] file fetch error: ${fileResp.status}`);
+        res.status(502).send("File fetch error");
+        return;
+      }
+
+      const contentType = fileResp.headers.get("content-type") || "application/octet-stream";
+      const contentLength = fileResp.headers.get("content-length");
+      res.set("Content-Type", contentType);
+      res.set("Cache-Control", "public, max-age=3600");
+      if (contentLength) res.set("Content-Length", contentLength);
+
+      const buffer = await fileResp.arrayBuffer();
+      res.end(Buffer.from(buffer));
     } catch (err) {
       console.error("[StorageProxy] failed:", err);
       res.status(502).send("Storage proxy error");
