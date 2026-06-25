@@ -18,32 +18,45 @@ export async function createContext(
 ): Promise<TrpcContext> {
   let user: User | null = null;
 
+  // kino_admin 쿠키가 있으면 최우선으로 어드민으로 인식 (DB/세션 쿠키 불필요)
+  const cookies = parseCookies(opts.req.headers.cookie || "");
+  if (cookies.kino_admin === ADMIN_TOKEN) {
+    const ownerOpenId = ENV.ownerOpenId;
+    if (ownerOpenId) {
+      try {
+        let adminUser = await getUserByOpenId(ownerOpenId);
+        if (!adminUser) {
+          await upsertUser({ openId: ownerOpenId, name: "관리자", role: "admin" });
+          adminUser = await getUserByOpenId(ownerOpenId);
+        }
+        if (adminUser && adminUser.role !== "admin") {
+          await upsertUser({ openId: ownerOpenId, role: "admin" });
+          adminUser = await getUserByOpenId(ownerOpenId);
+        }
+        user = adminUser ?? null;
+      } catch {
+        // DB 조회 실패 시 인라인 admin 유저 생성 (DB 없어도 작동)
+        user = {
+          id: 0,
+          openId: ownerOpenId,
+          name: "관리자",
+          email: null,
+          loginMethod: null,
+          role: "admin",
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          lastSignedIn: new Date(),
+        } as User;
+      }
+    }
+    return { req: opts.req, res: opts.res, user };
+  }
+
+  // 일반 포탈 세션 인증
   try {
     user = await sdk.authenticateRequest(opts.req);
-  } catch (error) {
-    // app_session_id 쿠키로 인증 실패 시, kino_admin 쿠키로 어드민 인증 시도
-    try {
-      const cookies = parseCookies(opts.req.headers.cookie || "");
-      if (cookies.kino_admin === ADMIN_TOKEN) {
-        const ownerOpenId = ENV.ownerOpenId;
-        if (ownerOpenId) {
-          let adminUser = await getUserByOpenId(ownerOpenId);
-          if (!adminUser) {
-            await upsertUser({ openId: ownerOpenId, name: "관리자", role: "admin" });
-            adminUser = await getUserByOpenId(ownerOpenId);
-          }
-          if (adminUser && adminUser.role !== "admin") {
-            // 강제로 admin role 설정
-            await upsertUser({ openId: ownerOpenId, role: "admin" });
-            adminUser = await getUserByOpenId(ownerOpenId);
-          }
-          user = adminUser ?? null;
-        }
-      }
-    } catch (adminError) {
-      // 어드민 쿠키 인증도 실패 - user는 null 유지
-      user = null;
-    }
+  } catch {
+    user = null;
   }
 
   return {
