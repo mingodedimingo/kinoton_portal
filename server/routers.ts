@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
+import { COOKIE_NAME } from "@shared/const";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { sdk } from "./_core/sdk";
@@ -18,7 +19,7 @@ import {
 } from "./db";
 import bcrypt from "bcryptjs";
 
-const COOKIE_NAME = "manus_session";
+// COOKIE_NAME은 @shared/const에서 import (app_session_id)
 
 export const appRouter = router({
   system: systemRouter,
