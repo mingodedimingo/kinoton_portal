@@ -105,7 +105,7 @@ export default function AdminLayout({ children, title }: Props) {
         <div className="px-5 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <Link href="/">
             <img
-              src="/manus-storage/kinoton_logo_wh_fda912cf.png"
+              src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/QjSWvYHAscBiZoqJ.png"
               alt="Kinoton"
               style={{ height: "22px", width: "auto" }}
             />
@@ -172,7 +172,7 @@ export default function AdminLayout({ children, title }: Props) {
           >
             <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               <div>
-                <img src="/manus-storage/kinoton_logo_wh_fda912cf.png" alt="Kinoton" style={{ height: "22px", width: "auto" }} />
+                <img src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/QjSWvYHAscBiZoqJ.png" alt="Kinoton" style={{ height: "22px", width: "auto" }} />
                 <p className="text-xs mt-1 font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>Admin</p>
               </div>
               <button onClick={() => setSidebarOpen(false)} style={{ color: "rgba(255,255,255,0.5)" }}>

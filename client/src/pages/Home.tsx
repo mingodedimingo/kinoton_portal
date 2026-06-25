@@ -519,7 +519,7 @@ function useAttendance(employee: { id: number; name: string; department: string;
 
 // 고정 직원 정보 (김민구)
 const FIXED_EMPLOYEE = { id: 1, name: "김민구", department: "경영기획팀", position: "선임" };
-const PROFILE_IMAGE = "/manus-storage/mingu_profile_v2_ea41a237.jpg";
+const PROFILE_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/CaDbaokwbiDVLLHm.jpg";
 
 // ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
 function LeftPanel() {

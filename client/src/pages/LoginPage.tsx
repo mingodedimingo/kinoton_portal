@@ -50,7 +50,7 @@ export default function LoginPage() {
         {/* 로고 영역 */}
         <div className="flex flex-col items-center mb-8">
           <img
-            src="/manus-storage/kinoton_logo_v2_7a7aff5b.png"
+            src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/JiOEsaAjyNOzfJKQ.png"
             alt="Kinoton"
             className="mb-4"
             style={{ height: "48px", width: "auto", objectFit: "contain" }}
