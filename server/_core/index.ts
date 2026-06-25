@@ -124,7 +124,8 @@ async function startServer() {
             await upsertUser({ openId: ownerOpenId, name: "관리자", role: "admin" });
             user = await getUserByOpenId(ownerOpenId);
           }
-          const sessionToken = await sdk.createSessionToken(ownerOpenId, { expiresInMs: 8 * 60 * 60 * 1000 });
+          const adminName = user?.name || process.env.OWNER_NAME || "관리자";
+          const sessionToken = await sdk.createSessionToken(ownerOpenId, { expiresInMs: 8 * 60 * 60 * 1000, name: adminName });
           const cookieOptions = getSessionCookieOptions(req);
           res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: 8 * 60 * 60 * 1000 });
         }
