@@ -12,6 +12,10 @@ import multer from "multer";
 import { storagePut } from "../storage";
 import { sdk } from "./sdk";
 import { parse as parseCookies } from "cookie";
+import { COOKIE_NAME } from "@shared/const";
+import { getSessionCookieOptions } from "./cookies";
+import { getUserByOpenId, upsertUser } from "../db";
+import { ENV } from "./env";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -102,12 +106,31 @@ async function startServer() {
   app.post("/api/admin/login", async (req, res) => {
     const { id, password } = req.body || {};
     if (id === ADMIN_ID && password === ADMIN_PASSWORD) {
+      // kino_admin 쿠키 발급
       res.cookie("kino_admin", ADMIN_TOKEN, {
         httpOnly: true,
-        sameSite: "lax",
+        sameSite: "none",
+        secure: true,
         maxAge: 8 * 60 * 60 * 1000, // 8시간
         path: "/",
       });
+      // app_session_id 쿠키도 발급 (tRPC adminProcedure 인증용)
+      try {
+        const ownerOpenId = ENV.ownerOpenId;
+        if (ownerOpenId) {
+          // owner 계정이 users 테이블에 없으면 생성
+          let user = await getUserByOpenId(ownerOpenId);
+          if (!user) {
+            await upsertUser({ openId: ownerOpenId, name: "관리자", role: "admin" });
+            user = await getUserByOpenId(ownerOpenId);
+          }
+          const sessionToken = await sdk.createSessionToken(ownerOpenId, { expiresInMs: 8 * 60 * 60 * 1000 });
+          const cookieOptions = getSessionCookieOptions(req);
+          res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: 8 * 60 * 60 * 1000 });
+        }
+      } catch (e) {
+        console.error("[admin-login] session token error:", e);
+      }
       res.json({ success: true });
     } else {
       res.status(401).json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." });
@@ -116,6 +139,7 @@ async function startServer() {
 
   app.post("/api/admin/logout", (_req, res) => {
     res.clearCookie("kino_admin", { path: "/" });
+    res.clearCookie(COOKIE_NAME, { path: "/" });
     res.json({ success: true });
   });
 
