@@ -15,6 +15,7 @@ import {
 } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import DOMPurify from "dompurify";
+import RichEditor from "@/components/RichEditor";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -191,12 +192,11 @@ export default function BoardDetailPage() {
               </div>
               <div>
                 <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>내용</label>
-                <textarea
+                <RichEditor
                   value={editForm.content}
-                  onChange={e => setEditForm(f => f ? { ...f, content: e.target.value } : f)}
-                  rows={6}
-                  className="w-full px-3 py-2 rounded-md text-sm outline-none resize-none"
-                  style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+                  onChange={(html) => setEditForm(f => f ? { ...f, content: html } : f)}
+                  placeholder="내용을 입력하세요"
+                  minHeight={200}
                 />
               </div>
               <div>
