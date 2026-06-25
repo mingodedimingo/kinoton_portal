@@ -1,4 +1,4 @@
-import { and, desc, eq, gte, lte, like, sql } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNull, lte, like, sql } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import {
   AttendanceLog, InsertAttendanceLog, InsertUser,
@@ -11,6 +11,7 @@ import {
   LeaveBalance, InsertLeaveBalance, leaveBalances,
   LeaveRequest, InsertLeaveRequest, leaveRequests,
   CalendarEvent, InsertCalendarEvent, calendarEvents,
+  PasswordResetToken, InsertPasswordResetToken, passwordResetTokens,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -471,4 +472,40 @@ export async function deleteCalendarEvent(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(calendarEvents).where(eq(calendarEvents.id, id));
+}
+
+// ── 비밀번호 재설정 토큰 헬퍼 ────────────────────────────────────
+export async function createPasswordResetToken(email: string, code: string): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10분 후 만료
+  await db.insert(passwordResetTokens).values({ email, code, expiresAt });
+}
+
+export async function getValidPasswordResetToken(email: string, code: string): Promise<PasswordResetToken | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const now = new Date();
+  const result = await db
+    .select()
+    .from(passwordResetTokens)
+    .where(
+      and(
+        eq(passwordResetTokens.email, email),
+        eq(passwordResetTokens.code, code),
+        isNull(passwordResetTokens.usedAt),
+        gt(passwordResetTokens.expiresAt, now)
+      )
+    )
+    .limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function markPasswordResetTokenUsed(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db
+    .update(passwordResetTokens)
+    .set({ usedAt: new Date() })
+    .where(eq(passwordResetTokens.id, id));
 }

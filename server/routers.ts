@@ -16,8 +16,10 @@ import {
   getLeaveRequests, insertLeaveRequest, updateLeaveRequestStatus, getLeaveRequestById,
   getCalendarEvents, getTodayEvents, getCalendarEventById, insertCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
   getEmployeeByEmail, upsertUser,
+  createPasswordResetToken, getValidPasswordResetToken, markPasswordResetTokenUsed,
 } from "./db";
 import bcrypt from "bcryptjs";
+import { sendPasswordResetEmail } from "./_core/mailer";
 
 // COOKIE_NAME은 @shared/const에서 import (app_session_id)
 
@@ -64,6 +66,50 @@ export const appRouter = router({
         const cookieOptions = getSessionCookieOptions(ctx.req);
         ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 365 * 24 * 60 * 60 * 1000 });
         return { success: true, name: employee.name };
+      }),
+
+    // 비밀번호 재설정 코드 발송 (공개)
+    requestPasswordReset: publicProcedure
+      .input(z.object({ email: z.string().email() }))
+      .mutation(async ({ input }) => {
+        const employee = await getEmployeeByEmail(input.email.trim().toLowerCase());
+        // 보안상 직원 존재 여부 노출 안 함
+        if (!employee || !employee.isActive) {
+          return { success: true };
+        }
+        // 6자리 랜덤 숫자 코드 생성
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        await createPasswordResetToken(input.email.trim().toLowerCase(), code);
+        await sendPasswordResetEmail(input.email.trim().toLowerCase(), code, employee.name);
+        return { success: true };
+      }),
+
+    // 인증 코드 확인 후 비밀번호 재설정 (공개)
+    resetPassword: publicProcedure
+      .input(z.object({
+        email: z.string().email(),
+        code: z.string().length(6),
+        newPassword: z.string().min(6),
+      }))
+      .mutation(async ({ input }) => {
+        const token = await getValidPasswordResetToken(
+          input.email.trim().toLowerCase(),
+          input.code
+        );
+        if (!token) {
+          throw new TRPCError({
+            code: 'BAD_REQUEST',
+            message: '인증 코드가 올바르지 않거나 만료되었습니다.',
+          });
+        }
+        const employee = await getEmployeeByEmail(input.email.trim().toLowerCase());
+        if (!employee) {
+          throw new TRPCError({ code: 'NOT_FOUND', message: '직원 정보를 찾을 수 없습니다.' });
+        }
+        const hash = await bcrypt.hash(input.newPassword, 10);
+        await updateEmployee(employee.id, { passwordHash: hash });
+        await markPasswordResetTokenUsed(token.id);
+        return { success: true };
       }),
 
     // 직원 비밀번호 설정 (어드민 전용)
@@ -834,4 +880,6 @@ export const appRouter = router({
   }),
 });
 
+// admin 라우터는 index.ts의 REST 엔드포인트로 처리되므로 tRPC에서는 stub만 제공
+// (admin.auth.test.ts 호환용)
 export type AppRouter = typeof appRouter;

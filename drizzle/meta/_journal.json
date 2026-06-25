@@ -71,6 +71,13 @@
       "when": 1782276259766,
       "tag": "0009_absent_wendell_vaughn",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1782403331682,
+      "tag": "0010_useful_omega_sentinel",
+      "breakpoints": true
     }
   ]
 }
