@@ -41,31 +41,11 @@ async function startServer() {
   registerStorageProxy(app);
   registerOAuthRoutes(app);
 
-  // ── 파일 업로드 엔드포인트 (이미지/동영상/문서 전체 지원) ──────────
-  const ALLOWED_MIME_TYPES = new Set([
-    // 이미지
-    "image/jpeg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-    // 동영상
-    "video/mp4", "video/quicktime", "video/x-msvideo", "video/webm",
-    // 문서
-    "application/pdf",
-    "application/msword",
-    "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    "application/vnd.ms-powerpoint",
-    "application/vnd.openxmlformats-officedocument.presentationml.presentation",
-    "application/vnd.ms-excel",
-    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    // 압축
-    "application/zip", "application/x-zip-compressed",
-  ]);
-
+  // ── 파일 업로드 엔드포인트 (모든 파일 형식 허용) ──────────────────
   const upload = multer({
     storage: multer.memoryStorage(),
-    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB (동영상 지원)
-    fileFilter: (_req, file, cb) => {
-      if (ALLOWED_MIME_TYPES.has(file.mimetype)) cb(null, true);
-      else cb(new Error(`지원하지 않는 파일 형식입니다: ${file.mimetype}`));
-    },
+    limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+    // fileFilter 없음 → 모든 파일 형식 허용
   });
 
   // 기존 이미지 업로드 엔드포인트 (하위 호환)
