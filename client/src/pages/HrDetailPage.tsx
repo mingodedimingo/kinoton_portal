@@ -9,7 +9,7 @@ import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
-import { ChevronLeft, Loader2, Pencil, Trash2, X, Save, List } from "lucide-react";
+import { ChevronLeft, Loader2, Pencil, Trash2, X, Save, List, Paperclip, Download, FileText, Film, FileSpreadsheet, Presentation, Archive, File } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import DOMPurify from "dompurify";
 
@@ -313,6 +313,62 @@ export default function HrDetailPage() {
               ) : (
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
               )}
+
+              {/* 첨부파일 다운로드 */}
+              {(() => {
+                let attachments: AttachmentItem[] = [];
+                try {
+                  const raw = (item as any).attachments;
+                  if (raw) {
+                    const parsed = typeof raw === 'string' ? JSON.parse(raw) : raw;
+                    if (Array.isArray(parsed)) attachments = parsed;
+                  }
+                } catch { /* ignore */ }
+                if (attachments.length === 0) return null;
+                return (
+                  <div className="mt-6 pt-5" style={{ borderTop: "1px solid var(--kino-pale)" }}>
+                    <div className="flex items-center gap-1.5 mb-3">
+                      <Paperclip size={13} style={{ color: "var(--kino-mid)" }} />
+                      <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부파일 ({attachments.length})</span>
+                    </div>
+                    <div className="flex flex-col gap-2">
+                      {attachments.map((att, idx) => {
+                        const isImage = att.mimeType.startsWith('image/');
+                        const isVideo = att.mimeType.startsWith('video/');
+                        const isPdf = att.mimeType === 'application/pdf';
+                        const isWord = att.mimeType.includes('word');
+                        const isExcel = att.mimeType.includes('excel') || att.mimeType.includes('spreadsheet');
+                        const isPpt = att.mimeType.includes('powerpoint') || att.mimeType.includes('presentation');
+                        const isZip = att.mimeType.includes('zip');
+                        const Icon = isVideo ? Film : isPdf || isWord ? FileText : isExcel ? FileSpreadsheet : isPpt ? Presentation : isZip ? Archive : File;
+                        const sizeStr = att.size > 1024 * 1024
+                          ? `${(att.size / 1024 / 1024).toFixed(1)}MB`
+                          : att.size > 1024 ? `${(att.size / 1024).toFixed(0)}KB` : `${att.size}B`;
+                        return (
+                          <a
+                            key={idx}
+                            href={att.url}
+                            download={att.name}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-md transition-colors"
+                            style={{ background: "var(--kino-pale)", color: "var(--kino-charcoal)", textDecoration: "none" }}
+                          >
+                            {isImage ? (
+                              <img src={att.url} alt={att.name} className="w-8 h-8 rounded object-cover shrink-0" />
+                            ) : (
+                              <Icon size={18} className="shrink-0" style={{ color: "var(--kino-mid)" }} />
+                            )}
+                            <span className="text-xs flex-1 truncate">{att.name}</span>
+                            <span className="text-xs shrink-0" style={{ color: "var(--kino-muted)" }}>{sizeStr}</span>
+                            <Download size={13} className="shrink-0" style={{ color: "var(--kino-mid)" }} />
+                          </a>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
 
             {/* ── 하단 인사발령 리스트 (디씨 스타일) ── */}
