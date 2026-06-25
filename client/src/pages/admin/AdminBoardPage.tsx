@@ -7,6 +7,7 @@ import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Pencil, Trash2, Loader2, X, Pin, ExternalLink } from "lucide-react";
+import RichEditor from "@/components/RichEditor";
 
 type BoardCategory = "언론보도" | "매뉴얼" | "기타";
 
@@ -142,6 +143,15 @@ export default function AdminBoardPage() {
                 onChange={e => setEditForm(f => f ? { ...f, title: e.target.value } : f)}
                 className="w-full px-3 py-2 rounded-md text-sm outline-none"
                 style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>내용</label>
+              <RichEditor
+                value={editForm.content}
+                onChange={(html) => setEditForm(f => f ? { ...f, content: html } : f)}
+                placeholder="내용을 입력하세요 (선택)"
+                minHeight={200}
               />
             </div>
             <div className="flex items-center gap-4">
