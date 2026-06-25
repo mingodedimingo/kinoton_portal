@@ -80,6 +80,53 @@ export const appRouter = router({
 
   // ── 직원 관리 API ────────────────────────────────────────────────
   employees: router({
+    // 내 직원 정보 조회 (로그인 유저 → 직원 매핑)
+    me: protectedProcedure
+      .query(async ({ ctx }) => {
+        const openId = ctx.user.openId;
+        // emp_{id} 형식이면 직접 ID로 조회
+        if (openId.startsWith('emp_')) {
+          const empId = parseInt(openId.replace('emp_', ''));
+          if (!isNaN(empId)) {
+            const emp = await getEmployeeById(empId);
+            return emp ?? null;
+          }
+        }
+        // OAuth 로그인이면 이메일로 매핑
+        if (ctx.user.email) {
+          const emp = await getEmployeeByEmail(ctx.user.email);
+          return emp ?? null;
+        }
+        // 이름으로 매핑 시도
+        if (ctx.user.name) {
+          const allEmps = await getEmployees(true);
+          const found = allEmps.find(e => e.name === ctx.user.name);
+          return found ?? null;
+        }
+        return null;
+      }),
+
+    // 내 프로필 이미지 업데이트
+    updateMyProfile: protectedProcedure
+      .input(z.object({
+        profileImage: z.string().optional(),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        const openId = ctx.user.openId;
+        let empId: number | null = null;
+        if (openId.startsWith('emp_')) {
+          empId = parseInt(openId.replace('emp_', ''));
+          if (isNaN(empId)) empId = null;
+        }
+        if (!empId && ctx.user.email) {
+          const emp = await getEmployeeByEmail(ctx.user.email);
+          empId = emp?.id ?? null;
+        }
+        if (!empId) throw new TRPCError({ code: 'NOT_FOUND', message: '직원 정보를 찾을 수 없습니다.' });
+        await updateEmployee(empId, { profileImage: input.profileImage });
+        return { success: true };
+      }),
+
     // 직원 목록 조회 (로그인 필수)
     list: protectedProcedure
       .input(z.object({ activeOnly: z.boolean().default(true) }))

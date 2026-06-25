@@ -1,16 +1,18 @@
 /**
  * MyPage.tsx — 마이페이지
- * - 내 프로필 정보 (이름, 부서, 직위, 이메일)
+ * - 로그인한 사용자의 직원 정보 자동 매핑 (직원 선택 제거)
+ * - 프로필 이미지 업로드 기능
  * - 연차 현황 (총/사용/잔여)
  * - 최근 출퇴근 이력
  * - 연차 신청 이력
  */
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Link } from "wouter";
+import { toast } from "sonner";
 import {
   User, Mail, Building2, Briefcase, Calendar,
   LogIn, LogOut, Clock, CheckCircle, XCircle,
-  ChevronRight, FileText,
+  ChevronRight, FileText, Camera, Loader2,
 } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
@@ -22,15 +24,25 @@ const STATUS_CONFIG: Record<string, { bg: string; color: string; icon: React.Rea
 };
 
 export default function MyPage() {
-  const [selectedEmployee, setSelectedEmployee] = useState<number | null>(null);
   const currentYear = new Date().getFullYear();
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const utils = trpc.useUtils();
 
-  // 직원 목록
-  const { data: employees } = trpc.employees.list.useQuery({ activeOnly: true });
-
-  // 선택된 직원 정보
-  const employee = employees?.find(e => e.id === selectedEmployee) ?? employees?.[0] ?? null;
+  // 로그인한 사용자의 직원 정보 자동 조회
+  const { data: employee, isLoading: empLoading } = trpc.employees.me.useQuery();
   const employeeId = employee?.id ?? null;
+
+  // 프로필 이미지 업데이트
+  const updateProfileMutation = trpc.employees.updateMyProfile.useMutation({
+    onSuccess: () => {
+      utils.employees.me.invalidate();
+      toast.success("프로필 이미지가 업데이트되었습니다.");
+    },
+    onError: (err) => {
+      toast.error(err.message || "프로필 이미지 업데이트에 실패했습니다.");
+    },
+  });
 
   // 연차 잔액
   const { data: leaveBalance } = trpc.employees.leaveBalance.useQuery(
@@ -45,54 +57,101 @@ export default function MyPage() {
   );
 
   // 최근 출퇴근 이력 (7일)
-  const [today] = useState(() => new Date());
-  const [weekAgo] = useState(() => { const d = new Date(); d.setDate(d.getDate() - 7); return d; });
-  const fmt = (d: Date) => d.toISOString().slice(0, 10);
-
   const { data: attendanceLogs } = trpc.attendance.myHistory.useQuery(
     { employeeName: employee?.name ?? "", days: 7 },
     { enabled: !!employee }
   );
+
+  const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("이미지 파일만 업로드 가능합니다.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      toast.error("파일 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/upload-image", {
+        method: "POST",
+        credentials: "include",
+        body: formData,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "업로드 실패");
+      await updateProfileMutation.mutateAsync({ profileImage: data.url });
+    } catch (err: any) {
+      toast.error(err.message || "이미지 업로드에 실패했습니다.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  if (empLoading) {
+    return (
+      <PortalLayout>
+        <div className="container py-6 flex items-center justify-center min-h-64">
+          <Loader2 size={28} className="animate-spin" style={{ color: "var(--kino-muted)" }} />
+        </div>
+      </PortalLayout>
+    );
+  }
 
   return (
     <PortalLayout>
       <div className="container py-6">
         <h1 className="text-lg font-bold mb-5" style={{ color: "var(--kino-charcoal)" }}>마이페이지</h1>
 
-        {/* 직원 선택 */}
-        <div className="portal-card mb-4 p-4">
-          <label className="text-xs font-semibold mb-2 block" style={{ color: "var(--kino-mid)" }}>직원 선택</label>
-          <select
-            value={selectedEmployee ?? employee?.id ?? ""}
-            onChange={e => setSelectedEmployee(Number(e.target.value))}
-            className="w-full px-3 py-2 rounded text-sm outline-none"
-            style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-white)" }}
-          >
-            {employees?.map(emp => (
-              <option key={emp.id} value={emp.id}>{emp.name} ({emp.department} · {emp.position})</option>
-            ))}
-          </select>
-        </div>
-
         {employee ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* 좌측: 프로필 카드 */}
             <div className="portal-card p-5 flex flex-col items-center text-center">
-              {employee.profileImage ? (
-                <img
-                  src={employee.profileImage}
-                  alt={employee.name}
-                  className="w-20 h-20 rounded-full object-cover mb-3"
-                  style={{ border: "2px solid var(--kino-pale)" }}
-                />
-              ) : (
-                <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center mb-3"
-                  style={{ background: "var(--kino-pale)", border: "2px solid var(--kino-pale)" }}
+              {/* 프로필 이미지 + 업로드 버튼 */}
+              <div className="relative mb-3">
+                {employee.profileImage ? (
+                  <img
+                    src={employee.profileImage}
+                    alt={employee.name}
+                    className="w-20 h-20 rounded-full object-cover"
+                    style={{ border: "2px solid var(--kino-pale)" }}
+                  />
+                ) : (
+                  <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center"
+                    style={{ background: "var(--kino-pale)", border: "2px solid var(--kino-pale)" }}
+                  >
+                    <User size={36} style={{ color: "var(--kino-mid)" }} />
+                  </div>
+                )}
+                {/* 카메라 버튼 */}
+                <button
+                  className="absolute bottom-0 right-0 w-7 h-7 rounded-full flex items-center justify-center transition-all hover:scale-105 active:scale-95"
+                  style={{ background: "var(--kino-charcoal)", border: "2px solid white" }}
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingImage}
+                  title="프로필 사진 변경"
                 >
-                  <User size={36} style={{ color: "var(--kino-mid)" }} />
-                </div>
-              )}
+                  {uploadingImage ? (
+                    <Loader2 size={12} className="animate-spin text-white" />
+                  ) : (
+                    <Camera size={12} color="white" />
+                  )}
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleProfileImageChange}
+                />
+              </div>
+
               <p className="text-base font-bold" style={{ color: "var(--kino-charcoal)" }}>{employee.name}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{employee.department} · {employee.position}</p>
 
@@ -117,6 +176,12 @@ export default function MyPage() {
                     <span>입사일: {employee.joinDate}</span>
                   </div>
                 )}
+                {employee.ext && (
+                  <div className="flex items-center gap-2 text-xs" style={{ color: "var(--kino-mid)" }}>
+                    <span style={{ fontSize: "0.7rem" }}>☎</span>
+                    <span>내선: {employee.ext}</span>
+                  </div>
+                )}
               </div>
 
               <Link href="/leave" className="mt-4 w-full">
@@ -125,6 +190,15 @@ export default function MyPage() {
                   style={{ background: "var(--kino-charcoal)" }}
                 >
                   연차 신청하기
+                </button>
+              </Link>
+
+              <Link href="/settings" className="mt-2 w-full">
+                <button
+                  className="w-full py-2 rounded text-xs font-semibold transition-all active:scale-95"
+                  style={{ background: "var(--kino-bg)", color: "var(--kino-mid)", border: "1px solid var(--kino-pale)" }}
+                >
+                  개인 설정
                 </button>
               </Link>
             </div>
@@ -246,7 +320,13 @@ export default function MyPage() {
         ) : (
           <div className="portal-card p-12 text-center">
             <User size={48} className="mx-auto mb-3" style={{ color: "var(--kino-pale)" }} />
-            <p className="text-sm" style={{ color: "var(--kino-muted)" }}>직원 정보가 없습니다. 어드민에서 직원을 등록해주세요.</p>
+            <p className="text-sm mb-2" style={{ color: "var(--kino-muted)" }}>
+              직원 정보와 연결되지 않은 계정입니다.
+            </p>
+            <p className="text-xs" style={{ color: "var(--kino-light)" }}>
+              어
+드민에서 직원 정보를 등록하고 이메일을 설정해주세요.
+            </p>
           </div>
         )}
       </div>

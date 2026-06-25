@@ -13,7 +13,6 @@ import {
   Menu, X, ChevronRight, Loader2, Users, CalendarDays,
   ShieldOff,
 } from "lucide-react";
-import { getLoginUrl } from "@/const";
 
 const ADMIN_NAV = [
   { label: "대시보드",    icon: LayoutDashboard, path: "/admin" },
@@ -47,14 +46,14 @@ export default function AdminLayout({ children, title }: Props) {
     );
   }
 
-  // 로그인 안 됨 → Manus 로그인 페이지로 이동
-  if (!user) {
-    window.location.href = getLoginUrl();
+  // 미인증 → 어드민 로그인 페이지로 이동
+  if (!isAuthenticated && !isChecking) {
+    window.location.href = "/admin/login";
     return null;
   }
 
-  // 로그인은 됐지만 어드민 권한 없음 → 접근 거부 메시지
-  if (!isAuthenticated) {
+  // 인증됐지만 어드민 권한 없음 (혹시 모를 케이스 - 이 분기는 위에서 이미 처리됨)
+  if (false) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--kino-bg)" }}>
         <div className="flex flex-col items-center gap-4 text-center max-w-sm">
@@ -106,7 +105,7 @@ export default function AdminLayout({ children, title }: Props) {
         <div className="px-5 py-5" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
           <Link href="/">
             <img
-              src="/manus-storage/kinoton_logo_wh_e3e3e3_5b6e4f6c.png"
+              src="/manus-storage/kinoton_logo_wh_fda912cf.png"
               alt="Kinoton"
               style={{ height: "22px", width: "auto" }}
             />
@@ -173,7 +172,7 @@ export default function AdminLayout({ children, title }: Props) {
           >
             <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
               <div>
-                <img src="/manus-storage/kinoton_logo_wh_e3e3e3_5b6e4f6c.png" alt="Kinoton" style={{ height: "22px", width: "auto" }} />
+                <img src="/manus-storage/kinoton_logo_wh_fda912cf.png" alt="Kinoton" style={{ height: "22px", width: "auto" }} />
                 <p className="text-xs mt-1 font-semibold tracking-widest uppercase" style={{ color: "rgba(255,255,255,0.35)" }}>Admin</p>
               </div>
               <button onClick={() => setSidebarOpen(false)} style={{ color: "rgba(255,255,255,0.5)" }}>

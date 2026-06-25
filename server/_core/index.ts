@@ -111,6 +111,43 @@ async function startServer() {
       res.status(500).json({ error: msg });
     }
   });
+  // ── 어드민 로그인 엔드포인트 (ID/PW 방식) ──────────────────────
+  const ADMIN_ID = process.env.ADMIN_ID || "admin";
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin1920";
+  const ADMIN_TOKEN = "kino_admin_v1";
+
+  app.post("/api/admin/login", async (req, res) => {
+    const { id, password } = req.body || {};
+    if (id === ADMIN_ID && password === ADMIN_PASSWORD) {
+      res.cookie("kino_admin", ADMIN_TOKEN, {
+        httpOnly: true,
+        sameSite: "lax",
+        maxAge: 8 * 60 * 60 * 1000, // 8시간
+        path: "/",
+      });
+      res.json({ success: true });
+    } else {
+      res.status(401).json({ error: "아이디 또는 비밀번호가 올바르지 않습니다." });
+    }
+  });
+
+  app.post("/api/admin/logout", (_req, res) => {
+    res.clearCookie("kino_admin", { path: "/" });
+    res.json({ success: true });
+  });
+
+  app.get("/api/admin/check", (req, res) => {
+    // cookie-parser 미사용 → 직접 파싱
+    const { parse: parseCookies } = require("cookie");
+    const cookies = parseCookies(req.headers.cookie || "");
+    const token = cookies.kino_admin;
+    if (token === ADMIN_TOKEN) {
+      res.json({ ok: true });
+    } else {
+      res.status(401).json({ ok: false });
+    }
+  });
+
   // tRPC API
   app.use(
     "/api/trpc",

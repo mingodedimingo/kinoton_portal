@@ -33,6 +33,7 @@ import CondolenceDetailPage from "./pages/CondolenceDetailPage";
 import BoardDetailPage from "./pages/BoardDetailPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import LoginPage from "./pages/LoginPage";
+import SettingsPage from "./pages/SettingsPage";
 
 function Router() {
   return (
@@ -88,6 +89,9 @@ function Router() {
       </Route>
       <Route path="/board/:id">
         <RequireAuth><BoardDetailPage /></RequireAuth>
+      </Route>
+      <Route path="/settings">
+        <RequireAuth><SettingsPage /></RequireAuth>
       </Route>
 
       {/* 공개 페이지 */}

@@ -106,15 +106,20 @@ type Employee = {
 // ── 직원 카드 ────────────────────────────────────────────────────
 function EmployeeCard({ emp }: { emp: Employee }) {
   const badge = rankBadge(emp.position);
+  const [showContact, setShowContact] = useState(false);
+  const hasContact = (emp.phone && emp.phone !== "-") || (emp.email && emp.email !== "-");
   return (
     <div
       className="flex flex-col items-center p-3 rounded-lg text-center transition-all hover:shadow-md"
       style={{
-        border: "1px solid #E5E7EB",
-        background: "#FAFAFA",
+        border: showContact ? "1px solid #BAE6FD" : "1px solid #E5E7EB",
+        background: showContact ? "#F0F9FF" : "#FAFAFA",
         minWidth: "100px",
-        maxWidth: "120px",
+        maxWidth: "130px",
+        cursor: hasContact ? "pointer" : "default",
       }}
+      onClick={() => hasContact && setShowContact(v => !v)}
+      title={hasContact ? "클릭하면 연락정보 표시" : undefined}
     >
       {emp.profileImage ? (
         <img
@@ -142,6 +147,36 @@ function EmployeeCard({ emp }: { emp: Employee }) {
         <p className="mt-1 text-xs" style={{ color: "#9CA3AF", fontSize: "0.65rem" }}>
           ☎ {emp.ext}
         </p>
+      )}
+      {/* 연락정보 팝업 */}
+      {showContact && hasContact && (
+        <div
+          className="mt-2 w-full rounded p-1.5 text-left"
+          style={{ background: "#E0F2FE", border: "1px solid #BAE6FD" }}
+          onClick={e => e.stopPropagation()}
+        >
+          {emp.phone && emp.phone !== "-" && (
+            <a
+              href={`tel:${emp.phone}`}
+              className="flex items-center gap-1 hover:underline"
+              style={{ color: "#0369A1", fontSize: "0.6rem", marginBottom: "2px" }}
+            >
+              📱 {emp.phone}
+            </a>
+          )}
+          {emp.email && emp.email !== "-" && (
+            <a
+              href={`mailto:${emp.email}`}
+              className="flex items-center gap-1 hover:underline"
+              style={{ color: "#0369A1", fontSize: "0.6rem", wordBreak: "break-all" }}
+            >
+              ✉ {emp.email}
+            </a>
+          )}
+        </div>
+      )}
+      {hasContact && !showContact && (
+        <p style={{ color: "#93C5FD", fontSize: "0.5rem", marginTop: "3px" }}>▼ 연락정보</p>
       )}
     </div>
   );

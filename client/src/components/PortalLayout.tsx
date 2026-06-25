@@ -122,7 +122,7 @@ export default function PortalLayout({ children }: Props) {
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 mr-2">
           <img
-            src="/manus-storage/kinoton_logo_bk_d7634f1a.png"
+            src="/manus-storage/kinoton_logo_bk_67c4e6c5.png"
             alt="Kinoton"
             style={{ height: "28px", width: "auto" }}
           />
@@ -197,7 +197,7 @@ export default function PortalLayout({ children }: Props) {
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             >
               <img
-                src="/manus-storage/profile-kmg-new_30f1ac23.png"
+                src="/manus-storage/profile-kmg-new_c1c7c99c.png"
                 alt={displayName}
                 className="w-9 h-9 rounded-full object-cover"
                 style={{ border: "1.5px solid var(--kino-pale)" }}
@@ -246,11 +246,11 @@ export default function PortalLayout({ children }: Props) {
                     style={{ color: "var(--kino-charcoal)" }}
                     onClick={() => {
                       setProfileDropdownOpen(false);
-                      handleComingSoon("설정");
+                      window.location.href = "/settings";
                     }}
                   >
                     <Settings size={14} style={{ color: "var(--kino-mid)" }} />
-                    설정
+                    개인 설정
                   </button>
                 </div>
 
@@ -337,8 +337,8 @@ export default function PortalLayout({ children }: Props) {
               );
             })}
             <div style={{ borderTop: "1px solid var(--kino-pale)", marginTop: "0.5rem", paddingTop: "0.5rem" }}>
-              <button className="gnb-item w-full" onClick={() => { setMobileMenuOpen(false); handleComingSoon("설정"); }}>
-                <Settings size={16} /> 설정
+              <button className="gnb-item w-full" onClick={() => { setMobileMenuOpen(false); window.location.href = "/settings"; }}>
+                <Settings size={16} /> 개인 설정
               </button>
               <button
                 className="gnb-item w-full"
