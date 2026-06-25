@@ -11,6 +11,7 @@ import { serveStatic, setupVite } from "./vite";
 import multer from "multer";
 import { storagePut } from "../storage";
 import { sdk } from "./sdk";
+import { parse as parseCookies } from "cookie";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -76,10 +77,11 @@ async function startServer() {
       }
       if (!user) { res.status(401).json({ error: "로그인이 필요합니다." }); return; }
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
-      const ext = req.file.originalname.split(".").pop() || "jpg";
+      const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      const ext = originalName.split(".").pop() || "jpg";
       const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
-      res.json({ url, key, name: req.file.originalname, size: req.file.size, mimeType: req.file.mimetype });
+      res.json({ url, key, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ error: "업로드 실패" });
@@ -95,13 +97,14 @@ async function startServer() {
       }
       if (!user) { res.status(401).json({ error: "로그인이 필요합니다." }); return; }
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
-      const ext = req.file.originalname.split(".").pop() || "bin";
+      const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
+      const ext = originalName.split(".").pop() || "bin";
       const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
       res.json({
         url,
         key,
-        name: req.file.originalname,
+        name: originalName,
         size: req.file.size,
         mimeType: req.file.mimetype,
       });
@@ -137,8 +140,6 @@ async function startServer() {
   });
 
   app.get("/api/admin/check", (req, res) => {
-    // cookie-parser 미사용 → 직접 파싱
-    const { parse: parseCookies } = require("cookie");
     const cookies = parseCookies(req.headers.cookie || "");
     const token = cookies.kino_admin;
     if (token === ADMIN_TOKEN) {

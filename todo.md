@@ -139,3 +139,8 @@
 - [x] 인사발령 작성/수정 폼에 FileUploader 적용
 - [x] 경조사 작성/수정 폼에 FileUploader 적용
 - [x] 상세 페이지에서 첨부 파일 다운로드/미리보기 링크 노출
+
+## 버그 수정 7차 작업
+- [x] 파일 첨부 파일명 한글 깨짐 수정 (multer latin1→utf8 변환, /api/upload-image, /api/upload-file 양쪽 적용)
+- [x] 게시판/공지/인사발령/경조사 상세 페이지 본문 HTML 태그 노출 수정 (DOMPurify + dangerouslySetInnerHTML 적용)
+- [x] server/_core/index.ts require("cookie") → ESM import 방식으로 변경 (ReferenceError 수정)

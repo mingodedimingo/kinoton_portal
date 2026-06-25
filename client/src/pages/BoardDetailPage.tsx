@@ -13,6 +13,7 @@ import {
   ChevronLeft, Loader2, ExternalLink, Trash2, Pencil, X, Save, List,
 } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
+import DOMPurify from "dompurify";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -306,11 +307,10 @@ export default function BoardDetailPage() {
               {/* 본문 */}
               {post.content ? (
                 <div
-                  className="text-sm leading-relaxed whitespace-pre-wrap"
+                  className="text-sm leading-relaxed prose prose-sm max-w-none"
                   style={{ color: "var(--kino-charcoal)" }}
-                >
-                  {post.content}
-                </div>
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content) }}
+                />
               ) : (
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
               )}

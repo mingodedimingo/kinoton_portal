@@ -11,6 +11,7 @@ import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
 import { ChevronLeft, Loader2, Pencil, Trash2, X, Save, List } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
+import DOMPurify from "dompurify";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -304,9 +305,11 @@ export default function HrDetailPage() {
 
               {/* 본문 */}
               {item.content ? (
-                <div className="text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--kino-charcoal)" }}>
-                  {item.content}
-                </div>
+                <div
+                  className="text-sm leading-relaxed prose prose-sm max-w-none"
+                  style={{ color: "var(--kino-charcoal)" }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
+                />
               ) : (
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
               )}
