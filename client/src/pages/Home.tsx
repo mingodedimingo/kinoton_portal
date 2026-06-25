@@ -519,7 +519,7 @@ function useAttendance(employee: { id: number; name: string; department: string;
 
 // 고정 직원 정보 (김민구)
 const FIXED_EMPLOYEE = { id: 1, name: "김민구", department: "경영기획팀", position: "선임" };
-const PROFILE_IMAGE = "/manus-storage/profile-kmg-new_c1c7c99c.png";
+const PROFILE_IMAGE = "/manus-storage/mingu_profile_115b03ed.jpg";
 
 // ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
 function LeftPanel() {

@@ -122,7 +122,7 @@ export default function PortalLayout({ children }: Props) {
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 mr-2">
           <img
-            src="/manus-storage/kinoton_logo_bk_67c4e6c5.png"
+            src="/manus-storage/kinoton_logo_black_fde84edd.png"
             alt="Kinoton"
             style={{ height: "28px", width: "auto" }}
           />
@@ -197,7 +197,7 @@ export default function PortalLayout({ children }: Props) {
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             >
               <img
-                src="/manus-storage/profile-kmg-new_c1c7c99c.png"
+                src="/manus-storage/mingu_profile_115b03ed.jpg"
                 alt={displayName}
                 className="w-9 h-9 rounded-full object-cover"
                 style={{ border: "1.5px solid var(--kino-pale)" }}
