@@ -49,12 +49,12 @@ export default function LoginPage() {
       >
         {/* 로고 영역 */}
         <div className="flex flex-col items-center mb-8">
-          <div
-            className="w-12 h-12 rounded-xl flex items-center justify-center mb-3"
-            style={{ background: "var(--kino-charcoal)" }}
-          >
-            <span className="text-white font-black text-lg tracking-tight">K</span>
-          </div>
+          <img
+            src="/manus-storage/kinoton_logo_black_fde84edd.png"
+            alt="Kinoton"
+            className="mb-4"
+            style={{ height: "48px", width: "auto", objectFit: "contain" }}
+          />
           <h1 className="text-xl font-bold tracking-tight" style={{ color: "var(--kino-charcoal)" }}>
             키노톤 사내 포탈
           </h1>
