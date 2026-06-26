@@ -74,7 +74,9 @@ async function startServer() {
       const ext = originalName.split(".").pop() || "jpg";
       const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
-      res.json({ url, key, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
+      const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const absoluteUrl = url.startsWith('/') ? `${origin}${url}` : url;
+      res.json({ url: absoluteUrl, key, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ error: "업로드 실패" });
@@ -92,8 +94,10 @@ async function startServer() {
       const ext = originalName.split(".").pop() || "bin";
       const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
+      const origin2 = req.headers.origin || `${req.protocol}://${req.get('host')}`;
+      const absoluteUrl2 = url.startsWith('/') ? `${origin2}${url}` : url;
       res.json({
-        url,
+        url: absoluteUrl2,
         key,
         name: originalName,
         size: req.file.size,
