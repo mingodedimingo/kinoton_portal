@@ -51,13 +51,14 @@ async function startServer() {
   // 어드민 토큰 상수
   const ADMIN_TOKEN = "kino_admin_v1";
 
-  // 공통 인증 헬퍼: kino_admin 쿠키 또는 포탈 세션 중 하나라도 있으면 허용
+  // 공통 인증 헬퍼: kino_admin 쿠키 또는 포탈 직원 JWT 세션 중 하나라도 있으면 허용
   async function isAuthenticated(req: express.Request): Promise<boolean> {
     const cookies = parseCookies(req.headers.cookie || "");
     if (cookies.kino_admin === ADMIN_TOKEN) return true;
+    // 포탈 직원 JWT 로컬 검증 (OAuth 서버 호출 없이)
     try {
-      const user = await sdk.authenticateRequest(req);
-      return !!user;
+      const session = await sdk.verifySession(cookies.app_session_id);
+      return !!session;
     } catch {
       return false;
     }
