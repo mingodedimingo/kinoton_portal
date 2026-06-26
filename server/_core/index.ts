@@ -48,14 +48,27 @@ async function startServer() {
     // fileFilter 없음 → 모든 파일 형식 허용
   });
 
+  // 어드민 토큰 상수
+  const ADMIN_TOKEN = "kino_admin_v1";
+
+  // 공통 인증 헬퍼: kino_admin 쿠키 또는 포탈 세션 중 하나라도 있으면 허용
+  async function isAuthenticated(req: express.Request): Promise<boolean> {
+    const cookies = parseCookies(req.headers.cookie || "");
+    if (cookies.kino_admin === ADMIN_TOKEN) return true;
+    try {
+      const user = await sdk.authenticateRequest(req);
+      return !!user;
+    } catch {
+      return false;
+    }
+  }
+
   // 기존 이미지 업로드 엔드포인트 (하위 호환)
   app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     try {
-      let user = null;
-      try { user = await sdk.authenticateRequest(req); } catch {
+      if (!(await isAuthenticated(req))) {
         res.status(401).json({ error: "로그인이 필요합니다." }); return;
       }
-      if (!user) { res.status(401).json({ error: "로그인이 필요합니다." }); return; }
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "jpg";
@@ -71,11 +84,9 @@ async function startServer() {
   // 새 범용 파일 업로드 엔드포인트
   app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     try {
-      let user = null;
-      try { user = await sdk.authenticateRequest(req); } catch {
+      if (!(await isAuthenticated(req))) {
         res.status(401).json({ error: "로그인이 필요합니다." }); return;
       }
-      if (!user) { res.status(401).json({ error: "로그인이 필요합니다." }); return; }
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "bin";
@@ -97,7 +108,6 @@ async function startServer() {
   // ── 어드민 로그인 엔드포인트 (ID/PW 방식) ──────────────────────
   const ADMIN_ID = process.env.ADMIN_ID || "admin";
   const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin1920";
-  const ADMIN_TOKEN = "kino_admin_v1";
 
   app.post("/api/admin/login", (req, res) => {
     const { id, password } = req.body || {};

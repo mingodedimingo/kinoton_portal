@@ -1,6 +1,6 @@
 /**
  * RichEditor.tsx — TipTap 기반 리치 텍스트 에디터
- * 지원: 굵게/기울임/밑줄/취소선, 정렬, 표 삽입, 이미지, 링크, 목록
+ * 지원: 굵게/기울임/밑줄/취소선, 정렬, 표 삽입, 이미지(파일/드래그&드롭/URL), 링크, 목록
  */
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -10,13 +10,13 @@ import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useRef, useState } from "react";
 import {
   Bold, Italic, UnderlineIcon, Strikethrough,
   AlignLeft, AlignCenter, AlignRight,
   List as ListIcon, ListOrdered,
   Table as TableIcon, ImageIcon, Link as LinkIcon,
-  Undo, Redo,
+  Undo, Redo, Upload,
 } from "lucide-react";
 
 interface RichEditorProps {
@@ -26,7 +26,27 @@ interface RichEditorProps {
   minHeight?: number;
 }
 
+async function uploadImageFile(file: File): Promise<string> {
+  const formData = new FormData();
+  formData.append("image", file);
+  const res = await fetch("/api/upload-image", {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.error || "이미지 업로드 실패");
+  }
+  const data = await res.json();
+  return data.url as string;
+}
+
 export default function RichEditor({ value, onChange, placeholder = "내용을 입력하세요...", minHeight = 300 }: RichEditorProps) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [isDragOver, setIsDragOver] = useState(false);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -51,6 +71,56 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         class: "rich-editor-content",
         style: `min-height: ${minHeight}px; outline: none; padding: 0.75rem; font-size: 0.875rem; line-height: 1.7;`,
       },
+      handleDrop(view, event, _slice, moved) {
+        // 드래그&드롭으로 이미지 삽입
+        if (!moved && event.dataTransfer?.files?.length) {
+          const files = Array.from(event.dataTransfer.files).filter(f => f.type.startsWith("image/"));
+          if (files.length === 0) return false;
+          event.preventDefault();
+          const { schema } = view.state;
+          const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          files.forEach(async (file) => {
+            try {
+              setUploading(true);
+              const url = await uploadImageFile(file);
+              const node = schema.nodes.image.create({ src: url });
+              const transaction = view.state.tr.insert(coordinates?.pos ?? view.state.doc.content.size, node);
+              view.dispatch(transaction);
+            } catch (err) {
+              alert(err instanceof Error ? err.message : "이미지 업로드 실패");
+            } finally {
+              setUploading(false);
+            }
+          });
+          return true;
+        }
+        return false;
+      },
+      handlePaste(view, event) {
+        // 클립보드 붙여넣기로 이미지 삽입
+        const items = Array.from(event.clipboardData?.items || []);
+        const imageItems = items.filter(item => item.type.startsWith("image/"));
+        if (imageItems.length === 0) return false;
+        event.preventDefault();
+        imageItems.forEach(async (item) => {
+          const file = item.getAsFile();
+          if (!file) return;
+          try {
+            setUploading(true);
+            const url = await uploadImageFile(file);
+            view.dispatch(
+              view.state.tr.replaceSelectionWith(
+                view.state.schema.nodes.image.create({ src: url })
+              )
+            );
+          } catch (err) {
+            alert(err instanceof Error ? err.message : "이미지 업로드 실패");
+          } finally {
+            setUploading(false);
+          }
+        });
+        return true;
+      },
     },
   });
 
@@ -67,7 +137,26 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }, [editor]);
 
-  const insertImage = useCallback(() => {
+  // 파일 선택 버튼으로 이미지 업로드
+  const handleImageFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (!files.length || !editor) return;
+    e.target.value = "";
+    for (const file of files) {
+      try {
+        setUploading(true);
+        const url = await uploadImageFile(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      } catch (err) {
+        alert(err instanceof Error ? err.message : "이미지 업로드 실패");
+      } finally {
+        setUploading(false);
+      }
+    }
+  }, [editor]);
+
+  // URL 입력으로 이미지 삽입 (기존 방식 유지)
+  const insertImageByUrl = useCallback(() => {
     const url = prompt("이미지 URL을 입력하세요:");
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run();
@@ -93,18 +182,20 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
   const btnInactive = "hover:bg-gray-100";
 
   const ToolBtn = ({
-    onClick, active, title, children,
+    onClick, active, title, children, disabled,
   }: {
     onClick: () => void;
     active?: boolean;
     title: string;
     children: React.ReactNode;
+    disabled?: boolean;
   }) => (
     <button
       type="button"
       onClick={onClick}
       title={title}
-      className={`${btnBase} ${active ? btnActive : btnInactive}`}
+      disabled={disabled}
+      className={`${btnBase} ${active ? btnActive : btnInactive} ${disabled ? "opacity-40 cursor-not-allowed" : ""}`}
       style={{ color: active ? "var(--kino-charcoal)" : "var(--kino-mid)" }}
     >
       {children}
@@ -116,7 +207,22 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
   );
 
   return (
-    <div style={{ border: "1px solid var(--kino-pale)", borderRadius: "var(--radius)", overflow: "hidden", background: "white" }}>
+    <div
+      style={{ border: `1px solid ${isDragOver ? "#2563EB" : "var(--kino-pale)"}`, borderRadius: "var(--radius)", overflow: "hidden", background: "white", transition: "border-color 0.15s" }}
+      onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
+      onDragLeave={() => setIsDragOver(false)}
+      onDrop={() => setIsDragOver(false)}
+    >
+      {/* 숨겨진 파일 입력 */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        multiple
+        style={{ display: "none" }}
+        onChange={handleImageFileSelect}
+      />
+
       {/* ── 툴바 ── */}
       <div
         className="flex flex-wrap items-center gap-0.5 px-2 py-1.5"
@@ -241,17 +347,80 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
 
         <Divider />
 
-        {/* 이미지 / 링크 */}
-        <ToolBtn onClick={insertImage} title="이미지 삽입">
+        {/* 이미지 업로드 (파일 선택) */}
+        <ToolBtn
+          onClick={() => fileInputRef.current?.click()}
+          title="이미지 파일 업로드 (드래그&드롭, 클립보드 붙여넣기도 지원)"
+          disabled={uploading}
+        >
+          {uploading ? (
+            <span style={{ fontSize: "10px" }}>업로드중...</span>
+          ) : (
+            <Upload size={14} />
+          )}
+        </ToolBtn>
+
+        {/* 이미지 URL 삽입 */}
+        <ToolBtn onClick={insertImageByUrl} title="이미지 URL로 삽입">
           <ImageIcon size={14} />
         </ToolBtn>
+
+        {/* 링크 */}
         <ToolBtn onClick={setLink} active={editor.isActive("link")} title="링크 삽입">
           <LinkIcon size={14} />
         </ToolBtn>
       </div>
 
+      {/* 드래그 오버 안내 */}
+      {isDragOver && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            background: "rgba(37,99,235,0.08)",
+            border: "2px dashed #2563EB",
+            borderRadius: "var(--radius)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            pointerEvents: "none",
+            zIndex: 10,
+            fontSize: "0.875rem",
+            color: "#2563EB",
+            fontWeight: 600,
+          }}
+        >
+          이미지를 여기에 놓으세요
+        </div>
+      )}
+
       {/* ── 에디터 본문 ── */}
-      <EditorContent editor={editor} />
+      <div style={{ position: "relative" }}>
+        <EditorContent editor={editor} />
+        {/* 업로드 중 오버레이 */}
+        {uploading && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              background: "rgba(255,255,255,0.7)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: "0.875rem",
+              color: "var(--kino-mid)",
+              fontWeight: 500,
+            }}
+          >
+            이미지 업로드 중...
+          </div>
+        )}
+      </div>
+
+      {/* 도움말 */}
+      <div style={{ padding: "4px 12px", fontSize: "11px", color: "var(--kino-muted)", borderTop: "1px solid var(--kino-pale)", background: "var(--kino-bg)" }}>
+        💡 이미지를 드래그&드롭하거나, 클립보드에서 붙여넣기(Ctrl+V)하거나, <Upload size={10} style={{ display: "inline", verticalAlign: "middle" }} /> 버튼으로 파일을 선택할 수 있습니다.
+      </div>
 
       {/* ── 표 스타일 ── */}
       <style>{`
@@ -278,7 +447,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         .rich-editor-content h3 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0; }
         .rich-editor-content ul { list-style: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
         .rich-editor-content ol { list-style: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
-        .rich-editor-content img { max-width: 100%; height: auto; margin: 0.5rem 0; border-radius: 4px; }
+        .rich-editor-content img { max-width: 100%; height: auto; margin: 0.5rem 0; border-radius: 4px; cursor: pointer; }
         .rich-editor-content a { color: #2563EB; text-decoration: underline; }
         .rich-editor-content blockquote {
           border-left: 3px solid #d1d5db;
