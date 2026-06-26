@@ -74,9 +74,9 @@ async function startServer() {
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "jpg";
       const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
+      await storagePut(key, req.file.buffer, req.file.mimetype);
       const origin = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-      const absoluteUrl = url.startsWith('/') ? `${origin}${url}` : url;
+      const absoluteUrl = `${origin}/manus-storage/${key}`;
       res.json({ url: absoluteUrl, key, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
     } catch (err) {
       console.error("Upload error:", err);
@@ -94,9 +94,9 @@ async function startServer() {
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "bin";
       const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      const { url } = await storagePut(key, req.file.buffer, req.file.mimetype);
+      await storagePut(key, req.file.buffer, req.file.mimetype);
       const origin2 = req.headers.origin || `${req.protocol}://${req.get('host')}`;
-      const absoluteUrl2 = url.startsWith('/') ? `${origin2}${url}` : url;
+      const absoluteUrl2 = `${origin2}/manus-storage/${key}`;
       res.json({
         url: absoluteUrl2,
         key,
