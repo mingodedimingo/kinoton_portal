@@ -517,15 +517,15 @@ function useAttendance(employee: { id: number; name: string; department: string;
   };
 }
 
-// 고정 직원 정보 (김민구)
-const FIXED_EMPLOYEE = { id: 1, name: "김민구", department: "경영기획팀", position: "선임" };
-const PROFILE_IMAGE = "https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/CaDbaokwbiDVLLHm.jpg";
+const DEFAULT_AVATAR = "https://ui-avatars.com/api/?background=e5e7eb&color=374151&size=128&name=";
 
 // ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
 function LeftPanel() {
   const [, navigate] = useLocation();
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const selectedEmployee = FIXED_EMPLOYEE;
+  const { data: myEmployee } = trpc.employees.me.useQuery();
+  const selectedEmployee = myEmployee ? { id: myEmployee.id, name: myEmployee.name, department: myEmployee.department, position: myEmployee.position } : null;
+  const profileImage = myEmployee?.profileImage || `${DEFAULT_AVATAR}${encodeURIComponent(myEmployee?.name ?? "")}`;
   const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(selectedEmployee);
 
   const now = new Date();
@@ -550,13 +550,13 @@ function LeftPanel() {
       {/* 프로필 카드 */}
       <div className="pb-4 flex flex-col items-center text-center" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         <img
-          src={PROFILE_IMAGE}
-          alt={selectedEmployee.name}
+          src={profileImage}
+          alt={myEmployee?.name ?? ""}
           className="w-16 h-16 rounded-full object-cover mb-2"
           style={{ border: "2px solid var(--kino-pale)" }}
         />
-        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{selectedEmployee.name}</p>
-        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{selectedEmployee.department} · {selectedEmployee.position}</p>
+        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{myEmployee?.name ?? ""}</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{myEmployee?.department ?? ""} · {myEmployee?.position ?? ""}</p>
         <div className="flex items-center gap-1 mt-1.5">
           <Wifi size={10} style={{ color: "var(--kino-green)" }} />
           <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
@@ -662,17 +662,19 @@ function MobileQuickMenu() {
 // ── Mobile: 프로필 카드 ──────────────────────────────────────────
 function MobileProfileCard() {
   const [, navigate] = useLocation();
+  const { data: myEmployee } = trpc.employees.me.useQuery();
+  const profileImage = myEmployee?.profileImage || `${DEFAULT_AVATAR}${encodeURIComponent(myEmployee?.name ?? "")}`;
   return (
     <div className="portal-card p-4 animate-fade-in-up stagger-2 flex items-center gap-3">
       <img
-        src={PROFILE_IMAGE}
-        alt={FIXED_EMPLOYEE.name}
+        src={profileImage}
+        alt={myEmployee?.name ?? ""}
         className="w-14 h-14 rounded-full object-cover shrink-0"
         style={{ border: "2px solid var(--kino-pale)" }}
       />
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{FIXED_EMPLOYEE.name}</p>
-        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{FIXED_EMPLOYEE.department} · {FIXED_EMPLOYEE.position}</p>
+        <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{myEmployee?.name ?? ""}</p>
+        <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{myEmployee?.department ?? ""} · {myEmployee?.position ?? ""}</p>
         <div className="flex items-center gap-1 mt-1">
           <Wifi size={10} style={{ color: "var(--kino-green)" }} />
           <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
@@ -701,7 +703,9 @@ function MobileStatsCard() {
 // ── Mobile: 출퇴근 카드 ──────────────────────────────────────────
 function MobileAttendanceCard() {
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(FIXED_EMPLOYEE);
+  const { data: myEmployee } = trpc.employees.me.useQuery();
+  const mobileEmp = myEmployee ? { id: myEmployee.id, name: myEmployee.name, department: myEmployee.department, position: myEmployee.position } : null;
+  const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(mobileEmp);
 
   const now = new Date();
   const dayStr = DAY_KO[now.getDay()];

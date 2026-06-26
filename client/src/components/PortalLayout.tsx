@@ -97,11 +97,14 @@ export default function PortalLayout({ children }: Props) {
     logoutMutation.mutate();
   };
 
-  // 현재 로그인한 사용자 정보 (employee 로그인 또는 OAuth 로그인)
-  const displayName = (user as any)?.name ?? "김민구";
-  const displayDept = (user as any)?.department
-    ? `${(user as any).department}${(user as any).position ? " · " + (user as any).position : ""}`
-    : "경영기획팀 · 선임";
+  // 현재 로그인한 직원 정보 (trpc.employees.me 로 동적 조회)
+  const { data: myEmployee } = trpc.employees.me.useQuery();
+  const displayName = myEmployee?.name ?? (user as any)?.name ?? "";
+  const displayDept = myEmployee
+    ? `${myEmployee.department}${myEmployee.position ? " · " + myEmployee.position : ""}`
+    : "";
+  const displayProfileImage = myEmployee?.profileImage
+    || `https://ui-avatars.com/api/?background=e5e7eb&color=374151&size=128&name=${encodeURIComponent(displayName)}`;
 
   return (
     <div className="min-h-screen flex flex-col" style={{ background: "var(--kino-bg)" }}>
@@ -197,7 +200,7 @@ export default function PortalLayout({ children }: Props) {
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             >
               <img
-                src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/CaDbaokwbiDVLLHm.jpg"
+                src={displayProfileImage}
                 alt={displayName}
                 className="w-9 h-9 rounded-full object-cover"
                 style={{ border: "1.5px solid var(--kino-pale)" }}
