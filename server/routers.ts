@@ -755,7 +755,7 @@ export const appRouter = router({
       }),
 
     // 게시글 수정 (작성자 본인 또는 어드민)
-    update: protectedProcedure
+    update: publicProcedure
       .input(z.object({
         id: z.number(),
         category: z.enum(["언론보도", "매뉴얼", "기타"]).optional(),
@@ -766,6 +766,17 @@ export const appRouter = router({
         isPinned: z.boolean().optional(), isNew: z.boolean().optional(),
       }))
       .mutation(async ({ input, ctx }) => {
+        // 어드민 세션이면 무조건 수정 가능
+        if (ctx.isAdminSession) {
+          const { id, images, attachments, ...rest } = input;
+          await updateBoardPost(id, {
+            ...rest,
+            images: images !== undefined ? JSON.stringify(images) : undefined,
+            attachments: attachments !== undefined ? JSON.stringify(attachments) : undefined,
+          });
+          return { success: true };
+        }
+        if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
         const rows = await getBoardPostById(input.id);
         if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
         const post = rows[0];
@@ -781,20 +792,25 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 게시글 삭제 (어드민 또는 작성자 본인 — DB에서 openId 조회하여 확인)
-    delete: protectedProcedure
+    // 게시글 삭제 (어드민 또는 작성자 본인)
+    delete: publicProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
-        // DB에서 게시글 직접 조회 (getBoardPostById)
+        // 어드민 세션이면 무조건 삭제 가능
+        if (ctx.isAdminSession) {
+          await deleteBoardPost(input.id);
+          return { success: true };
+        }
+        if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
         const rows = await getBoardPostById(input.id);
         if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
         const post = rows[0];
-        // 어드민은 무조건 삭제 가능
+        // 어드민 role이면 삭제 가능
         if (ctx.user.role === 'admin') {
           await deleteBoardPost(input.id);
           return { success: true };
         }
-        // 일반 사용자는 본인 글만 삭제 (DB의 authorOpenId와 세션 openId 비교)
+        // 일반 사용자는 본인 글만 삭제
         if (post.authorOpenId && post.authorOpenId === ctx.user.openId) {
           await deleteBoardPost(input.id);
           return { success: true };
