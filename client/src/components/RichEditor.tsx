@@ -28,8 +28,8 @@ interface RichEditorProps {
 
 async function uploadImageFile(file: File): Promise<string> {
   const formData = new FormData();
-  formData.append("image", file);
-  const res = await fetch("/api/upload-image", {
+  formData.append("file", file);
+  const res = await fetch("/api/upload-file", {
     method: "POST",
     credentials: "include",
     body: formData,
@@ -72,20 +72,18 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         style: `min-height: ${minHeight}px; outline: none; padding: 0.75rem; font-size: 0.875rem; line-height: 1.7;`,
       },
       handleDrop(view, event, _slice, moved) {
-        // 드래그&드롭으로 이미지 삽입
-        if (!moved && event.dataTransfer?.files?.length) {
-          const files = Array.from(event.dataTransfer.files).filter(f => f.type.startsWith("image/"));
-          if (files.length === 0) return false;
+        // 드래그&드롭으로 이미지 삽입 (moved 조건 제거 - 외부 파일 드롭 허용)
+        const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type.startsWith("image/"));
+        if (files.length > 0) {
           event.preventDefault();
           const { schema } = view.state;
-          const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+          const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ?? view.state.doc.content.size;
           files.forEach(async (file) => {
             try {
               setUploading(true);
               const url = await uploadImageFile(file);
               const node = schema.nodes.image.create({ src: url });
-              const transaction = view.state.tr.insert(coordinates?.pos ?? view.state.doc.content.size, node);
-              view.dispatch(transaction);
+              view.dispatch(view.state.tr.insert(pos, node));
             } catch (err) {
               alert(err instanceof Error ? err.message : "이미지 업로드 실패");
             } finally {
