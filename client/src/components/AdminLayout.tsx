@@ -32,7 +32,7 @@ interface Props {
 export default function AdminLayout({ children, title }: Props) {
   const [location] = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const { isAuthenticated, isChecking, logout, user } = useAdminAuth();
+  const { isAuthenticated, isChecking, logout } = useAdminAuth();
 
   // 인증 확인 중
   if (isChecking) {
@@ -240,13 +240,9 @@ export default function AdminLayout({ children, title }: Props) {
             </span>
           </div>
 
-          {/* 우측: 사용자명 + 포탈 바로가기 + 로그아웃 */}
+          {/* 우측: 포탈 바로가기 + 로그아웃 */}
           <div className="ml-auto flex items-center gap-3">
-            {user?.name && (
-              <span className="text-xs font-medium hidden md:block" style={{ color: "var(--kino-muted)" }}>
-                {user.name}
-              </span>
-            )}
+            <span className="text-xs font-medium hidden md:block" style={{ color: "var(--kino-muted)" }}>관리자</span>
             <Link href="/">
               <span className="text-xs font-medium cursor-pointer" style={{ color: "var(--kino-muted)" }}>
                 ← 포탈로

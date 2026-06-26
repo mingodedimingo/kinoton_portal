@@ -1,18 +1,15 @@
 /**
  * useAdminAuth — 어드민 인증 상태 관리 훅
- * 1. /api/admin/login 으로 admin/admin1920 로그인 → adminToken 쿠키 발급
- * 2. role=admin 유저도 접근 가능 (기존 OAuth 방식 병행)
+ * kino_admin 쿠키 하나로만 인증 관리 (포탈 app_session_id와 완전 독립)
+ * - 어드민 로그인 → /api/admin/login → kino_admin 쿠키 발급
+ * - 어드민 로그아웃 → /api/admin/logout → kino_admin 쿠키만 삭제 (포탈 세션 유지)
+ * - 포탈 직원 세션(app_session_id)과 절대 간섭하지 않음
  */
-import { useAuth } from "@/_core/hooks/useAuth";
-import { trpc } from "@/lib/trpc";
 import { useCallback, useEffect, useState } from "react";
-
 export function useAdminAuth() {
-  const { user, loading: authLoading, isAuthenticated, logout: authLogout } = useAuth();
   const [adminTokenValid, setAdminTokenValid] = useState<boolean | null>(null);
   const [checking, setChecking] = useState(true);
-
-  // 어드민 토큰 유효성 서버 확인
+  // 어드민 토큰 유효성 서버 확인 (/api/admin/check는 kino_admin 쿠키만 체크)
   useEffect(() => {
     let cancelled = false;
     const checkAdminToken = async () => {
@@ -30,27 +27,17 @@ export function useAdminAuth() {
     checkAdminToken();
     return () => { cancelled = true; };
   }, []);
-
-  const isChecking = authLoading || checking;
-
-  // role=admin 유저 OR 어드민 토큰 보유자
-  const isOAuthAdmin = isAuthenticated && user?.role === "admin";
-  const isAdminAuthenticated = isOAuthAdmin || adminTokenValid === true;
-
   const logout = useCallback(async () => {
-    // 어드민 토큰 삭제
+    // kino_admin 쿠키만 삭제 — 포탈 app_session_id는 절대 건드리지 않음
     try { await fetch("/api/admin/logout", { method: "POST", credentials: "include" }); } catch {}
-    // OAuth 세션도 로그아웃
-    if (isAuthenticated) await authLogout();
     window.location.href = "/admin/login";
-  }, [isAuthenticated, authLogout]);
-
+  }, []);
   return {
     token: adminTokenValid ? "admin" : "",
-    isAuthenticated: isAdminAuthenticated,
-    isChecking,
+    isAuthenticated: adminTokenValid === true,
+    isChecking: checking,
     login: (_token: string) => {},
     logout,
-    user,
+    user: null, // 어드민은 별도 user 객체 불필요
   };
 }
