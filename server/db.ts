@@ -166,7 +166,8 @@ export async function updateEmployee(id: number, data: Partial<InsertEmployee>):
 export async function getEmployeeByEmail(email: string): Promise<Employee | undefined> {
   const db = await getDb();
   if (!db) return undefined;
-  const result = await db.select().from(employees).where(eq(employees.email, email)).limit(1);
+  // 이메일 대소문자 무관하게 비교 (Kay.kwon vs kay.kwon 등)
+  const result = await db.select().from(employees).where(sql`LOWER(${employees.email}) = LOWER(${email})`).limit(1);
   return result[0];
 }
 
