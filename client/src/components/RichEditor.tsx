@@ -59,7 +59,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
       TableRow,
       TableHeader,
       TableCell,
-      Image.configure({ inline: false, allowBase64: true }),
+      Image.configure({ inline: false, allowBase64: false }),
       Link.configure({ openOnClick: false, autolink: true }),
     ],
     content: value || "",
