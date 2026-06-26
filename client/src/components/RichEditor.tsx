@@ -39,7 +39,12 @@ async function uploadImageFile(file: File): Promise<string> {
     throw new Error(err.error || "이미지 업로드 실패");
   }
   const data = await res.json();
-  return data.url as string;
+  // 상대경로를 절대 URL로 변환 (배포 환경 호환)
+  const url = data.url as string;
+  if (url.startsWith("/")) {
+    return window.location.origin + url;
+  }
+  return url;
 }
 
 export default function RichEditor({ value, onChange, placeholder = "내용을 입력하세요...", minHeight = 300 }: RichEditorProps) {
@@ -59,7 +64,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
       TableRow,
       TableHeader,
       TableCell,
-      Image.configure({ inline: false, allowBase64: false }),
+      Image.configure({ inline: true, allowBase64: true }),
       Link.configure({ openOnClick: false, autolink: true }),
     ],
     content: value || "",
