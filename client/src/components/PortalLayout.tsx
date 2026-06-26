@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import FullMenuOverlay from "./FullMenuOverlay";
 import { trpc } from "@/lib/trpc";
-import { useAuth } from "@/_core/hooks/useAuth";
 
 const NAV_ITEMS = [
   { label: "메일",       icon: Mail,       path: "https://wmail.ecount.com/",      external: true },
@@ -47,7 +46,6 @@ export default function PortalLayout({ children }: Props) {
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
   const profileRef = useRef<HTMLDivElement>(null);
 
-  const { user } = useAuth();
   const logoutMutation = trpc.auth.logout.useMutation({
     onSuccess: () => {
       window.location.href = "/login";
@@ -99,7 +97,7 @@ export default function PortalLayout({ children }: Props) {
 
   // 현재 로그인한 직원 정보 (trpc.employees.me 로 동적 조회)
   const { data: myEmployee } = trpc.employees.me.useQuery();
-  const displayName = myEmployee?.name ?? (user as any)?.name ?? "";
+  const displayName = myEmployee?.name ?? "";
   const displayDept = myEmployee
     ? `${myEmployee.department}${myEmployee.position ? " · " + myEmployee.position : ""}`
     : "";
