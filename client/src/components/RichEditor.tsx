@@ -44,12 +44,8 @@ async function uploadImageFile(file: File): Promise<string> {
     throw new Error(err.error || "이미지 업로드 실패");
   }
   const data = await res.json();
-  // 상대경로를 절대 URL로 변환 (배포 환경 호환)
-  const url = data.url as string;
-  if (url.startsWith("/")) {
-    return window.location.origin + url;
-  }
-  return url;
+  // 서버는 항상 상대 URL(/manus-storage/...)을 반환 - 그대로 사용
+  return data.url as string;
 }
 
 export default function RichEditor({ value, onChange, placeholder = "내용을 입력하세요...", minHeight = 300 }: RichEditorProps) {
