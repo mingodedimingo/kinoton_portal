@@ -1,6 +1,11 @@
 /**
  * RichEditor.tsx — TipTap 기반 리치 텍스트 에디터
  * 지원: 굵게/기울임/밑줄/취소선, 정렬, 표 삽입, 이미지(파일/드래그&드롭/URL), 링크, 목록
+ *
+ * 수정: 드래그&드롭 이미지 업로드 시 무한 로딩 버그 수정
+ * - useEditor의 editorProps 클로저에서 setUploading이 stale해지는 문제를 useRef로 해결
+ * - async forEach → Promise.all로 교체
+ * - 드래그&드롭 핸들러를 editorProps 밖으로 분리하여 React 이벤트 시스템으로 처리
  */
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -52,6 +57,10 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
   const [uploading, setUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // useRef로 setUploading을 안정적으로 참조 (editorProps 클로저 stale 문제 방지)
+  const setUploadingRef = useRef(setUploading);
+  useEffect(() => { setUploadingRef.current = setUploading; }, [setUploading]);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -76,52 +85,28 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         class: "rich-editor-content",
         style: `min-height: ${minHeight}px; outline: none; padding: 0.75rem; font-size: 0.875rem; line-height: 1.7;`,
       },
-      handleDrop(view, event, _slice, moved) {
-        // 드래그&드롭으로 이미지 삽입 (moved 조건 제거 - 외부 파일 드롭 허용)
-        const files = Array.from(event.dataTransfer?.files || []).filter(f => f.type.startsWith("image/"));
-        if (files.length > 0) {
-          event.preventDefault();
-          const { schema } = view.state;
-          const pos = view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos ?? view.state.doc.content.size;
-          files.forEach(async (file) => {
-            try {
-              setUploading(true);
-              const url = await uploadImageFile(file);
-              const node = schema.nodes.image.create({ src: url });
-              view.dispatch(view.state.tr.insert(pos, node));
-            } catch (err) {
-              alert(err instanceof Error ? err.message : "이미지 업로드 실패");
-            } finally {
-              setUploading(false);
-            }
-          });
-          return true;
-        }
-        return false;
-      },
       handlePaste(view, event) {
         // 클립보드 붙여넣기로 이미지 삽입
         const items = Array.from(event.clipboardData?.items || []);
         const imageItems = items.filter(item => item.type.startsWith("image/"));
         if (imageItems.length === 0) return false;
         event.preventDefault();
-        imageItems.forEach(async (item) => {
-          const file = item.getAsFile();
-          if (!file) return;
-          try {
-            setUploading(true);
-            const url = await uploadImageFile(file);
-            view.dispatch(
-              view.state.tr.replaceSelectionWith(
-                view.state.schema.nodes.image.create({ src: url })
-              )
-            );
-          } catch (err) {
-            alert(err instanceof Error ? err.message : "이미지 업로드 실패");
-          } finally {
-            setUploading(false);
-          }
-        });
+
+        const files = imageItems.map(item => item.getAsFile()).filter((f): f is File => f !== null);
+        if (files.length === 0) return true;
+
+        setUploadingRef.current(true);
+        Promise.all(files.map(async (file) => {
+          const url = await uploadImageFile(file);
+          view.dispatch(
+            view.state.tr.replaceSelectionWith(
+              view.state.schema.nodes.image.create({ src: url })
+            )
+          );
+        }))
+          .catch(err => alert(err instanceof Error ? err.message : "이미지 업로드 실패"))
+          .finally(() => setUploadingRef.current(false));
+
         return true;
       },
     },
@@ -135,6 +120,38 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // 드래그&드롭 핸들러 - React 이벤트 시스템으로 처리 (editorProps 클로저 문제 우회)
+  const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    if (!editor) return;
+
+    const files = Array.from(e.dataTransfer?.files || []).filter(f => f.type.startsWith("image/"));
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      // 드롭 위치 계산
+      const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })?.pos
+        ?? editor.state.doc.content.size;
+
+      const urls = await Promise.all(files.map(file => uploadImageFile(file)));
+      const { schema } = editor.state;
+      let tr = editor.state.tr;
+      let insertPos = pos;
+      for (const url of urls) {
+        const node = schema.nodes.image.create({ src: url });
+        tr = tr.insert(insertPos, node);
+        insertPos += node.nodeSize;
+      }
+      editor.view.dispatch(tr);
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "이미지 업로드 실패");
+    } finally {
+      setUploading(false);
+    }
+  }, [editor]);
+
   const insertTable = useCallback(() => {
     if (!editor) return;
     editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
@@ -145,16 +162,16 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     const files = Array.from(e.target.files || []);
     if (!files.length || !editor) return;
     e.target.value = "";
-    for (const file of files) {
-      try {
-        setUploading(true);
+    setUploading(true);
+    try {
+      for (const file of files) {
         const url = await uploadImageFile(file);
         editor.chain().focus().setImage({ src: url }).run();
-      } catch (err) {
-        alert(err instanceof Error ? err.message : "이미지 업로드 실패");
-      } finally {
-        setUploading(false);
       }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "이미지 업로드 실패");
+    } finally {
+      setUploading(false);
     }
   }, [editor]);
 
@@ -214,7 +231,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
       style={{ border: `1px solid ${isDragOver ? "#2563EB" : "var(--kino-pale)"}`, borderRadius: "var(--radius)", overflow: "hidden", background: "white", transition: "border-color 0.15s" }}
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
-      onDrop={() => setIsDragOver(false)}
+      onDrop={handleDrop}
     >
       {/* 숨겨진 파일 입력 */}
       <input
@@ -458,26 +475,6 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
           color: #6b7280;
           margin: 0.5rem 0;
         }
-        /* 표 선택 셀 하이라이트 */
-        .rich-editor-content .selectedCell:after {
-          background: rgba(37, 99, 235, 0.1);
-          content: "";
-          left: 0; right: 0; top: 0; bottom: 0;
-          pointer-events: none;
-          position: absolute;
-          z-index: 2;
-        }
-        .rich-editor-content .column-resize-handle {
-          background-color: #2563EB;
-          bottom: -2px;
-          position: absolute;
-          right: -2px;
-          top: 0;
-          width: 4px;
-          pointer-events: none;
-        }
-        .rich-editor-content .tableWrapper { overflow-x: auto; }
-        .rich-editor-content td, .rich-editor-content th { position: relative; }
       `}</style>
     </div>
   );
