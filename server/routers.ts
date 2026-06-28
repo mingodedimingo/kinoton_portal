@@ -898,8 +898,8 @@ export const appRouter = router({
 
   // ── 파일 업로드 ──────────────────────────────────────────────────────
   upload: router({
-    // Base64 이미지 업로드 (tRPC 기반 - 인증 쿠키 문제 없음)
-    image: protectedProcedure
+    // Base64 이미지 업로드 (tRPC 기반 - 인증 없이 사용 가능)
+    image: publicProcedure
       .input(z.object({
         base64: z.string(), // data:image/...;base64,... 또는 순수 base64
         mimeType: z.string().default('image/jpeg'),
@@ -909,7 +909,10 @@ export const appRouter = router({
         // base64 디코딩
         const base64Data = input.base64.replace(/^data:[^;]+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
-        const key = `board-images/${Date.now()}-${input.filename}`;
+        // 파일명에서 확장자 추출 후 ASCII 안전 파일명 생성
+        const ext = input.filename.split('.').pop()?.replace(/[^a-zA-Z0-9]/g, '') || 'jpg';
+        const safeFilename = `img_${Date.now()}.${ext}`;
+        const key = `board-images/${safeFilename}`;
         const { url } = await storagePut(key, buffer, input.mimeType);
         return { url };
       }),
