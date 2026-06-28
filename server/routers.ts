@@ -20,6 +20,7 @@ import {
 } from "./db";
 import bcrypt from "bcryptjs";
 import { sendPasswordResetEmail } from "./_core/mailer";
+import { storagePut } from "./storage";
 
 // COOKIE_NAME은 @shared/const에서 import (app_session_id)
 
@@ -892,6 +893,25 @@ export const appRouter = router({
         }
         await deleteCalendarEvent(input.id);
         return { success: true };
+      }),
+  }),
+
+  // ── 파일 업로드 ──────────────────────────────────────────────────────
+  upload: router({
+    // Base64 이미지 업로드 (tRPC 기반 - 인증 쿠키 문제 없음)
+    image: protectedProcedure
+      .input(z.object({
+        base64: z.string(), // data:image/...;base64,... 또는 순수 base64
+        mimeType: z.string().default('image/jpeg'),
+        filename: z.string().default('image.jpg'),
+      }))
+      .mutation(async ({ input }) => {
+        // base64 디코딩
+        const base64Data = input.base64.replace(/^data:[^;]+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        const key = `board-images/${Date.now()}-${input.filename}`;
+        const { url } = await storagePut(key, buffer, input.mimeType);
+        return { url };
       }),
   }),
 });

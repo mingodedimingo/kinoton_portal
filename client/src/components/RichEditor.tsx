@@ -1,11 +1,6 @@
 /**
  * RichEditor.tsx — TipTap 기반 리치 텍스트 에디터
- * 지원: 굵게/기울임/밑줄/취소선, 정렬, 표 삽입, 이미지(파일/드래그&드롭/URL), 링크, 목록
- *
- * 수정: 드래그&드롭 이미지 업로드 시 무한 로딩 버그 수정
- * - useEditor의 editorProps 클로저에서 setUploading이 stale해지는 문제를 useRef로 해결
- * - async forEach → Promise.all로 교체
- * - 드래그&드롭 핸들러를 editorProps 밖으로 분리하여 React 이벤트 시스템으로 처리
+ * 이미지 업로드: tRPC mutation 기반 (Base64 인코딩) - 인증 쿠키 문제 없음
  */
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -23,6 +18,7 @@ import {
   Table as TableIcon, ImageIcon, Link as LinkIcon,
   Undo, Redo, Upload,
 } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 interface RichEditorProps {
   value: string;
@@ -31,21 +27,14 @@ interface RichEditorProps {
   minHeight?: number;
 }
 
-async function uploadImageFile(file: File): Promise<string> {
-  const formData = new FormData();
-  formData.append("file", file);
-  const res = await fetch("/api/upload-file", {
-    method: "POST",
-    credentials: "include",
-    body: formData,
+/** File → Base64 data URL 변환 */
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("파일 읽기 실패"));
+    reader.readAsDataURL(file);
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.error || "이미지 업로드 실패");
-  }
-  const data = await res.json();
-  // 서버는 항상 상대 URL(/manus-storage/...)을 반환 - 그대로 사용
-  return data.url as string;
 }
 
 export default function RichEditor({ value, onChange, placeholder = "내용을 입력하세요...", minHeight = 300 }: RichEditorProps) {
@@ -53,9 +42,19 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
   const [uploading, setUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // useRef로 setUploading을 안정적으로 참조 (editorProps 클로저 stale 문제 방지)
-  const setUploadingRef = useRef(setUploading);
-  useEffect(() => { setUploadingRef.current = setUploading; }, [setUploading]);
+  // tRPC 이미지 업로드 mutation
+  const uploadImageMutation = trpc.upload.image.useMutation();
+
+  /** 파일 → tRPC로 업로드 → URL 반환 */
+  const uploadFile = useCallback(async (file: File): Promise<string> => {
+    const base64 = await fileToBase64(file);
+    const result = await uploadImageMutation.mutateAsync({
+      base64,
+      mimeType: file.type || "image/jpeg",
+      filename: file.name || "image.jpg",
+    });
+    return result.url;
+  }, [uploadImageMutation]);
 
   const editor = useEditor({
     extensions: [
@@ -81,30 +80,6 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         class: "rich-editor-content",
         style: `min-height: ${minHeight}px; outline: none; padding: 0.75rem; font-size: 0.875rem; line-height: 1.7;`,
       },
-      handlePaste(view, event) {
-        // 클립보드 붙여넣기로 이미지 삽입
-        const items = Array.from(event.clipboardData?.items || []);
-        const imageItems = items.filter(item => item.type.startsWith("image/"));
-        if (imageItems.length === 0) return false;
-        event.preventDefault();
-
-        const files = imageItems.map(item => item.getAsFile()).filter((f): f is File => f !== null);
-        if (files.length === 0) return true;
-
-        setUploadingRef.current(true);
-        Promise.all(files.map(async (file) => {
-          const url = await uploadImageFile(file);
-          view.dispatch(
-            view.state.tr.replaceSelectionWith(
-              view.state.schema.nodes.image.create({ src: url })
-            )
-          );
-        }))
-          .catch(err => alert(err instanceof Error ? err.message : "이미지 업로드 실패"))
-          .finally(() => setUploadingRef.current(false));
-
-        return true;
-      },
     },
   });
 
@@ -116,7 +91,31 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // 드래그&드롭 핸들러 - React 이벤트 시스템으로 처리 (editorProps 클로저 문제 우회)
+  // 클립보드 붙여넣기 핸들러
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLDivElement>) => {
+    if (!editor) return;
+    const items = Array.from(e.clipboardData?.items || []);
+    const imageItems = items.filter(item => item.type.startsWith("image/"));
+    if (imageItems.length === 0) return;
+    e.preventDefault();
+
+    const files = imageItems.map(item => item.getAsFile()).filter((f): f is File => f !== null);
+    if (files.length === 0) return;
+
+    setUploading(true);
+    try {
+      for (const file of files) {
+        const url = await uploadFile(file);
+        editor.chain().focus().setImage({ src: url }).run();
+      }
+    } catch (err) {
+      alert(err instanceof Error ? err.message : "이미지 업로드 실패");
+    } finally {
+      setUploading(false);
+    }
+  }, [editor, uploadFile]);
+
+  // 드래그&드롭 핸들러
   const handleDrop = useCallback(async (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragOver(false);
@@ -127,11 +126,10 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
 
     setUploading(true);
     try {
-      // 드롭 위치 계산
       const pos = editor.view.posAtCoords({ left: e.clientX, top: e.clientY })?.pos
         ?? editor.state.doc.content.size;
 
-      const urls = await Promise.all(files.map(file => uploadImageFile(file)));
+      const urls = await Promise.all(files.map(file => uploadFile(file)));
       const { schema } = editor.state;
       let tr = editor.state.tr;
       let insertPos = pos;
@@ -146,12 +144,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     } finally {
       setUploading(false);
     }
-  }, [editor]);
-
-  const insertTable = useCallback(() => {
-    if (!editor) return;
-    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
-  }, [editor]);
+  }, [editor, uploadFile]);
 
   // 파일 선택 버튼으로 이미지 업로드
   const handleImageFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -161,7 +154,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     setUploading(true);
     try {
       for (const file of files) {
-        const url = await uploadImageFile(file);
+        const url = await uploadFile(file);
         editor.chain().focus().setImage({ src: url }).run();
       }
     } catch (err) {
@@ -169,14 +162,19 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     } finally {
       setUploading(false);
     }
-  }, [editor]);
+  }, [editor, uploadFile]);
 
-  // URL 입력으로 이미지 삽입 (기존 방식 유지)
+  // URL 입력으로 이미지 삽입
   const insertImageByUrl = useCallback(() => {
     const url = prompt("이미지 URL을 입력하세요:");
     if (url && editor) {
       editor.chain().focus().setImage({ src: url }).run();
     }
+  }, [editor]);
+
+  const insertTable = useCallback(() => {
+    if (!editor) return;
+    editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
   }, [editor]);
 
   const setLink = useCallback(() => {
@@ -228,6 +226,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
       onDragOver={(e) => { e.preventDefault(); setIsDragOver(true); }}
       onDragLeave={() => setIsDragOver(false)}
       onDrop={handleDrop}
+      onPaste={handlePaste}
     >
       {/* 숨겨진 파일 입력 */}
       <input
@@ -313,51 +312,11 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         </ToolBtn>
         {editor.isActive("table") && (
           <>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().addColumnAfter().run()}
-              title="열 추가"
-              className={`${btnBase} ${btnInactive} text-xs`}
-              style={{ color: "var(--kino-mid)", fontSize: "10px" }}
-            >
-              열+
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().addRowAfter().run()}
-              title="행 추가"
-              className={`${btnBase} ${btnInactive} text-xs`}
-              style={{ color: "var(--kino-mid)", fontSize: "10px" }}
-            >
-              행+
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().deleteColumn().run()}
-              title="열 삭제"
-              className={`${btnBase} ${btnInactive} text-xs`}
-              style={{ color: "#DC2626", fontSize: "10px" }}
-            >
-              열-
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().deleteRow().run()}
-              title="행 삭제"
-              className={`${btnBase} ${btnInactive} text-xs`}
-              style={{ color: "#DC2626", fontSize: "10px" }}
-            >
-              행-
-            </button>
-            <button
-              type="button"
-              onClick={() => editor.chain().focus().deleteTable().run()}
-              title="표 삭제"
-              className={`${btnBase} ${btnInactive} text-xs`}
-              style={{ color: "#DC2626", fontSize: "10px" }}
-            >
-              표삭제
-            </button>
+            <button type="button" onClick={() => editor.chain().focus().addColumnAfter().run()} title="열 추가" className={`${btnBase} ${btnInactive} text-xs`} style={{ color: "var(--kino-mid)", fontSize: "10px" }}>열+</button>
+            <button type="button" onClick={() => editor.chain().focus().addRowAfter().run()} title="행 추가" className={`${btnBase} ${btnInactive} text-xs`} style={{ color: "var(--kino-mid)", fontSize: "10px" }}>행+</button>
+            <button type="button" onClick={() => editor.chain().focus().deleteColumn().run()} title="열 삭제" className={`${btnBase} ${btnInactive} text-xs`} style={{ color: "#DC2626", fontSize: "10px" }}>열-</button>
+            <button type="button" onClick={() => editor.chain().focus().deleteRow().run()} title="행 삭제" className={`${btnBase} ${btnInactive} text-xs`} style={{ color: "#DC2626", fontSize: "10px" }}>행-</button>
+            <button type="button" onClick={() => editor.chain().focus().deleteTable().run()} title="표 삭제" className={`${btnBase} ${btnInactive} text-xs`} style={{ color: "#DC2626", fontSize: "10px" }}>표삭제</button>
           </>
         )}
 
@@ -403,7 +362,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
             zIndex: 10,
             fontSize: "0.875rem",
             color: "#2563EB",
-            fontWeight: 600,
+            fontWeight: 500,
           }}
         >
           이미지를 여기에 놓으세요
@@ -449,28 +408,26 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         .rich-editor-content td {
           border: 1px solid #d1d5db;
           padding: 6px 10px;
-          min-width: 60px;
-          vertical-align: top;
+          text-align: left;
           font-size: 0.8125rem;
         }
         .rich-editor-content th {
           background: #f3f4f6;
           font-weight: 600;
         }
-        .rich-editor-content p { margin: 0.25rem 0; }
-        .rich-editor-content h1 { font-size: 1.25rem; font-weight: 700; margin: 0.5rem 0; }
-        .rich-editor-content h2 { font-size: 1.1rem; font-weight: 700; margin: 0.5rem 0; }
-        .rich-editor-content h3 { font-size: 1rem; font-weight: 600; margin: 0.5rem 0; }
-        .rich-editor-content ul { list-style: disc; padding-left: 1.25rem; margin: 0.25rem 0; }
-        .rich-editor-content ol { list-style: decimal; padding-left: 1.25rem; margin: 0.25rem 0; }
-        .rich-editor-content img { max-width: 100%; height: auto; margin: 0.5rem 0; border-radius: 4px; cursor: pointer; }
-        .rich-editor-content a { color: #2563EB; text-decoration: underline; }
-        .rich-editor-content blockquote {
-          border-left: 3px solid #d1d5db;
-          padding-left: 0.75rem;
-          color: #6b7280;
-          margin: 0.5rem 0;
+        .rich-editor-content img {
+          max-width: 100%;
+          height: auto;
+          border-radius: 4px;
+          margin: 4px 0;
         }
+        .rich-editor-content p { margin: 0.25rem 0; }
+        .rich-editor-content h1 { font-size: 1.5rem; font-weight: 700; margin: 0.75rem 0 0.25rem; }
+        .rich-editor-content h2 { font-size: 1.25rem; font-weight: 700; margin: 0.75rem 0 0.25rem; }
+        .rich-editor-content h3 { font-size: 1.1rem; font-weight: 700; margin: 0.5rem 0 0.25rem; }
+        .rich-editor-content ul { list-style: disc; padding-left: 1.5rem; margin: 0.25rem 0; }
+        .rich-editor-content ol { list-style: decimal; padding-left: 1.5rem; margin: 0.25rem 0; }
+        .rich-editor-content a { color: #2563EB; text-decoration: underline; }
       `}</style>
     </div>
   );
