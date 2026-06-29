@@ -436,19 +436,23 @@ export const appRouter = router({
     // 출퇴근 목록 (어드민 전용)
     adminList: adminProcedure
       .input(z.object({
-        date: z.date().optional(),
+        dateStr: z.string().optional(), // 'YYYY-MM-DD' 형식 (타임존 문제 방지)
         department: z.string().optional(),
         employeeName: z.string().optional(),
-        startDate: z.date().optional(),
-        endDate: z.date().optional(),
       }))
-      .query(async ({ input }) => getAttendanceLogs({
-        date: input.date,
-        department: input.department,
-        employeeName: input.employeeName,
-        startDate: input.startDate,
-        endDate: input.endDate,
-      })),
+      .query(async ({ input }) => {
+        let dateForFilter: Date | undefined;
+        if (input.dateStr) {
+          // 서버에서 직접 날짜 범위 생성 (UTC 기준 당일 00:00~23:59)
+          const [y, m, d] = input.dateStr.split('-').map(Number);
+          dateForFilter = new Date(y, m - 1, d); // 로컬 시간 기준
+        }
+        return getAttendanceLogs({
+          date: dateForFilter,
+          department: input.department,
+          employeeName: input.employeeName,
+        });
+      }),
 
     // 오늘 요약 (로그인 필수)
     todaySummary: protectedProcedure.query(async () => getTodaySummary()),

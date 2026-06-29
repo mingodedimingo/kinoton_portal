@@ -205,10 +205,9 @@ function DailyTab() {
   } | null>(null);
 
   const utils = trpc.useUtils();
-  const queryDate = useMemo(() => fromDateString(selectedDate), [selectedDate]);
 
   const { data: logs, isLoading, refetch } = trpc.attendance.adminList.useQuery({
-    date: queryDate,
+    dateStr: selectedDate, // 'YYYY-MM-DD' 문자열으로 전달 (타임존 문제 방지)
     department: deptFilter || undefined,
     employeeName: nameFilter || undefined,
   });
