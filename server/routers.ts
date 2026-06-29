@@ -137,19 +137,19 @@ export const appRouter = router({
           const empId = parseInt(openId.replace('emp_', ''));
           if (!isNaN(empId)) {
             const emp = await getEmployeeById(empId);
-            return emp ?? null;
+            if (emp) return emp;
           }
         }
-        // OAuth 로그인이면 이메일로 매핑
+        // OAuth 로그인이면 이메일로 매핑 시도
         if (ctx.user.email) {
           const emp = await getEmployeeByEmail(ctx.user.email);
-          return emp ?? null;
+          if (emp) return emp;
         }
-        // 이름으로 매핑 시도
+        // 이름으로 매핑 시도 (이메일 매핑 실패 또는 이메일 없을 때)
         if (ctx.user.name) {
           const allEmps = await getEmployees(true);
           const found = allEmps.find(e => e.name === ctx.user.name);
-          return found ?? null;
+          if (found) return found;
         }
         return null;
       }),
@@ -404,6 +404,17 @@ export const appRouter = router({
         note: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
+        // 오늘 이미 기록된 상태 확인 (중복 방지)
+        const todayStatus = await getTodayStatus(input.employeeName);
+        if (input.type === 'checkin' && todayStatus.checkin) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '오늘 이미 출근 처리되었습니다.' });
+        }
+        if (input.type === 'checkout' && !todayStatus.checkin) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '출근 기록이 없습니다. 먼저 출근해주세요.' });
+        }
+        if (input.type === 'checkout' && todayStatus.checkout) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: '오늘 이미 퇴근 처리되었습니다.' });
+        }
         await insertAttendanceLog({
           employeeId: input.employeeId ?? null,
           employeeName: input.employeeName,

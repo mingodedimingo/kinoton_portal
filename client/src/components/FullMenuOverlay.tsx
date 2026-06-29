@@ -5,7 +5,7 @@
 import { Link } from "wouter";
 import { X, Mail, FileCheck, BookOpen, Calendar, Users, Building2, Briefcase,
   MessageSquare, FileText, Settings, HelpCircle, Bell,
-  ClipboardList, Car, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays, User, Heart } from "lucide-react";
+  ClipboardList, Car, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays, User, Heart, Clock } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -49,7 +49,8 @@ const MENU_GROUPS = [
     category: "마이페이지",
     items: [
       { label: "마이페이지", icon: User,          path: "/mypage",    desc: "프로필 · 근태 이력" },
-      { label: "설정",       icon: Settings,       path: "/mypage",    desc: "개인 설정" },
+      { label: "출퇴근",     icon: Clock,          path: "/attendance", desc: "출근 · 퇴근 · 이력" },
+      { label: "설정",       icon: Settings,       path: "/settings",  desc: "개인 설정" },
     ],
   },
   {

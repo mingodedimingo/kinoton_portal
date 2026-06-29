@@ -144,3 +144,11 @@
 - [x] 파일 첨부 파일명 한글 깨짐 수정 (multer latin1→utf8 변환, /api/upload-image, /api/upload-file 양쪽 적용)
 - [x] 게시판/공지/인사발령/경조사 상세 페이지 본문 HTML 태그 노출 수정 (DOMPurify + dangerouslySetInnerHTML 적용)
 - [x] server/_core/index.ts require("cookie") → ESM import 방식으로 변경 (ReferenceError 수정)
+
+## 출퇴근 DB 연동 개선 작업
+
+- [x] employees.me OAuth 이름 매핑 개선 (이름 기반 fallback 강화)
+- [x] attendance.record 중복 출근/퇴근 방지 로직 추가
+- [x] 출퇴근 기록 관리 페이지(/attendance) 개발 (개인 이력 조회)
+- [x] 메인 대시보드 출퇴근 섹션 이력 링크 추가
+- [x] 출퇴근 기록 관리 페이지 GNB/전체메뉴 연결

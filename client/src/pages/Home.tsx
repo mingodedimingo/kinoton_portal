@@ -580,12 +580,21 @@ function LeftPanel() {
       <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
-          <span
-            className="text-xs px-2 py-0.5 rounded font-semibold"
-            style={{ background: statusBg, color: statusColor }}
-          >
-            {statusLabel}
-          </span>
+          <div className="flex items-center gap-2">
+            <span
+              className="text-xs px-2 py-0.5 rounded font-semibold"
+              style={{ background: statusBg, color: statusColor }}
+            >
+              {statusLabel}
+            </span>
+            <button
+              onClick={() => navigate("/attendance")}
+              className="text-xs"
+              style={{ color: "var(--kino-muted)", textDecoration: "underline" }}
+            >
+              이력
+            </button>
+          </div>
         </div>
 
         {/* 출근/퇴근 시간 표시 */}
@@ -703,6 +712,7 @@ function MobileStatsCard() {
 // ── Mobile: 출퇴근 카드 ──────────────────────────────────────────
 function MobileAttendanceCard() {
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
+  const [, navigate] = useLocation();
   const { data: myEmployee } = trpc.employees.me.useQuery();
   const mobileEmp = myEmployee ? { id: myEmployee.id, name: myEmployee.name, department: myEmployee.department, position: myEmployee.position } : null;
   const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(mobileEmp);
@@ -725,12 +735,21 @@ function MobileAttendanceCard() {
     <div className="portal-card p-4 animate-fade-in-up stagger-4">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
-        <span
-          className="text-sm px-3 py-1 rounded font-semibold"
-          style={{ background: statusBg, color: statusColor }}
-        >
-          {statusLabel}
-        </span>
+        <div className="flex items-center gap-2">
+          <span
+            className="text-sm px-3 py-1 rounded font-semibold"
+            style={{ background: statusBg, color: statusColor }}
+          >
+            {statusLabel}
+          </span>
+          <button
+            onClick={() => navigate("/attendance")}
+            className="text-xs"
+            style={{ color: "var(--kino-muted)", textDecoration: "underline" }}
+          >
+            이력
+          </button>
+        </div>
       </div>
 
       {/* 출근/퇴근 시간 표시 */}

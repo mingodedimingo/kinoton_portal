@@ -11,7 +11,7 @@ import { toast } from "sonner";
 import {
   Bell, Search, Mail, FileCheck, LayoutGrid,
   BookOpen, Building2, Settings2, Network,
-  Menu, X, ChevronRight, LogOut, Settings, User,
+  Menu, X, ChevronRight, LogOut, Settings, User, Clock,
 } from "lucide-react";
 import FullMenuOverlay from "./FullMenuOverlay";
 import { trpc } from "@/lib/trpc";
@@ -20,6 +20,7 @@ const NAV_ITEMS = [
   { label: "메일",       icon: Mail,       path: "https://wmail.ecount.com/",      external: true },
   { label: "전자결재",   icon: FileCheck,  path: "https://login.ecount.com/Login/",  external: true },
   { label: "게시판",     icon: BookOpen,   path: "/board",                         external: false },
+  { label: "출퇴근",     icon: Clock,      path: "/attendance",                    external: false },
   { label: "조직도",     icon: Network,    path: "/orgchart",                     external: false },
   { label: "ERP",        icon: Settings2,  path: "https://erp.kinoton.co.kr/",    external: true },
   { label: "영업시스템", icon: Building2,  path: "https://sales.kinoton.co.kr/",  external: true },
