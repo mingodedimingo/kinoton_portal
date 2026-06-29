@@ -9,7 +9,7 @@ import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
 import multer from "multer";
-import { storagePut } from "../storage";
+import { storagePut, storageGetSignedUrl } from "../storage";
 import { sdk } from "./sdk";
 import { parse as parseCookies } from "cookie";
 
@@ -89,8 +89,11 @@ async function startServer() {
       const inputKey = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const mimeType = getMimeType(ext, req.file.mimetype);
       // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
-      const { key: actualKey, url: actualUrl } = await storagePut(inputKey, req.file.buffer, mimeType);
-      res.json({ url: actualUrl, key: actualKey, name: originalName, size: req.file.size, mimeType });
+      const { key: actualKey } = await storagePut(inputKey, req.file.buffer, mimeType);
+      // 배포 환경에서 /manus-storage/ 경로가 307 리다이렉트를 해서 <img> 태그가 깨지는 문제 해결:
+      // presigned GET URL(CloudFront 직접 URL)을 반환하여 브라우저가 직접 접근하도록 함
+      const signedUrl = await storageGetSignedUrl(actualKey);
+      res.json({ url: signedUrl, key: actualKey, name: originalName, size: req.file.size, mimeType });
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ error: "업로드 실패" });
