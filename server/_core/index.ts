@@ -70,11 +70,10 @@ async function startServer() {
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "jpg";
-      const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      await storagePut(key, req.file.buffer, req.file.mimetype);
-      // 항상 상대 URL 반환 - 절대 URL은 환경(프리뷰/배포)에 따라 불일치 발생
-      const relativeUrl = `/manus-storage/${key}`;
-      res.json({ url: relativeUrl, key, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
+      const inputKey = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
+      const { key: actualKey, url: actualUrl } = await storagePut(inputKey, req.file.buffer, req.file.mimetype);
+      res.json({ url: actualUrl, key: actualKey, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ error: "업로드 실패" });
@@ -87,13 +86,12 @@ async function startServer() {
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "bin";
-      const key = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      await storagePut(key, req.file.buffer, req.file.mimetype);
-      // 항상 상대 URL 반환 - 절대 URL은 환경(프리뷰/배포)에 따라 불일치 발생
-      const relativeUrl2 = `/manus-storage/${key}`;
+      const inputKey2 = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
+      const { key: actualKey2, url: actualUrl2 } = await storagePut(inputKey2, req.file.buffer, req.file.mimetype);
       res.json({
-        url: relativeUrl2,
-        key,
+        url: actualUrl2,
+        key: actualKey2,
         name: originalName,
         size: req.file.size,
         mimeType: req.file.mimetype,
