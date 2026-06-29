@@ -64,6 +64,22 @@ async function startServer() {
     }
   }
 
+  // 파일 확장자 → MIME 타입 매핑 헬퍼
+  const getMimeType = (ext: string, fallback: string): string => {
+    const map: Record<string, string> = {
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
+      gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
+      bmp: 'image/bmp', ico: 'image/x-icon', tiff: 'image/tiff',
+      pdf: 'application/pdf', mp4: 'video/mp4', mov: 'video/quicktime',
+      mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
+      doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      xls: 'application/vnd.ms-excel', xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      ppt: 'application/vnd.ms-powerpoint', pptx: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      zip: 'application/zip', txt: 'text/plain',
+    };
+    return map[ext.toLowerCase()] || (fallback !== 'application/octet-stream' ? fallback : 'application/octet-stream');
+  };
+
   // 기존 이미지 업로드 엔드포인트 (인증 불필요 - multipart/form-data, Cloudflare WAF 우회)
   app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     try {
@@ -71,9 +87,10 @@ async function startServer() {
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "jpg";
       const inputKey = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const mimeType = getMimeType(ext, req.file.mimetype);
       // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
-      const { key: actualKey, url: actualUrl } = await storagePut(inputKey, req.file.buffer, req.file.mimetype);
-      res.json({ url: actualUrl, key: actualKey, name: originalName, size: req.file.size, mimeType: req.file.mimetype });
+      const { key: actualKey, url: actualUrl } = await storagePut(inputKey, req.file.buffer, mimeType);
+      res.json({ url: actualUrl, key: actualKey, name: originalName, size: req.file.size, mimeType });
     } catch (err) {
       console.error("Upload error:", err);
       res.status(500).json({ error: "업로드 실패" });
@@ -87,14 +104,15 @@ async function startServer() {
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "bin";
       const inputKey2 = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      const mimeType2 = getMimeType(ext, req.file.mimetype);
       // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
-      const { key: actualKey2, url: actualUrl2 } = await storagePut(inputKey2, req.file.buffer, req.file.mimetype);
+      const { key: actualKey2, url: actualUrl2 } = await storagePut(inputKey2, req.file.buffer, mimeType2);
       res.json({
         url: actualUrl2,
         key: actualKey2,
         name: originalName,
         size: req.file.size,
-        mimeType: req.file.mimetype,
+        mimeType: mimeType2,
       });
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "업로드 실패";
