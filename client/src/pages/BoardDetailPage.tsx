@@ -335,14 +335,41 @@ export default function BoardDetailPage() {
                   }
                 } catch { /* ignore */ }
                 if (attachments.length === 0) return null;
+                const imageAttachments = attachments.filter(a => a.mimeType.startsWith('image/'));
+                const nonImageAttachments = attachments.filter(a => !a.mimeType.startsWith('image/'));
                 return (
                   <div className="mt-6 pt-5" style={{ borderTop: "1px solid var(--kino-pale)" }}>
+                    {/* 이미지 첨부파일: 전체 폭으로 임베드 표시 */}
+                    {imageAttachments.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <Paperclip size={13} style={{ color: "var(--kino-mid)" }} />
+                          <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부 이미지 ({imageAttachments.length})</span>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          {imageAttachments.map((att, idx) => (
+                            <div key={idx}>
+                              <img
+                                src={att.url}
+                                alt={att.name}
+                                className="w-full rounded-md object-contain"
+                                style={{ maxHeight: 600, background: "var(--kino-bg)", display: "block" }}
+                              />
+                              <p className="text-xs mt-1" style={{ color: "var(--kino-muted)" }}>{att.name}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* 비이미지 첨부파일: 기존 다운로드 링크 형태 */}
+                    {nonImageAttachments.length > 0 && (
+                    <div>
                     <div className="flex items-center gap-1.5 mb-3">
                       <Paperclip size={13} style={{ color: "var(--kino-mid)" }} />
-                      <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부파일 ({attachments.length})</span>
+                      <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부파일 ({nonImageAttachments.length})</span>
                     </div>
                     <div className="flex flex-col gap-2">
-                      {attachments.map((att, idx) => {
+                      {nonImageAttachments.map((att, idx) => {
                         const isImage = att.mimeType.startsWith('image/');
                         const isVideo = att.mimeType.startsWith('video/');
                         const isPdf = att.mimeType === 'application/pdf';
@@ -376,6 +403,8 @@ export default function BoardDetailPage() {
                         );
                       })}
                     </div>
+                    </div>
+                    )}
                   </div>
                 );
               })()}

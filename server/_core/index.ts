@@ -110,8 +110,14 @@ async function startServer() {
       const mimeType2 = getMimeType(ext, req.file.mimetype);
       // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
       const { key: actualKey2, url: actualUrl2 } = await storagePut(inputKey2, req.file.buffer, mimeType2);
+      // 이미지 파일인 경우 presigned GET URL 반환 → 브라우저에서 직접 임베드 가능
+      // (upload-image와 동일하게 CloudFront 직접 URL 사용, /manus-storage/ 307 리다이렉트 문제 회피)
+      let finalUrl = actualUrl2;
+      if (mimeType2.startsWith('image/')) {
+        finalUrl = await storageGetSignedUrl(actualKey2);
+      }
       res.json({
-        url: actualUrl2,
+        url: finalUrl,
         key: actualKey2,
         name: originalName,
         size: req.file.size,
