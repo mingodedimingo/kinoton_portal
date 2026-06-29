@@ -1,6 +1,8 @@
 /**
  * AdminAttendancePage — 출퇴근 관리 (어드민 레이아웃)
  * - 일별 출퇴근 현황 조회
+ * - 출퇴근 기록 수정 (시간, 근무형태, 메모)
+ * - 출퇴근 기록 삭제 (확인 후 삭제)
  * - 월별 집계 (출근일수, 지각, 조퇴)
  * - 이카운트 업로드용 CSV 내보내기
  */
@@ -11,6 +13,7 @@ import { toast } from "sonner";
 import {
   Users, LogIn, LogOut, Clock, RefreshCw,
   Building2, MapPin, Download, Calendar, BarChart2,
+  Pencil, Trash2, X, Check,
 } from "lucide-react";
 
 // ── 유틸 함수 ─────────────────────────────────────────────────────
@@ -23,6 +26,11 @@ function fromDateString(str: string): Date {
 }
 function formatTime(date: Date | string | null | undefined): string {
   if (!date) return "-";
+  const d = new Date(date);
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+function toTimeInputValue(date: Date | string | null | undefined): string {
+  if (!date) return "";
   const d = new Date(date);
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
@@ -47,13 +55,156 @@ function isEarlyLeave(checkout: Date | string | null | undefined): boolean {
   return d.getHours() < 18;
 }
 
+// ── 수정 모달 ─────────────────────────────────────────────────────
+interface EditModalProps {
+  log: { id: number; type: string; recordedAt: Date | string; workType: string; note?: string | null; employeeName: string };
+  dateStr: string;
+  onClose: () => void;
+  onSuccess: () => void;
+}
+
+function EditModal({ log, dateStr, onClose, onSuccess }: EditModalProps) {
+  const [timeValue, setTimeValue] = useState(toTimeInputValue(log.recordedAt));
+  const [workType, setWorkType] = useState<"office" | "field">(log.workType as "office" | "field");
+  const [note, setNote] = useState(log.note ?? "");
+
+  const updateMutation = trpc.attendance.update.useMutation({
+    onSuccess: () => {
+      toast.success("출퇴근 기록이 수정되었습니다.");
+      onSuccess();
+      onClose();
+    },
+    onError: (err) => {
+      toast.error(err.message || "수정에 실패했습니다.");
+    },
+  });
+
+  const handleSave = () => {
+    if (!timeValue) { toast.error("시간을 입력해주세요."); return; }
+    const [h, m] = timeValue.split(":").map(Number);
+    const newDate = new Date(dateStr);
+    newDate.setHours(h, m, 0, 0);
+    updateMutation.mutate({
+      id: log.id,
+      recordedAt: newDate,
+      workType,
+      note: note || undefined,
+    });
+  };
+
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center"
+      style={{ background: "rgba(0,0,0,0.4)" }}
+      onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        className="rounded-xl p-6 w-full max-w-sm mx-4"
+        style={{ background: "var(--kino-white)", border: "1px solid var(--kino-pale)" }}
+      >
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-5">
+          <div>
+            <h3 className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>
+              출퇴근 기록 수정
+            </h3>
+            <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>
+              {log.employeeName} · {log.type === "checkin" ? "출근" : "퇴근"} · {dateStr}
+            </p>
+          </div>
+          <button
+            onClick={onClose}
+            className="p-1 rounded"
+            style={{ color: "var(--kino-muted)" }}
+          >
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* 시간 */}
+        <div className="mb-4">
+          <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--kino-mid)" }}>
+            {log.type === "checkin" ? "출근" : "퇴근"} 시간
+          </label>
+          <input
+            type="time"
+            value={timeValue}
+            onChange={(e) => setTimeValue(e.target.value)}
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            style={{ border: "1.5px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+          />
+        </div>
+
+        {/* 근무형태 */}
+        <div className="mb-4">
+          <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--kino-mid)" }}>근무형태</label>
+          <div className="grid grid-cols-2 gap-2">
+            {(["office", "field"] as const).map((t) => (
+              <button
+                key={t}
+                onClick={() => setWorkType(t)}
+                className="flex items-center justify-center gap-1.5 py-2 rounded-lg text-xs font-semibold transition-all"
+                style={{
+                  border: `1.5px solid ${workType === t ? "var(--kino-charcoal)" : "var(--kino-pale)"}`,
+                  background: workType === t ? "var(--kino-charcoal)" : "transparent",
+                  color: workType === t ? "white" : "var(--kino-mid)",
+                }}
+              >
+                {t === "office" ? <Building2 size={12} /> : <MapPin size={12} />}
+                {t === "office" ? "내근" : "외근"}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* 메모 */}
+        <div className="mb-5">
+          <label className="text-xs font-semibold mb-1.5 block" style={{ color: "var(--kino-mid)" }}>메모 (선택)</label>
+          <input
+            type="text"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+            placeholder="수정 사유 등 메모"
+            className="w-full px-3 py-2.5 rounded-lg text-sm outline-none"
+            style={{ border: "1.5px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+          />
+        </div>
+
+        {/* 버튼 */}
+        <div className="grid grid-cols-2 gap-2">
+          <button
+            onClick={onClose}
+            className="py-2.5 rounded-lg text-sm font-semibold"
+            style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}
+          >
+            취소
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={updateMutation.isPending}
+            className="flex items-center justify-center gap-1.5 py-2.5 rounded-lg text-sm font-semibold transition-all active:scale-95"
+            style={{ background: "var(--kino-charcoal)", color: "white", opacity: updateMutation.isPending ? 0.7 : 1 }}
+          >
+            <Check size={14} />
+            {updateMutation.isPending ? "저장 중..." : "저장"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── 일별 현황 탭 ──────────────────────────────────────────────────
 function DailyTab() {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(toDateString(today));
   const [deptFilter, setDeptFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
+  const [editingLog, setEditingLog] = useState<{
+    id: number; type: string; recordedAt: Date | string; workType: string; note?: string | null; employeeName: string;
+  } | null>(null);
 
+  const utils = trpc.useUtils();
   const queryDate = useMemo(() => fromDateString(selectedDate), [selectedDate]);
 
   const { data: logs, isLoading, refetch } = trpc.attendance.adminList.useQuery({
@@ -63,6 +214,28 @@ function DailyTab() {
   });
   const { data: summary } = trpc.attendance.todaySummary.useQuery();
 
+  const deleteMutation = trpc.attendance.delete.useMutation({
+    onSuccess: () => {
+      toast.success("출퇴근 기록이 삭제되었습니다.");
+      utils.attendance.adminList.invalidate();
+      utils.attendance.todaySummary.invalidate();
+    },
+    onError: (err) => {
+      toast.error(err.message || "삭제에 실패했습니다.");
+    },
+  });
+
+  const handleDelete = (id: number, name: string, type: string) => {
+    if (!confirm(`${name}의 ${type === "checkin" ? "출근" : "퇴근"} 기록을 삭제하시겠습니까?`)) return;
+    deleteMutation.mutate({ id });
+  };
+
+  const handleEditSuccess = () => {
+    utils.attendance.adminList.invalidate();
+    utils.attendance.todaySummary.invalidate();
+  };
+
+  // 직원별로 출근/퇴근 로그 그룹화 (로그 id 포함)
   const employeeMap = useMemo(() => {
     if (!logs) return [];
     const map = new Map<string, {
@@ -91,20 +264,13 @@ function DailyTab() {
 
   const isToday = selectedDate === toDateString(today);
 
-  // CSV 내보내기 (이카운트 근태 업로드 형식)
+  // CSV 내보내기
   const handleExportCSV = async () => {
-    if (employeeMap.length === 0) {
-      toast.error("내보낼 데이터가 없습니다.");
-      return;
-    }
+    if (employeeMap.length === 0) { toast.error("내보낼 데이터가 없습니다."); return; }
     const headers = ["사원명", "부서", "직위", "날짜", "출근시간", "퇴근시간", "근무형태", "근무시간", "지각여부", "조퇴여부"];
     const rows = employeeMap.map(emp => [
-      emp.name,
-      emp.dept,
-      emp.position,
-      selectedDate,
-      formatTime(emp.checkin?.recordedAt),
-      formatTime(emp.checkout?.recordedAt),
+      emp.name, emp.dept, emp.position, selectedDate,
+      formatTime(emp.checkin?.recordedAt), formatTime(emp.checkout?.recordedAt),
       emp.workType === "office" ? "내근" : "외근",
       calcWorkMinutes(emp.checkin?.recordedAt, emp.checkout?.recordedAt),
       isLate(emp.checkin?.recordedAt) ? "Y" : "N",
@@ -114,15 +280,23 @@ function DailyTab() {
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `출퇴근현황_${selectedDate}.csv`;
-    a.click();
+    a.href = url; a.download = `출퇴근현황_${selectedDate}.csv`; a.click();
     URL.revokeObjectURL(url);
     toast.success("CSV 파일이 다운로드되었습니다.");
   };
 
   return (
     <div>
+      {/* 수정 모달 */}
+      {editingLog && (
+        <EditModal
+          log={editingLog}
+          dateStr={selectedDate}
+          onClose={() => setEditingLog(null)}
+          onSuccess={handleEditSuccess}
+        />
+      )}
+
       {/* 요약 카드 (오늘만) */}
       {isToday && (
         <div className="grid grid-cols-3 gap-3 mb-5">
@@ -153,49 +327,31 @@ function DailyTab() {
         <div className="flex flex-wrap gap-3 items-end">
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>날짜</label>
-            <input
-              type="date"
-              value={selectedDate}
-              onChange={e => setSelectedDate(e.target.value)}
+            <input type="date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)}
               className="px-3 py-2 rounded-md text-sm outline-none"
-              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-            />
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }} />
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>부서</label>
-            <input
-              type="text"
-              value={deptFilter}
-              onChange={e => setDeptFilter(e.target.value)}
-              placeholder="부서명 입력"
-              className="px-3 py-2 rounded-md text-sm outline-none"
-              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)", width: "140px" }}
-            />
+            <input type="text" value={deptFilter} onChange={e => setDeptFilter(e.target.value)}
+              placeholder="부서명 입력" className="px-3 py-2 rounded-md text-sm outline-none"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)", width: "140px" }} />
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이름</label>
-            <input
-              type="text"
-              value={nameFilter}
-              onChange={e => setNameFilter(e.target.value)}
-              placeholder="이름 입력"
-              className="px-3 py-2 rounded-md text-sm outline-none"
-              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)", width: "120px" }}
-            />
+            <input type="text" value={nameFilter} onChange={e => setNameFilter(e.target.value)}
+              placeholder="이름 입력" className="px-3 py-2 rounded-md text-sm outline-none"
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)", width: "120px" }} />
           </div>
-          <button
-            onClick={() => refetch()}
+          <button onClick={() => refetch()}
             className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-medium transition-all active:scale-95"
-            style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)", background: "var(--kino-bg)" }}
-          >
+            style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)", background: "var(--kino-bg)" }}>
             <RefreshCw size={13} /> 새로고침
           </button>
         </div>
-        <button
-          onClick={handleExportCSV}
+        <button onClick={handleExportCSV}
           className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
-          style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)", background: "var(--kino-bg)" }}
-        >
+          style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)", background: "var(--kino-bg)" }}>
           <Download size={13} /> CSV 내보내기
         </button>
       </div>
@@ -219,8 +375,8 @@ function DailyTab() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "var(--kino-pale)" }}>
-                {["이름", "부서/직위", "근무형태", "출근", "퇴근", "근무시간", "지각", "조퇴", "상태"].map(h => (
-                  <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>{h}</th>
+                {["이름", "부서/직위", "근무형태", "출근", "퇴근", "근무시간", "지각", "조퇴", "상태", "관리"].map(h => (
+                  <th key={h} className="text-left px-3 py-2.5 text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -231,49 +387,109 @@ function DailyTab() {
                 const early = isEarlyLeave(emp.checkout?.recordedAt);
                 return (
                   <tr key={emp.name} style={{ background: i % 2 === 0 ? "var(--kino-white)" : "var(--kino-bg)", borderBottom: "1px solid var(--kino-pale)" }}>
-                    <td className="px-4 py-2.5 font-medium" style={{ color: "var(--kino-charcoal)" }}>{emp.name}</td>
-                    <td className="px-4 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>
+                    <td className="px-3 py-2.5 font-medium" style={{ color: "var(--kino-charcoal)" }}>{emp.name}</td>
+                    <td className="px-3 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>
                       {emp.dept}{emp.dept && emp.position ? " · " : ""}{emp.position}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-3 py-2.5">
                       <span className="flex items-center gap-1 text-xs" style={{ color: "var(--kino-mid)" }}>
                         {emp.workType === "office" ? <Building2 size={11} /> : <MapPin size={11} />}
                         {emp.workType === "office" ? "내근" : "외근"}
                       </span>
                     </td>
-                    <td className="px-4 py-2.5 text-xs font-medium" style={{ color: emp.checkin ? (late ? "#DC2626" : "#16A34A") : "var(--kino-light)" }}>
-                      {formatTime(emp.checkin?.recordedAt)}
+                    {/* 출근 시간 + 수정/삭제 */}
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-medium" style={{ color: emp.checkin ? (late ? "#DC2626" : "#16A34A") : "var(--kino-light)" }}>
+                          {formatTime(emp.checkin?.recordedAt)}
+                        </span>
+                        {emp.checkin && (
+                          <div className="flex gap-0.5">
+                            <button
+                              onClick={() => setEditingLog(emp.checkin!)}
+                              className="p-0.5 rounded transition-colors"
+                              style={{ color: "var(--kino-muted)" }}
+                              title="수정"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(emp.checkin!.id, emp.name, "checkin")}
+                              disabled={deleteMutation.isPending}
+                              className="p-0.5 rounded transition-colors"
+                              style={{ color: "#DC2626" }}
+                              title="삭제"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-2.5 text-xs font-medium" style={{ color: emp.checkout ? (early ? "#F59E0B" : "var(--kino-charcoal)") : "var(--kino-light)" }}>
-                      {formatTime(emp.checkout?.recordedAt)}
+                    {/* 퇴근 시간 + 수정/삭제 */}
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1">
+                        <span className="text-xs font-medium" style={{ color: emp.checkout ? (early ? "#F59E0B" : "var(--kino-charcoal)") : "var(--kino-light)" }}>
+                          {formatTime(emp.checkout?.recordedAt)}
+                        </span>
+                        {emp.checkout && (
+                          <div className="flex gap-0.5">
+                            <button
+                              onClick={() => setEditingLog(emp.checkout!)}
+                              className="p-0.5 rounded transition-colors"
+                              style={{ color: "var(--kino-muted)" }}
+                              title="수정"
+                            >
+                              <Pencil size={10} />
+                            </button>
+                            <button
+                              onClick={() => handleDelete(emp.checkout!.id, emp.name, "checkout")}
+                              disabled={deleteMutation.isPending}
+                              className="p-0.5 rounded transition-colors"
+                              style={{ color: "#DC2626" }}
+                              title="삭제"
+                            >
+                              <Trash2 size={10} />
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     </td>
-                    <td className="px-4 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>
+                    <td className="px-3 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>
                       {calcWorkMinutes(emp.checkin?.recordedAt, emp.checkout?.recordedAt)}
                     </td>
-                    <td className="px-4 py-2.5 text-xs">
+                    <td className="px-3 py-2.5 text-xs">
                       {emp.checkin ? (
                         <span style={{ color: late ? "#DC2626" : "#16A34A", fontWeight: 600 }}>
                           {late ? "지각" : "정상"}
                         </span>
                       ) : <span style={{ color: "var(--kino-light)" }}>-</span>}
                     </td>
-                    <td className="px-4 py-2.5 text-xs">
+                    <td className="px-3 py-2.5 text-xs">
                       {emp.checkout ? (
                         <span style={{ color: early ? "#F59E0B" : "#16A34A", fontWeight: 600 }}>
                           {early ? "조퇴" : "정상"}
                         </span>
                       ) : <span style={{ color: "var(--kino-light)" }}>-</span>}
                     </td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className="text-xs px-2 py-0.5 rounded font-semibold"
+                    <td className="px-3 py-2.5">
+                      <span className="text-xs px-2 py-0.5 rounded font-semibold"
                         style={{
                           background: isIn ? "#F0FDF4" : emp.checkout ? "var(--kino-pale)" : "#FEF9C3",
                           color: isIn ? "#16A34A" : emp.checkout ? "var(--kino-mid)" : "#92400E",
-                        }}
-                      >
+                        }}>
                         {isIn ? "재실" : emp.checkout ? "퇴근" : "미출근"}
                       </span>
+                    </td>
+                    {/* 관리 열: 기록 직접 추가 버튼 (미출근자) */}
+                    <td className="px-3 py-2.5 text-xs" style={{ color: "var(--kino-light)" }}>
+                      {!emp.checkin && !emp.checkout ? (
+                        <span style={{ color: "var(--kino-pale)" }}>-</span>
+                      ) : (
+                        <span className="text-xs" style={{ color: "var(--kino-light)" }}>
+                          {(emp.checkin ? 1 : 0) + (emp.checkout ? 1 : 0)}건
+                        </span>
+                      )}
                     </td>
                   </tr>
                 );
@@ -283,7 +499,7 @@ function DailyTab() {
         )}
       </div>
       <p className="text-xs mt-3 text-right" style={{ color: "var(--kino-light)" }}>
-        총 {employeeMap.length}명 · 원시 로그 {logs?.length ?? 0}건
+        총 {employeeMap.length}명 · 원시 로그 {logs?.length ?? 0}건 · ✏️ 시간 클릭 시 수정 가능
       </p>
     </div>
   );
@@ -295,28 +511,20 @@ function MonthlyTab() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  // 해당 월의 시작일~종료일 계산
   const { startDate, endDate } = useMemo(() => {
     const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0); // 말일
+    const end = new Date(year, month, 0);
     return { startDate: start, endDate: end };
   }, [year, month]);
-
-  const { data: logs, isLoading } = trpc.attendance.adminList.useQuery({
-    date: startDate,
-    // 월 전체를 가져오기 위해 날짜 필터 없이 조회 (백엔드에서 날짜 범위 지원 필요)
-    // 현재 adminList는 하루 단위이므로 exportCsv를 활용
-  }, { enabled: false }); // 월별은 exportCsv 사용
 
   const { data: csvData, isLoading: csvLoading, refetch: fetchCsv } = trpc.attendance.exportCsv.useQuery(
     { startDate, endDate },
     { enabled: false }
   );
 
-  // 월별 집계 데이터 파싱
   const monthlyStats = useMemo(() => {
     if (!csvData?.csv) return [];
-    const lines = csvData.csv.split("\n").slice(1); // 헤더 제외
+    const lines = csvData.csv.split("\n").slice(1);
     const empMap = new Map<string, {
       name: string; dept: string; position: string;
       workDays: number; lateDays: number; earlyDays: number;
@@ -329,9 +537,7 @@ function MonthlyTab() {
       const position = cols[2] ?? "";
       const checkin = cols[4] ?? "";
       const checkout = cols[5] ?? "";
-      if (!empMap.has(name)) {
-        empMap.set(name, { name, dept, position, workDays: 0, lateDays: 0, earlyDays: 0 });
-      }
+      if (!empMap.has(name)) empMap.set(name, { name, dept, position, workDays: 0, lateDays: 0, earlyDays: 0 });
       const entry = empMap.get(name)!;
       if (checkin && checkin !== "-") {
         entry.workDays++;
@@ -346,8 +552,6 @@ function MonthlyTab() {
     return Array.from(empMap.values()).sort((a, b) => a.name.localeCompare(b.name));
   }, [csvData]);
 
-  const handleFetch = () => fetchCsv();
-
   const handleExportCSV = () => {
     if (monthlyStats.length === 0) { toast.error("내보낼 데이터가 없습니다."); return; }
     const headers = ["이름", "부서", "직위", "출근일수", "지각횟수", "조퇴횟수"];
@@ -356,27 +560,21 @@ function MonthlyTab() {
     const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    a.href = url;
-    a.download = `월별근태집계_${year}년${month}월.csv`;
-    a.click();
+    a.href = url; a.download = `월별근태집계_${year}년${month}월.csv`; a.click();
     URL.revokeObjectURL(url);
     toast.success("월별 집계 CSV가 다운로드되었습니다.");
   };
 
   return (
     <div>
-      {/* 월 선택 */}
       <div className="rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-end justify-between"
         style={{ background: "var(--kino-white)", border: "1px solid var(--kino-pale)" }}>
         <div className="flex gap-3 items-end">
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>연도</label>
-            <select
-              value={year}
-              onChange={e => setYear(parseInt(e.target.value))}
+            <select value={year} onChange={e => setYear(parseInt(e.target.value))}
               className="px-3 py-2 rounded-md text-sm outline-none"
-              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-            >
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}>
               {[today.getFullYear() - 1, today.getFullYear()].map(y => (
                 <option key={y} value={y}>{y}년</option>
               ))}
@@ -384,38 +582,29 @@ function MonthlyTab() {
           </div>
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>월</label>
-            <select
-              value={month}
-              onChange={e => setMonth(parseInt(e.target.value))}
+            <select value={month} onChange={e => setMonth(parseInt(e.target.value))}
               className="px-3 py-2 rounded-md text-sm outline-none"
-              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-            >
+              style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}>
               {Array.from({ length: 12 }, (_, i) => i + 1).map(m => (
                 <option key={m} value={m}>{m}월</option>
               ))}
             </select>
           </div>
-          <button
-            onClick={handleFetch}
-            disabled={csvLoading}
+          <button onClick={() => fetchCsv()} disabled={csvLoading}
             className="flex items-center gap-1.5 px-4 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
-            style={{ background: "var(--kino-charcoal)", color: "white" }}
-          >
+            style={{ background: "var(--kino-charcoal)", color: "white" }}>
             <BarChart2 size={13} /> {csvLoading ? "집계 중..." : "집계 조회"}
           </button>
         </div>
         {monthlyStats.length > 0 && (
-          <button
-            onClick={handleExportCSV}
+          <button onClick={handleExportCSV}
             className="flex items-center gap-1.5 px-3 py-2 rounded-md text-sm font-semibold transition-all active:scale-95"
-            style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)", background: "var(--kino-bg)" }}
-          >
+            style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)", background: "var(--kino-bg)" }}>
             <Download size={13} /> CSV 내보내기
           </button>
         )}
       </div>
 
-      {/* 집계 결과 */}
       {monthlyStats.length === 0 ? (
         <div className="rounded-lg py-16 text-center" style={{ border: "1px solid var(--kino-pale)", background: "var(--kino-white)" }}>
           <BarChart2 size={36} className="mx-auto mb-3" style={{ color: "var(--kino-pale)" }} />
@@ -425,7 +614,6 @@ function MonthlyTab() {
         </div>
       ) : (
         <>
-          {/* 요약 카드 */}
           <div className="grid grid-cols-3 gap-3 mb-4">
             {[
               { label: "집계 인원", value: `${monthlyStats.length}명` },
@@ -439,7 +627,6 @@ function MonthlyTab() {
               </div>
             ))}
           </div>
-
           <div className="rounded-lg overflow-hidden" style={{ border: "1px solid var(--kino-pale)" }}>
             <table className="w-full text-sm">
               <thead>
@@ -457,14 +644,10 @@ function MonthlyTab() {
                     <td className="px-4 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>{s.position}</td>
                     <td className="px-4 py-2.5 text-center font-semibold" style={{ color: "var(--kino-charcoal)" }}>{s.workDays}일</td>
                     <td className="px-4 py-2.5 text-center">
-                      <span style={{ color: s.lateDays > 0 ? "#DC2626" : "#16A34A", fontWeight: 600 }}>
-                        {s.lateDays}회
-                      </span>
+                      <span style={{ color: s.lateDays > 0 ? "#DC2626" : "#16A34A", fontWeight: 600 }}>{s.lateDays}회</span>
                     </td>
                     <td className="px-4 py-2.5 text-center">
-                      <span style={{ color: s.earlyDays > 0 ? "#F59E0B" : "#16A34A", fontWeight: 600 }}>
-                        {s.earlyDays}회
-                      </span>
+                      <span style={{ color: s.earlyDays > 0 ? "#F59E0B" : "#16A34A", fontWeight: 600 }}>{s.earlyDays}회</span>
                     </td>
                   </tr>
                 ))}
@@ -486,7 +669,6 @@ export default function AdminAttendancePage() {
 
   return (
     <AdminLayout title="출퇴근 관리">
-      {/* 탭 */}
       <div className="flex gap-1 mb-5 p-1 rounded-lg" style={{ background: "var(--kino-pale)", width: "fit-content" }}>
         {[
           { key: "daily", label: "일별 현황", icon: Calendar },
@@ -494,22 +676,18 @@ export default function AdminAttendancePage() {
         ].map(tab => {
           const Icon = tab.icon;
           return (
-            <button
-              key={tab.key}
-              onClick={() => setActiveTab(tab.key as "daily" | "monthly")}
+            <button key={tab.key} onClick={() => setActiveTab(tab.key as "daily" | "monthly")}
               className="flex items-center gap-1.5 px-4 py-1.5 rounded text-xs font-semibold transition-all"
               style={{
                 background: activeTab === tab.key ? "var(--kino-charcoal)" : "transparent",
                 color: activeTab === tab.key ? "white" : "var(--kino-mid)",
-              }}
-            >
+              }}>
               <Icon size={12} />
               {tab.label}
             </button>
           );
         })}
       </div>
-
       {activeTab === "daily" ? <DailyTab /> : <MonthlyTab />}
     </AdminLayout>
   );

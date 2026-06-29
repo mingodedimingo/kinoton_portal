@@ -242,6 +242,19 @@ function AttendanceControl({ employee }: {
   );
 }
 
+// ── 지각/조퇴 판별 헬퍼 ─────────────────────────────────────────
+function isLate(checkIn: string | null): boolean {
+  if (!checkIn) return false;
+  const [h, m] = checkIn.split(":").map(Number);
+  return h > 9 || (h === 9 && m > 0);
+}
+
+function isEarlyLeave(checkOut: string | null): boolean {
+  if (!checkOut) return false;
+  const [h] = checkOut.split(":").map(Number);
+  return h < 18;
+}
+
 // ── 출퇴근 이력 섹션 ──────────────────────────────────────────────
 function AttendanceHistory({ employeeName }: { employeeName: string }) {
   const [days, setDays] = useState(30);
@@ -306,7 +319,7 @@ function AttendanceHistory({ employeeName }: { employeeName: string }) {
             <div
               className="grid gap-2 px-3 py-2 text-xs font-semibold rounded"
               style={{
-                gridTemplateColumns: "1fr 60px 70px 70px 70px",
+                gridTemplateColumns: "1fr 52px 72px 72px 72px 80px",
                 color: "var(--kino-muted)",
                 background: "var(--kino-bg)",
               }}
@@ -316,37 +329,94 @@ function AttendanceHistory({ employeeName }: { employeeName: string }) {
               <span>출근</span>
               <span>퇴근</span>
               <span>근무시간</span>
+              <span>비고</span>
             </div>
-            {logs.map((log, idx) => (
-              <div
-                key={idx}
-                className="grid gap-2 px-3 py-2.5 rounded-lg text-xs"
-                style={{
-                  gridTemplateColumns: "1fr 60px 70px 70px 70px",
-                  background: idx % 2 === 0 ? "transparent" : "var(--kino-bg)",
-                }}
-              >
-                <span className="font-medium" style={{ color: "var(--kino-charcoal)" }}>
-                  {formatDate(log.date)}
-                </span>
-                <span
-                  className="px-1.5 py-0.5 rounded text-center"
+            {logs.map((log, idx) => {
+              const late = isLate(log.checkIn);
+              const early = isEarlyLeave(log.checkOut);
+              const hasBadge = late || early;
+              return (
+                <div
+                  key={idx}
+                  className="grid gap-2 px-3 py-2.5 rounded-lg text-xs items-center"
                   style={{
-                    background: log.workType === "내근" ? "#EFF6FF" : "#F0FDF4",
-                    color: log.workType === "내근" ? "#1D4ED8" : "#16A34A",
-                    fontSize: "0.65rem",
-                    width: "fit-content",
+                    gridTemplateColumns: "1fr 52px 72px 72px 72px 80px",
+                    background: idx % 2 === 0 ? "transparent" : "var(--kino-bg)",
                   }}
                 >
-                  {log.workType}
-                </span>
-                <span style={{ color: "#16A34A" }}>{log.checkIn || "-"}</span>
-                <span style={{ color: "var(--kino-mid)" }}>{log.checkOut || "-"}</span>
-                <span className="font-semibold" style={{ color: "var(--kino-charcoal)" }}>
-                  {log.workHours ? `${log.workHours}h` : "-"}
-                </span>
-              </div>
-            ))}
+                  <span className="font-medium" style={{ color: "var(--kino-charcoal)" }}>
+                    {formatDate(log.date)}
+                  </span>
+                  <span
+                    className="px-1.5 py-0.5 rounded text-center"
+                    style={{
+                      background: log.workType === "내근" ? "#EFF6FF" : "#F0FDF4",
+                      color: log.workType === "내근" ? "#1D4ED8" : "#16A34A",
+                      fontSize: "0.65rem",
+                      width: "fit-content",
+                    }}
+                  >
+                    {log.workType}
+                  </span>
+                  {/* 출근 시간 + 지각 배지 */}
+                  <span className="flex items-center gap-1">
+                    <span style={{ color: late ? "#DC2626" : "#16A34A", fontWeight: late ? 700 : 400 }}>
+                      {log.checkIn || "-"}
+                    </span>
+                    {late && (
+                      <span
+                        className="px-1 py-0.5 rounded font-bold"
+                        style={{ background: "#FEE2E2", color: "#DC2626", fontSize: "0.6rem", lineHeight: 1 }}
+                      >
+                        지각
+                      </span>
+                    )}
+                  </span>
+                  {/* 퇴근 시간 + 조퇴 배지 */}
+                  <span className="flex items-center gap-1">
+                    <span style={{ color: early ? "#F59E0B" : "var(--kino-mid)", fontWeight: early ? 700 : 400 }}>
+                      {log.checkOut || "-"}
+                    </span>
+                    {early && log.checkOut && (
+                      <span
+                        className="px-1 py-0.5 rounded font-bold"
+                        style={{ background: "#FEF3C7", color: "#B45309", fontSize: "0.6rem", lineHeight: 1 }}
+                      >
+                        조퇴
+                      </span>
+                    )}
+                  </span>
+                  <span className="font-semibold" style={{ color: "var(--kino-charcoal)" }}>
+                    {log.workHours ? `${log.workHours}h` : "-"}
+                  </span>
+                  {/* 비고 열: 지각/조퇴 요약 */}
+                  <span>
+                    {hasBadge ? (
+                      <span className="flex gap-1 flex-wrap">
+                        {late && (
+                          <span
+                            className="px-1.5 py-0.5 rounded font-semibold"
+                            style={{ background: "#FEE2E2", color: "#DC2626", fontSize: "0.6rem" }}
+                          >
+                            지각
+                          </span>
+                        )}
+                        {early && log.checkOut && (
+                          <span
+                            className="px-1.5 py-0.5 rounded font-semibold"
+                            style={{ background: "#FEF3C7", color: "#B45309", fontSize: "0.6rem" }}
+                          >
+                            조퇴
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span style={{ color: "#16A34A", fontSize: "0.65rem" }}>정상</span>
+                    )}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         ) : (
           <div className="py-8 text-center">

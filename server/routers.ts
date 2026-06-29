@@ -7,6 +7,7 @@ import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_
 import { sdk } from "./_core/sdk";
 import {
   getAttendanceLogs, getTodayStatus, getTodaySummary, insertAttendanceLog,
+  getAttendanceLogById, updateAttendanceLog, deleteAttendanceLog,
   getNotices, getNoticeById, insertNotice, updateNotice, deleteNotice,
   getHrNotices, getHrNoticeById, insertHrNotice, updateHrNotice, deleteHrNotice,
   getCondolences, getCondolenceById, insertCondolence, updateCondolence, deleteCondolence,
@@ -482,6 +483,35 @@ export const appRouter = router({
           }
         }
         return Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date));
+      }),
+
+    // 출퇴근 기록 수정 (어드민 전용)
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        recordedAt: z.date(),
+        workType: z.enum(['office', 'field']).optional(),
+        note: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const log = await getAttendanceLogById(input.id);
+        if (!log) throw new TRPCError({ code: 'NOT_FOUND', message: '출퇴근 기록을 찾을 수 없습니다.' });
+        await updateAttendanceLog(input.id, {
+          recordedAt: input.recordedAt,
+          workType: input.workType,
+          note: input.note ?? null,
+        });
+        return { success: true };
+      }),
+
+    // 출퇴근 기록 삭제 (어드민 전용)
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const log = await getAttendanceLogById(input.id);
+        if (!log) throw new TRPCError({ code: 'NOT_FOUND', message: '출퇴근 기록을 찾을 수 없습니다.' });
+        await deleteAttendanceLog(input.id);
+        return { success: true };
       }),
 
     // CSV 내보내기 (어드민 전용)

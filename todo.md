@@ -152,3 +152,11 @@
 - [x] 출퇴근 기록 관리 페이지(/attendance) 개발 (개인 이력 조회)
 - [x] 메인 대시보드 출퇴근 섹션 이력 링크 추가
 - [x] 출퇴근 기록 관리 페이지 GNB/전체메뉴 연결
+
+## 출퇴근 수정/삭제 및 지각/조퇴 배지 작업
+
+- [x] attendance.update 프로시저 추가 (어드민 전용 - 출퇴근 시간 수정)
+- [x] attendance.delete 프로시저 추가 (어드민 전용 - 출퇴근 기록 삭제)
+- [x] AdminAttendancePage 출퇴근 수정 모달 구현
+- [x] AdminAttendancePage 출퇴근 삭제 버튼 구현
+- [x] AttendancePage 이력 테이블에 지각/조퇴 배지 추가 (09:00 이후 출근 = 지각, 18:00 이전 퇴근 = 조퇴)

@@ -113,6 +113,25 @@ export async function getTodayStatus(employeeName: string): Promise<{
   return { checkin, checkout };
 }
 
+export async function getAttendanceLogById(id: number): Promise<AttendanceLog | null> {
+  const db = await getDb();
+  if (!db) return null;
+  const result = await db.select().from(attendanceLogs).where(eq(attendanceLogs.id, id)).limit(1);
+  return result.length > 0 ? result[0] : null;
+}
+
+export async function updateAttendanceLog(id: number, data: { recordedAt?: Date; workType?: 'office' | 'field'; note?: string | null }): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  await db.update(attendanceLogs).set(data).where(eq(attendanceLogs.id, id));
+}
+
+export async function deleteAttendanceLog(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error('Database not available');
+  await db.delete(attendanceLogs).where(eq(attendanceLogs.id, id));
+}
+
 export async function getTodaySummary(): Promise<{
   totalCheckin: number;
   totalCheckout: number;
