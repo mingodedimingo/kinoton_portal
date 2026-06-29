@@ -55,7 +55,7 @@ const CONDOLENCES = [
 // 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
 const QUICK_MENUS = [
   { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
-  { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 0 },
+  { label: "전자결재",   icon: FileCheck,   path: "https://login.ecount.com/Login/",  badge: 0, external: true },
   { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
   { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
   { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
