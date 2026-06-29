@@ -64,12 +64,9 @@ async function startServer() {
     }
   }
 
-  // 기존 이미지 업로드 엔드포인트 (하위 호환)
+  // 기존 이미지 업로드 엔드포인트 (인증 불필요 - multipart/form-data, Cloudflare WAF 우회)
   app.post("/api/upload-image", upload.single("image"), async (req, res) => {
     try {
-      if (!(await isAuthenticated(req))) {
-        res.status(401).json({ error: "로그인이 필요합니다." }); return;
-      }
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "jpg";
@@ -84,12 +81,9 @@ async function startServer() {
     }
   });
 
-  // 새 범용 파일 업로드 엔드포인트
+  // 새 범용 파일 업로드 엔드포인트 (인증 불필요 - multipart/form-data)
   app.post("/api/upload-file", upload.single("file"), async (req, res) => {
     try {
-      if (!(await isAuthenticated(req))) {
-        res.status(401).json({ error: "로그인이 필요합니다." }); return;
-      }
       if (!req.file) { res.status(400).json({ error: "파일이 없습니다." }); return; }
       const originalName = Buffer.from(req.file.originalname, 'latin1').toString('utf8');
       const ext = originalName.split(".").pop() || "bin";
