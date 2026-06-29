@@ -310,11 +310,15 @@ export default function BoardDetailPage() {
                 <div
                   className="text-sm leading-relaxed prose prose-sm max-w-none"
                   style={{ color: "var(--kino-charcoal)" }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(post.content, {
-                    ALLOWED_TAGS: ['p','br','strong','em','u','s','h1','h2','h3','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','img','span','div'],
-                    ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height'],
-                    ALLOW_DATA_ATTR: false,
-                  }) }}
+                  dangerouslySetInnerHTML={{ __html: (() => {
+                    const clean = DOMPurify.sanitize(post.content, {
+                      ALLOWED_TAGS: ['p','br','strong','em','u','s','h1','h2','h3','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','img','span','div'],
+                      ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height'],
+                      ALLOW_DATA_ATTR: false,
+                      FORCE_BODY: true,
+                    });
+                    return clean;
+                  })() }}
                 />
               ) : (
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
