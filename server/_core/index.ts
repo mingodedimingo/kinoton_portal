@@ -69,7 +69,10 @@ async function startServer() {
     const map: Record<string, string> = {
       jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
       gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
-      bmp: 'image/bmp', ico: 'image/x-icon', tiff: 'image/tiff',
+      bmp: 'image/bmp', ico: 'image/x-icon', tiff: 'image/tiff', tif: 'image/tiff',
+      // jfif는 JPEG, avif는 모던 브라우저 지원. heic/heif는 Content-Type은 정확하지만
+      // Chrome/Firefox에서는 표시 안 될 수 있음(스토리지/다운로드는 정상).
+      jfif: 'image/jpeg', avif: 'image/avif', heic: 'image/heic', heif: 'image/heif',
       pdf: 'application/pdf', mp4: 'video/mp4', mov: 'video/quicktime',
       mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
       doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
