@@ -14,7 +14,7 @@
 | GitHub | https://github.com/mingodedimingo/kinoton_portal |
 | 스택 | React 19 + Tailwind 4 + Express 4 + tRPC 11 + TipTap + Drizzle ORM + MySQL(TiDB) |
 | 인증 | Manus OAuth (직원 세션: `app_session_id` 쿠키) + 어드민 쿠키(`kino_admin`) |
-| 스토리지 | Manus 내장 S3, `storagePut()` 헬퍼 사용, `/manus-storage/{key}` 경로로 서빙 |
+| 스토리지 | Manus 내장 S3, `storagePut()` 헬퍼 사용, `/api/img/{key}` 경로로 서빙 |
 | CDN | Cloudflare (주의: 대용량 JSON 페이로드 WAF 차단 있음) |
 
 ---
@@ -29,7 +29,7 @@
 끝에 있는 체크리스트를 통과시키세요.**
 
 **한 문장 규칙**: 업로드 엔드포인트는 `storagePut()`이 반환하는 상대경로
-`/manus-storage/{key}` **만** 반환·저장한다. 절대 URL·presigned URL·base64를
+`/api/img/{key}` **만** 반환·저장한다. 절대 URL·presigned URL·base64를
 클라이언트에 주거나 DB에 저장하지 않는다. 실제 서빙은 `storageProxy`가
 서버에서 파일을 파이프한다.
 
@@ -41,8 +41,8 @@
 curl -s -X POST "https://kinotonport-a8dtzhdp.manus.space/api/upload-image" \
   -F "image=@테스트이미지.jpg" \
   -w "\nHTTP_STATUS: %{http_code}\n"
-# 기대 결과: {"url":"/manus-storage/portal-files/...","key":"..."}  HTTP_STATUS: 200
-#  ↑ url은 반드시 "/manus-storage/"로 시작해야 함. "http"로 시작하면 잘못된 것.
+# 기대 결과: {"url":"/api/img/portal-files/...","key":"..."}  HTTP_STATUS: 200
+#  ↑ url은 반드시 "/api/img/"로 시작해야 함. "http"로 시작하면 잘못된 것.
 ```
 
 ---
@@ -84,7 +84,7 @@ kinoton-portal/
 │   │   ├── context.ts                 # tRPC 컨텍스트 (isAdminSession 플래그)
 │   │   ├── trpc.ts                    # publicProcedure, protectedProcedure, adminProcedure
 │   │   ├── oauth.ts                   # Manus OAuth 콜백 처리
-│   │   └── storageProxy.ts            # /manus-storage/* 프록시
+│   │   └── storageProxy.ts            # /api/img/* 프록시
 │   ├── routers.ts                     # 모든 tRPC 프로시저 (board, notice, hr, condolence 등)
 │   ├── db.ts                          # DB 쿼리 헬퍼
 │   └── storage.ts                     # storagePut() 헬퍼
@@ -139,10 +139,14 @@ POST /api/upload-file    (multer, field: "file")   → 범용 파일
 ```
 - 인증 불필요 (공개 엔드포인트)
 - multipart/form-data 방식
-- 응답: `{ url: "/manus-storage/{key}", key, name, size, mimeType }`
+- 응답: `{ url: "/api/img/{key}", key, name, size, mimeType }`
 
 ### 스토리지 서빙
-- `/manus-storage/{key}` → `server/_core/storageProxy.ts`가 S3 presigned URL로 리다이렉트
+- `/api/img/{key}` → `server/_core/storageProxy.ts`가 forge presign/get으로 signed URL을
+  서버에서 받아 파일 바이트를 그대로 파이프(`res.end`). 리다이렉트 안 함(브라우저 403 방지).
+- ⚠️ 서빙 경로는 반드시 `/api/` 하위. 예전 `/manus-storage/*`는 배포 시 플랫폼 엣지가
+  가로채 앱에 도달 못 해 항상 404였다(이미지 깨짐 6번 재발의 진짜 원인). 자세한 내용은
+  `docs/이미지_업로드_규칙.md` §0·§3 참고.
 
 ---
 
@@ -185,7 +189,10 @@ pnpm test
 ## 9. 알려진 이슈 및 TODO
 
 ### 미해결 버그
-- [ ] **이미지 업로드 배포 미완료**: 코드는 수정됐으나 Publish 버튼 클릭 필요
+- [ ] **이미지 업로드 — 서빙 경로 수정 후 Publish 필요**: 서빙 경로를 `/manus-storage/*`(배포 시
+      플랫폼 엣지가 가로채 404) → `/api/img/*`(컨테이너 도달)로 옮김. 코드 수정 완료, **Manus
+      Publish(배포)** 후 새 글에 이미지 업로드 → 새로고침으로 실제 확인 필요. 단, 기존 글 본문에
+      저장된 옛 `/manus-storage/...` URL은 본문 재작성 전엔 계속 깨짐(현재 테스트글 1개).
 
 ### 향후 개선 사항 (ideas.md 참고)
 - [ ] 전자결재 기능 구현

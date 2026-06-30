@@ -2,7 +2,12 @@ import type { Express } from "express";
 import { ENV } from "./env";
 
 export function registerStorageProxy(app: Express) {
-  app.get("/manus-storage/*", async (req, res) => {
+  // 서빙 경로는 반드시 "/api/" 하위여야 한다. 과거 "/manus-storage/*"를 썼으나,
+  // 배포 환경에서 그 경로는 Manus/Cloudflare 플랫폼 엣지가 가로채 이 Express 앱에
+  // 도달조차 못 한다(응답에 x-powered-by/x-cloud-trace 없이 엣지가 404 "Not found").
+  // 로컬(pnpm dev)엔 엣지가 없어 동작하는 것처럼 보이지만 배포하면 항상 이미지가 깨졌다.
+  // "/api/*"는 컨테이너에 도달함이 검증되어 여기서 직접 파일을 파이프할 수 있다.
+  app.get("/api/img/*", async (req, res) => {
     const key = (req.params as Record<string, string>)[0];
     if (!key) {
       res.status(400).send("Missing storage key");
