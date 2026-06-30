@@ -93,10 +93,11 @@ async function startServer() {
       const mimeType = getMimeType(ext, req.file.mimetype);
       // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
       const { key: actualKey, url } = await storagePut(inputKey, req.file.buffer, mimeType);
-      // 안정적인 상대경로(/manus-storage/{key})를 반환한다. storageProxy가 요청마다
+      // 안정적인 상대경로(/api/img/{key})를 반환한다. storageProxy가 요청마다
       // 새 presigned URL을 받아 서버에서 파일을 파이프하므로 브라우저 403/만료 문제가 없다.
       // (presigned URL을 직접 반환하면 브라우저 직접 접근 시 403, 게시글 본문에 박힌 뒤
       //  URL 만료 시 깨짐 → 이미지 아이콘만 표시되는 버그가 재발한다.)
+      // (서빙 경로가 "/api/" 하위여야 하는 이유는 storageProxy.ts 주석 참고.)
       res.json({ url, key: actualKey, name: originalName, size: req.file.size, mimeType });
     } catch (err) {
       console.error("Upload error:", err);
@@ -113,7 +114,7 @@ async function startServer() {
       const inputKey2 = `portal-files/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
       const mimeType2 = getMimeType(ext, req.file.mimetype);
       // storagePut 내부에서 appendHashSuffix가 적용되므로 반환된 key/url을 사용해야 함
-      // 이미지/비이미지 모두 안정적인 상대경로(/manus-storage/{key})를 반환한다.
+      // 이미지/비이미지 모두 안정적인 상대경로(/api/img/{key})를 반환한다.
       // (presigned URL 직접 반환 금지 — 브라우저 403 및 만료 시 깨짐 유발)
       const { key: actualKey2, url: actualUrl2 } = await storagePut(inputKey2, req.file.buffer, mimeType2);
       res.json({
