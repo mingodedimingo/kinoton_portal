@@ -7,7 +7,6 @@ import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_
 import { sdk } from "./_core/sdk";
 import {
   getAttendanceLogs, getTodayStatus, getTodaySummary, insertAttendanceLog,
-  getAttendanceLogById, updateAttendanceLog, deleteAttendanceLog,
   getNotices, getNoticeById, insertNotice, updateNotice, deleteNotice,
   getHrNotices, getHrNoticeById, insertHrNotice, updateHrNotice, deleteHrNotice,
   getCondolences, getCondolenceById, insertCondolence, updateCondolence, deleteCondolence,
@@ -138,19 +137,19 @@ export const appRouter = router({
           const empId = parseInt(openId.replace('emp_', ''));
           if (!isNaN(empId)) {
             const emp = await getEmployeeById(empId);
-            if (emp) return emp;
+            return emp ?? null;
           }
         }
-        // OAuth 로그인이면 이메일로 매핑 시도
+        // OAuth 로그인이면 이메일로 매핑
         if (ctx.user.email) {
           const emp = await getEmployeeByEmail(ctx.user.email);
-          if (emp) return emp;
+          return emp ?? null;
         }
-        // 이름으로 매핑 시도 (이메일 매핑 실패 또는 이메일 없을 때)
+        // 이름으로 매핑 시도
         if (ctx.user.name) {
           const allEmps = await getEmployees(true);
           const found = allEmps.find(e => e.name === ctx.user.name);
-          if (found) return found;
+          return found ?? null;
         }
         return null;
       }),
@@ -405,17 +404,6 @@ export const appRouter = router({
         note: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        // 오늘 이미 기록된 상태 확인 (중복 방지)
-        const todayStatus = await getTodayStatus(input.employeeName);
-        if (input.type === 'checkin' && todayStatus.checkin) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: '오늘 이미 출근 처리되었습니다.' });
-        }
-        if (input.type === 'checkout' && !todayStatus.checkin) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: '출근 기록이 없습니다. 먼저 출근해주세요.' });
-        }
-        if (input.type === 'checkout' && todayStatus.checkout) {
-          throw new TRPCError({ code: 'BAD_REQUEST', message: '오늘 이미 퇴근 처리되었습니다.' });
-        }
         await insertAttendanceLog({
           employeeId: input.employeeId ?? null,
           employeeName: input.employeeName,
@@ -436,23 +424,19 @@ export const appRouter = router({
     // 출퇴근 목록 (어드민 전용)
     adminList: adminProcedure
       .input(z.object({
-        dateStr: z.string().optional(), // 'YYYY-MM-DD' 형식 (타임존 문제 방지)
+        date: z.date().optional(),
         department: z.string().optional(),
         employeeName: z.string().optional(),
+        startDate: z.date().optional(),
+        endDate: z.date().optional(),
       }))
-      .query(async ({ input }) => {
-        let dateForFilter: Date | undefined;
-        if (input.dateStr) {
-          // 서버에서 직접 날짜 범위 생성 (UTC 기준 당일 00:00~23:59)
-          const [y, m, d] = input.dateStr.split('-').map(Number);
-          dateForFilter = new Date(y, m - 1, d); // 로컬 시간 기준
-        }
-        return getAttendanceLogs({
-          date: dateForFilter,
-          department: input.department,
-          employeeName: input.employeeName,
-        });
-      }),
+      .query(async ({ input }) => getAttendanceLogs({
+        date: input.date,
+        department: input.department,
+        employeeName: input.employeeName,
+        startDate: input.startDate,
+        endDate: input.endDate,
+      })),
 
     // 오늘 요약 (로그인 필수)
     todaySummary: protectedProcedure.query(async () => getTodaySummary()),
@@ -487,35 +471,6 @@ export const appRouter = router({
           }
         }
         return Object.values(grouped).sort((a, b) => b.date.localeCompare(a.date));
-      }),
-
-    // 출퇴근 기록 수정 (어드민 전용)
-    update: adminProcedure
-      .input(z.object({
-        id: z.number(),
-        recordedAt: z.date(),
-        workType: z.enum(['office', 'field']).optional(),
-        note: z.string().optional(),
-      }))
-      .mutation(async ({ input }) => {
-        const log = await getAttendanceLogById(input.id);
-        if (!log) throw new TRPCError({ code: 'NOT_FOUND', message: '출퇴근 기록을 찾을 수 없습니다.' });
-        await updateAttendanceLog(input.id, {
-          recordedAt: input.recordedAt,
-          workType: input.workType,
-          note: input.note ?? null,
-        });
-        return { success: true };
-      }),
-
-    // 출퇴근 기록 삭제 (어드민 전용)
-    delete: adminProcedure
-      .input(z.object({ id: z.number() }))
-      .mutation(async ({ input }) => {
-        const log = await getAttendanceLogById(input.id);
-        if (!log) throw new TRPCError({ code: 'NOT_FOUND', message: '출퇴근 기록을 찾을 수 없습니다.' });
-        await deleteAttendanceLog(input.id);
-        return { success: true };
       }),
 
     // CSV 내보내기 (어드민 전용)

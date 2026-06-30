@@ -34,7 +34,6 @@ import BoardDetailPage from "./pages/BoardDetailPage";
 import PrivacyPage from "./pages/PrivacyPage";
 import LoginPage from "./pages/LoginPage";
 import SettingsPage from "./pages/SettingsPage";
-import AttendancePage from "./pages/AttendancePage";
 
 function Router() {
   return (
@@ -93,9 +92,6 @@ function Router() {
       </Route>
       <Route path="/settings">
         <RequireAuth><SettingsPage /></RequireAuth>
-      </Route>
-      <Route path="/attendance">
-        <RequireAuth><AttendancePage /></RequireAuth>
       </Route>
 
       {/* 공개 페이지 */}

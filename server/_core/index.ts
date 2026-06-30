@@ -67,10 +67,9 @@ async function startServer() {
   // 파일 확장자 → MIME 타입 매핑 헬퍼
   const getMimeType = (ext: string, fallback: string): string => {
     const map: Record<string, string> = {
-      jpg: 'image/jpeg', jpeg: 'image/jpeg', jfif: 'image/jpeg', jpe: 'image/jpeg', png: 'image/png',
+      jpg: 'image/jpeg', jpeg: 'image/jpeg', png: 'image/png',
       gif: 'image/gif', webp: 'image/webp', svg: 'image/svg+xml',
-      bmp: 'image/bmp', ico: 'image/x-icon', tiff: 'image/tiff', tif: 'image/tiff',
-      heic: 'image/heic', heif: 'image/heif', avif: 'image/avif',
+      bmp: 'image/bmp', ico: 'image/x-icon', tiff: 'image/tiff',
       pdf: 'application/pdf', mp4: 'video/mp4', mov: 'video/quicktime',
       mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
       doc: 'application/msword', docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',

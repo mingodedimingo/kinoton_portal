@@ -5,7 +5,7 @@
 import { Link } from "wouter";
 import { X, Mail, FileCheck, BookOpen, Calendar, Users, Building2, Briefcase,
   MessageSquare, FileText, Settings, HelpCircle, Bell,
-  ClipboardList, Car, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays, User, Heart, Clock } from "lucide-react";
+  ClipboardList, Car, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays, User, Heart } from "lucide-react";
 
 interface Props {
   open: boolean;
@@ -16,7 +16,7 @@ const MENU_GROUPS = [
   {
     category: "커뮤니케이션",
     items: [
-      { label: "메일",       icon: Mail,          path: "https://wmail.ecount.com/", desc: "이카운트 연결", external: true },
+      { label: "메일",       icon: Mail,          path: "https://wmail.ecount.com/", desc: "사내 이메일", external: true },
       { label: "게시판",     icon: BookOpen,       path: "/board",     desc: "언론보도 / 매뉴얼 / 기타" },
       { label: "쪽지",       icon: MessageSquare,  path: "/board",     desc: "사내 메시지" },
     ],
@@ -24,7 +24,7 @@ const MENU_GROUPS = [
   {
     category: "업무·결재",
     items: [
-      { label: "전자결재",   icon: FileCheck,      path: "https://login.ecount.com/Login/", desc: "이카운트 연결", external: true },
+      { label: "전자결재",   icon: FileCheck,      path: "/approve",   desc: "기안·결재·조회" },
       { label: "업무",       icon: Briefcase,      path: "/work",      desc: "To-Do·업무현황" },
       { label: "보고서",     icon: FileText,       path: "/board",     desc: "업무 보고" },
     ],
@@ -49,8 +49,7 @@ const MENU_GROUPS = [
     category: "마이페이지",
     items: [
       { label: "마이페이지", icon: User,          path: "/mypage",    desc: "프로필 · 근태 이력" },
-      { label: "출퇴근",     icon: Clock,          path: "/attendance", desc: "출근 · 퇴근 · 이력" },
-      { label: "설정",       icon: Settings,       path: "/settings",  desc: "개인 설정" },
+      { label: "설정",       icon: Settings,       path: "/mypage",    desc: "개인 설정" },
     ],
   },
   {

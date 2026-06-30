@@ -52,9 +52,12 @@ export default function AttendanceAdminPage() {
   const [filterName, setFilterName] = useState("");
   const [searchInput, setSearchInput] = useState("");
 
+  // 선택 날짜를 Date 객체로 (안정적 참조를 위해 useMemo 사용)
+  const queryDate = useMemo(() => fromDateString(selectedDate), [selectedDate]);
+
   // 출퇴근 로그 조회
   const { data: logs = [], isLoading, refetch } = trpc.attendance.adminList.useQuery({
-    dateStr: selectedDate, // 'YYYY-MM-DD' 문자열로 전달 (타임존 문제 방지)
+    date: queryDate,
     department: filterDept || undefined,
     employeeName: filterName || undefined,
   }, {

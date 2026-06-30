@@ -55,7 +55,7 @@ const CONDOLENCES = [
 // 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
 const QUICK_MENUS = [
   { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
-  { label: "전자결재",   icon: FileCheck,   path: "https://login.ecount.com/Login/",  badge: 0, external: true },
+  { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 0 },
   { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
   { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
   { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
@@ -580,21 +580,12 @@ function LeftPanel() {
       <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
         <div className="flex items-center justify-between mb-2.5">
           <span className="text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
-          <div className="flex items-center gap-2">
-            <span
-              className="text-xs px-2 py-0.5 rounded font-semibold"
-              style={{ background: statusBg, color: statusColor }}
-            >
-              {statusLabel}
-            </span>
-            <button
-              onClick={() => navigate("/attendance")}
-              className="text-xs"
-              style={{ color: "var(--kino-muted)", textDecoration: "underline" }}
-            >
-              이력
-            </button>
-          </div>
+          <span
+            className="text-xs px-2 py-0.5 rounded font-semibold"
+            style={{ background: statusBg, color: statusColor }}
+          >
+            {statusLabel}
+          </span>
         </div>
 
         {/* 출근/퇴근 시간 표시 */}
@@ -712,7 +703,6 @@ function MobileStatsCard() {
 // ── Mobile: 출퇴근 카드 ──────────────────────────────────────────
 function MobileAttendanceCard() {
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
-  const [, navigate] = useLocation();
   const { data: myEmployee } = trpc.employees.me.useQuery();
   const mobileEmp = myEmployee ? { id: myEmployee.id, name: myEmployee.name, department: myEmployee.department, position: myEmployee.position } : null;
   const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(mobileEmp);
@@ -735,21 +725,12 @@ function MobileAttendanceCard() {
     <div className="portal-card p-4 animate-fade-in-up stagger-4">
       <div className="flex items-center justify-between mb-3">
         <span className="text-sm font-semibold" style={{ color: "var(--kino-charcoal)" }}>{todayStr}</span>
-        <div className="flex items-center gap-2">
-          <span
-            className="text-sm px-3 py-1 rounded font-semibold"
-            style={{ background: statusBg, color: statusColor }}
-          >
-            {statusLabel}
-          </span>
-          <button
-            onClick={() => navigate("/attendance")}
-            className="text-xs"
-            style={{ color: "var(--kino-muted)", textDecoration: "underline" }}
-          >
-            이력
-          </button>
-        </div>
+        <span
+          className="text-sm px-3 py-1 rounded font-semibold"
+          style={{ background: statusBg, color: statusColor }}
+        >
+          {statusLabel}
+        </span>
       </div>
 
       {/* 출근/퇴근 시간 표시 */}
