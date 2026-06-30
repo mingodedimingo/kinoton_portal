@@ -26,6 +26,14 @@ function parseImages(images: unknown): string[] {
   return [];
 }
 
+// mimeType 또는 파일명 확장자 기반으로 이미지 여부 판단
+const IMAGE_EXTENSIONS = new Set(['jpg','jpeg','jfif','jpe','png','gif','webp','svg','bmp','ico','tiff','tif','heic','heif','avif']);
+function isImageAttachment(att: AttachmentItem): boolean {
+  if (att.mimeType.startsWith('image/')) return true;
+  const ext = att.name.split('.').pop()?.toLowerCase() ?? '';
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
 type Category = "언론보도" | "매뉴얼" | "기타";
 
 export default function BoardDetailPage() {
@@ -99,7 +107,7 @@ export default function BoardDetailPage() {
     e.preventDefault();
     if (!editForm) return;
     if (!editForm.title.trim()) { toast.error("제목을 입력해주세요."); return; }
-    const imageAttachments = editForm.attachments.filter(a => a.mimeType.startsWith('image/'));
+    const imageAttachments = editForm.attachments.filter(a => isImageAttachment(a));
     updateMutation.mutate({
       id: postId,
       ...editForm,
@@ -335,8 +343,8 @@ export default function BoardDetailPage() {
                   }
                 } catch { /* ignore */ }
                 if (attachments.length === 0) return null;
-                const imageAttachments = attachments.filter(a => a.mimeType.startsWith('image/'));
-                const nonImageAttachments = attachments.filter(a => !a.mimeType.startsWith('image/'));
+                const imageAttachments = attachments.filter(a => isImageAttachment(a));
+                const nonImageAttachments = attachments.filter(a => !isImageAttachment(a));
                 return (
                   <div className="mt-6 pt-5" style={{ borderTop: "1px solid var(--kino-pale)" }}>
                     {/* 이미지 첨부파일: 전체 폭으로 임베드 표시 */}

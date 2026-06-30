@@ -22,6 +22,14 @@ function parseImages(images: unknown): string[] {
   return [];
 }
 
+// mimeType 또는 파일명 확장자 기반으로 이미지 여부 판단
+const IMAGE_EXTENSIONS = new Set(['jpg','jpeg','jfif','jpe','png','gif','webp','svg','bmp','ico','tiff','tif','heic','heif','avif']);
+function isImageAttachment(att: AttachmentItem): boolean {
+  if (att.mimeType.startsWith('image/')) return true;
+  const ext = att.name.split('.').pop()?.toLowerCase() ?? '';
+  return IMAGE_EXTENSIONS.has(ext);
+}
+
 type EditForm = {
   tag: string;
   title: string;
@@ -102,7 +110,7 @@ export default function NoticeDetailPage() {
     e.preventDefault();
     if (!editForm) return;
     if (!editForm.title.trim()) { toast.error("제목을 입력해주세요."); return; }
-    const imageAttachments = editForm.attachments.filter(a => a.mimeType.startsWith('image/'));
+    const imageAttachments = editForm.attachments.filter(a => isImageAttachment(a));
     updateMutation.mutate({
       id: noticeId,
       ...editForm,
@@ -315,13 +323,18 @@ export default function NoticeDetailPage() {
                 <div
                   className="text-sm leading-relaxed prose prose-sm max-w-none"
                   style={{ color: "var(--kino-charcoal)" }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notice.content) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(notice.content, {
+                    ALLOWED_TAGS: ['p','br','strong','em','u','s','h1','h2','h3','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','img','span','div'],
+                    ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height'],
+                    ALLOW_DATA_ATTR: false,
+                    FORCE_BODY: true,
+                  }) }}
                 />
               ) : (
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>
               )}
 
-              {/* 첨부파일 다운로드 */}
+              {/* 첨부파일 표시 */}
               {(() => {
                 let attachments: AttachmentItem[] = [];
                 try {
@@ -332,47 +345,71 @@ export default function NoticeDetailPage() {
                   }
                 } catch { /* ignore */ }
                 if (attachments.length === 0) return null;
+                const imageAttachments = attachments.filter(a => isImageAttachment(a));
+                const nonImageAttachments = attachments.filter(a => !isImageAttachment(a));
                 return (
                   <div className="mt-6 pt-5" style={{ borderTop: "1px solid var(--kino-pale)" }}>
-                    <div className="flex items-center gap-1.5 mb-3">
-                      <Paperclip size={13} style={{ color: "var(--kino-mid)" }} />
-                      <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부파일 ({attachments.length})</span>
-                    </div>
-                    <div className="flex flex-col gap-2">
-                      {attachments.map((att, idx) => {
-                        const isImage = att.mimeType.startsWith('image/');
-                        const isVideo = att.mimeType.startsWith('video/');
-                        const isPdf = att.mimeType === 'application/pdf';
-                        const isWord = att.mimeType.includes('word');
-                        const isExcel = att.mimeType.includes('excel') || att.mimeType.includes('spreadsheet');
-                        const isPpt = att.mimeType.includes('powerpoint') || att.mimeType.includes('presentation');
-                        const isZip = att.mimeType.includes('zip');
-                        const Icon = isVideo ? Film : isPdf || isWord ? FileText : isExcel ? FileSpreadsheet : isPpt ? Presentation : isZip ? Archive : File;
-                        const sizeStr = att.size > 1024 * 1024
-                          ? `${(att.size / 1024 / 1024).toFixed(1)}MB`
-                          : att.size > 1024 ? `${(att.size / 1024).toFixed(0)}KB` : `${att.size}B`;
-                        return (
-                          <a
-                            key={idx}
-                            href={att.url}
-                            download={att.name}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="flex items-center gap-2.5 px-3 py-2.5 rounded-md transition-colors"
-                            style={{ background: "var(--kino-pale)", color: "var(--kino-charcoal)", textDecoration: "none" }}
-                          >
-                            {isImage ? (
-                              <img src={att.url} alt={att.name} className="w-8 h-8 rounded object-cover shrink-0" />
-                            ) : (
-                              <Icon size={18} className="shrink-0" style={{ color: "var(--kino-mid)" }} />
-                            )}
-                            <span className="text-xs flex-1 truncate">{att.name}</span>
-                            <span className="text-xs shrink-0" style={{ color: "var(--kino-muted)" }}>{sizeStr}</span>
-                            <Download size={13} className="shrink-0" style={{ color: "var(--kino-mid)" }} />
-                          </a>
-                        );
-                      })}
-                    </div>
+                    {/* 이미지 첨부파일: 전체 폭으로 임베드 표시 */}
+                    {imageAttachments.length > 0 && (
+                      <div className="mb-4">
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <Paperclip size={13} style={{ color: "var(--kino-mid)" }} />
+                          <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부 이미지 ({imageAttachments.length})</span>
+                        </div>
+                        <div className="flex flex-col gap-3">
+                          {imageAttachments.map((att, idx) => (
+                            <div key={idx}>
+                              <img
+                                src={att.url}
+                                alt={att.name}
+                                className="w-full rounded-md object-contain"
+                                style={{ maxHeight: 600, background: "var(--kino-bg)", display: "block" }}
+                              />
+                              <p className="text-xs mt-1" style={{ color: "var(--kino-muted)" }}>{att.name}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* 비이미지 첨부파일: 다운로드 링크 형태 */}
+                    {nonImageAttachments.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-1.5 mb-3">
+                          <Paperclip size={13} style={{ color: "var(--kino-mid)" }} />
+                          <span className="text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>첨부파일 ({nonImageAttachments.length})</span>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          {nonImageAttachments.map((att, idx) => {
+                            const isVideo = att.mimeType.startsWith('video/');
+                            const isPdf = att.mimeType === 'application/pdf';
+                            const isWord = att.mimeType.includes('word');
+                            const isExcel = att.mimeType.includes('excel') || att.mimeType.includes('spreadsheet');
+                            const isPpt = att.mimeType.includes('powerpoint') || att.mimeType.includes('presentation');
+                            const isZip = att.mimeType.includes('zip');
+                            const Icon = isVideo ? Film : isPdf || isWord ? FileText : isExcel ? FileSpreadsheet : isPpt ? Presentation : isZip ? Archive : File;
+                            const sizeStr = att.size > 1024 * 1024
+                              ? `${(att.size / 1024 / 1024).toFixed(1)}MB`
+                              : att.size > 1024 ? `${(att.size / 1024).toFixed(0)}KB` : `${att.size}B`;
+                            return (
+                              <a
+                                key={idx}
+                                href={att.url}
+                                download={att.name}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-2.5 px-3 py-2.5 rounded-md transition-colors"
+                                style={{ background: "var(--kino-pale)", color: "var(--kino-charcoal)", textDecoration: "none" }}
+                              >
+                                <Icon size={18} className="shrink-0" style={{ color: "var(--kino-mid)" }} />
+                                <span className="text-xs flex-1 truncate">{att.name}</span>
+                                <span className="text-xs shrink-0" style={{ color: "var(--kino-muted)" }}>{sizeStr}</span>
+                                <Download size={13} className="shrink-0" style={{ color: "var(--kino-mid)" }} />
+                              </a>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
