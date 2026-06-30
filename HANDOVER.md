@@ -19,25 +19,22 @@
 
 ---
 
-## 2. 현재 미해결 버그 (최우선 과제)
+## 2. ⚠️ 이미지 업로드 — 반드시 규칙 문서를 먼저 읽을 것
 
-### 이미지 업로드 후 이미지가 깨지는 문제
+### 👉 [`docs/이미지_업로드_규칙.md`](./docs/이미지_업로드_규칙.md) 를 먼저 읽으세요.
 
-**증상**: 게시판/공지사항 RichEditor에서 이미지를 업로드하면 에디터에 이미지가 표시되지 않거나, 저장 후 게시글에서 이미지가 깨져 보임.
+게시판 이미지가 "깨진 아이콘"으로만 보이는 버그가 **여러 번 재발**했습니다. 매번
+다른 "근본 원인"을 고쳤지만, 같은 함정(절대 URL / presigned URL / base64)에 다시
+빠지면 또 깨집니다. **업로드/스토리지 코드를 건드리기 전에 위 규칙 문서를 반드시 읽고,
+끝에 있는 체크리스트를 통과시키세요.**
 
-**근본 원인 2가지**:
-1. **Cloudflare WAF 403 차단**: 이전 tRPC Base64 방식은 244KB+ JSON 페이로드를 Cloudflare가 error code 1010으로 차단
-2. **인증 체크 401**: `/api/upload-image` 엔드포인트에 `isAuthenticated` 체크가 있어 쿠키 전달 문제 시 업로드 실패
+**한 문장 규칙**: 업로드 엔드포인트는 `storagePut()`이 반환하는 상대경로
+`/manus-storage/{key}` **만** 반환·저장한다. 절대 URL·presigned URL·base64를
+클라이언트에 주거나 DB에 저장하지 않는다. 실제 서빙은 `storageProxy`가
+서버에서 파일을 파이프한다.
 
-**현재 코드 상태** (GitHub 최신 커밋 `1a39657`):
-- `client/src/components/RichEditor.tsx`: multipart/form-data 방식으로 완전 재작성됨
-  - `uploadImageFile(file: File)` 함수: `FormData`로 `/api/upload-image`에 `fetch` 요청
-  - `credentials: "include"` 포함
-  - tRPC Base64 방식 완전 제거
-  - 파일 선택, 드래그&드롭, 클립보드 붙여넣기 모두 `handleFiles()` 함수로 통일
-- `server/_core/index.ts`: `/api/upload-image`, `/api/upload-file` 엔드포인트에서 `isAuthenticated` 체크 제거됨
-
-**아직 안 된 것**: 배포(Publish)가 안 되어 있어서 배포 서버(`kinotonport-a8dtzhdp.manus.space`)는 아직 이전 버전 실행 중. **Publish 버튼 클릭 후 배포 완료 필요**.
+**현재 상태**: 해결됨. 회귀 방지용 계약 테스트(`server/upload.contract.test.ts`)가
+`pnpm test`에서 위반을 잡습니다.
 
 **배포 후 테스트 방법**:
 ```bash
@@ -45,6 +42,7 @@ curl -s -X POST "https://kinotonport-a8dtzhdp.manus.space/api/upload-image" \
   -F "image=@테스트이미지.jpg" \
   -w "\nHTTP_STATUS: %{http_code}\n"
 # 기대 결과: {"url":"/manus-storage/portal-files/...","key":"..."}  HTTP_STATUS: 200
+#  ↑ url은 반드시 "/manus-storage/"로 시작해야 함. "http"로 시작하면 잘못된 것.
 ```
 
 ---
