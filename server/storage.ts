@@ -1,6 +1,8 @@
 // Preconfigured storage helpers for Manus WebDev templates
 // Uploads via Forge Server presigned URL to S3 (PUT direct).
-// Downloads return /manus-storage/{key} paths served via 307 redirect.
+// Downloads return /api/img/{key} paths served by storageProxy (server pipes the bytes).
+// NOTE: 반드시 "/api/" 하위 경로를 반환해야 한다. "/manus-storage/"는 배포 환경에서
+//       플랫폼 엣지가 가로채 앱에 도달하지 못한다(storageProxy.ts 주석 참고).
 
 import { ENV } from "./_core/env";
 
@@ -68,12 +70,12 @@ export async function storagePut(
     throw new Error(`Storage upload to S3 failed (${uploadResp.status})`);
   }
 
-  return { key, url: `/manus-storage/${key}` };
+  return { key, url: `/api/img/${key}` };
 }
 
 export async function storageGet(relKey: string): Promise<{ key: string; url: string }> {
   const key = normalizeKey(relKey);
-  return { key, url: `/manus-storage/${key}` };
+  return { key, url: `/api/img/${key}` };
 }
 
 export async function storageGetSignedUrl(relKey: string): Promise<string> {
