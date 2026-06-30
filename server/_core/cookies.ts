@@ -39,10 +39,14 @@ export function getSessionCookieOptions(
   //       ? hostname
   //       : undefined;
 
+  const secure = isSecureRequest(req);
   return {
     httpOnly: true,
     path: "/",
-    sameSite: "none",
-    secure: true, // sameSite:none requires secure:true (Manus is always HTTPS)
+    // SameSite=None requires Secure=true (HTTPS only).
+    // On plain HTTP (e.g. portal.kinoton.co.kr without TLS termination),
+    // fall back to SameSite=Lax + Secure=false so the browser actually stores the cookie.
+    sameSite: secure ? "none" : "lax",
+    secure,
   };
 }
