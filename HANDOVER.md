@@ -232,4 +232,66 @@ CSS 변수 (`client/src/index.css`):
 
 ---
 
-*마지막 업데이트: 2026-06-29 | GitHub 커밋: 1a39657*
+---
+
+## 12. 최근 수정 이력 (최신순)
+
+### [2026-07-01] 어드민 로그인 튕김 수정 (커밋: `55d5c88`)
+- **문제**: `portal.kinoton.co.kr`는 HTTP 접속인데, 어드민 로그인(`/api/admin/login`) 쿠키가 `sameSite:"none"`, `secure:true`로 하드코딩되어 있어 브라우저가 쿠키를 저장하지 않음 → 로그인 직후 `/api/admin/check` 401 → `/admin/login`으로 튕기는 루프
+- **수정 파일**: `server/_core/index.ts`
+- **수정 내용**: `getSessionCookieOptions(req)` 적용으로 HTTP/HTTPS 환경 자동 감지
+  - HTTP(`portal.kinoton.co.kr`): `sameSite:"lax"`, `secure:false`
+  - HTTPS(`kinotonport-a8dtzhdp.manus.space`): `sameSite:"none"`, `secure:true`
+- **배포 상태**: ⚠️ **GitHub main 푸시 완료 + 로컬 빌드 완료. Manus UI에서 Publish 버튼 클릭 필요**
+
+### [2026-06-30] 포탈 메인 로그인 튕김 수정 (커밋: `4b7a0a4`)
+- **문제**: 포탈 직원 로그인(`app_session_id` 쿠키)도 동일한 원인으로 HTTP에서 튕김
+- **수정 파일**: `server/_core/cookies.ts` — `getSessionCookieOptions(req)` 함수 신규 추가
+- **수정 파일**: `server/_core/oauth.ts` — 쿠키 발급 시 `getSessionCookieOptions` 적용
+
+### [2026-06-30] 탭 타이틀 수정 (커밋: `9b1fb08`)
+- `{{project_title}}` → `Kinoton Portal`
+
+### [2026-06-30] 비밀번호 변경 API 추가 (커밋: `23cab7a`)
+- `/api/auth/change-password` 엔드포인트 누락 수정
+
+---
+
+## 13. 핵심 불변 규칙 (INVARIANTS)
+
+> 위반 시 이미지 깨짐, 로그인 불가 등 반복 장애 발생
+
+1. **이미지 URL**: 반드시 `/api/img/{key}` 형태. `/manus-storage/*` 사용 금지 (엣지가 가로챔)
+2. **업로드 방식**: `multipart/form-data` 전용. base64-in-JSON 금지 (Cloudflare WAF 차단)
+3. **쿠키 옵션**: HTTP/HTTPS 동적 감지 필수 — `getSessionCookieOptions(req)` 사용 (`server/_core/cookies.ts`)
+4. **DOMPurify**: `<img>` + `src/alt/style` 허용 유지
+5. **세션 독립**: 어드민(`kino_admin`)과 포탈(`app_session_id`) 쿠키 절대 혼용 금지
+6. **상세 규칙**: `docs/이미지_업로드_규칙.md` 참조
+
+---
+
+## 14. 배포 절차
+
+```bash
+# 1. main 브랜치 기준으로 작업
+git pull origin main
+
+# 2. 코드 수정 후 테스트
+pnpm test  # 환경변수 미설정 오류는 무시 가능
+
+# 3. 빌드
+pnpm build
+
+# 4. GitHub 푸시
+git add -A && git commit -m "fix: 설명" && git push origin main
+
+# 5. Manus UI에서 Publish 버튼 클릭 (필수!)
+
+# 6. 배포 확인
+curl -i https://kinotonport-a8dtzhdp.manus.space/api/admin/check
+# → x-powered-by: Express 헤더가 있어야 배포됨
+```
+
+---
+
+*마지막 업데이트: 2026-07-01 | GitHub 커밋: 55d5c88*

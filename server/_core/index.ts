@@ -140,6 +140,8 @@ async function startServer() {
     if (id === ADMIN_ID && password === ADMIN_PASSWORD) {
       // kino_admin 쿠키만 발급 — 포탈 app_session_id와 완전 독립
       // 어드민 세션은 kino_admin 쿠키 하나로만 관리하여 포탈 직원 세션과 절대 간섭하지 않음
+      // HTTP/HTTPS 환경을 동적으로 감지하여 쿠키 옵션 설정
+      // (portal.kinoton.co.kr는 HTTP → sameSite:'lax', secure:false 로 설정해야 쿠키가 저장됨)
       const adminCookieOptions = getSessionCookieOptions(req);
       res.cookie("kino_admin", ADMIN_TOKEN, {
         ...adminCookieOptions,
@@ -153,8 +155,8 @@ async function startServer() {
 
   app.post("/api/admin/logout", (_req, res) => {
     // 어드민 로그아웃 시 kino_admin 쿠키만 삭제 — 포탈 app_session_id는 건드리지 않음
-    const clearOptions = getSessionCookieOptions(_req);
-    res.clearCookie("kino_admin", clearOptions);
+    // clearCookie: path만 일치하면 삭제됨
+    res.clearCookie("kino_admin", { path: "/" });
     res.json({ success: true });
   });
 
