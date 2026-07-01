@@ -308,7 +308,10 @@ export default function HrDetailPage() {
                 <div
                   className="text-sm leading-relaxed prose prose-sm max-w-none"
                   style={{ color: "var(--kino-charcoal)" }}
-                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content) }}
+                  dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(item.content, {
+                    ALLOWED_TAGS: ['p','br','strong','em','u','s','h1','h2','h3','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','img','span','div'],
+                    ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height','colspan','rowspan'],
+                  }) }}
                 />
               ) : (
                 <p className="text-sm" style={{ color: "var(--kino-muted)" }}>내용이 없습니다.</p>

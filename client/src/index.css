@@ -362,4 +362,38 @@
   .stagger-4 { animation-delay: 150ms; }
   .stagger-5 { animation-delay: 200ms; }
   .stagger-6 { animation-delay: 250ms; }
+
+  /* ── Rich Editor 콘텐츠 표시 스타일 (prose 영역 내 표/이미지) ── */
+  .prose table,
+  .rich-editor-content table {
+    border-collapse: collapse;
+    width: 100%;
+    margin: 0.75rem 0;
+    font-size: 0.875rem;
+  }
+  .prose table th,
+  .prose table td,
+  .rich-editor-content table th,
+  .rich-editor-content table td {
+    border: 1px solid #d1d5db;
+    padding: 0.4rem 0.75rem;
+    text-align: left;
+    vertical-align: top;
+  }
+  .prose table th,
+  .rich-editor-content table th {
+    background-color: #f3f4f6;
+    font-weight: 600;
+  }
+  .prose table tr:nth-child(even),
+  .rich-editor-content table tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+  .prose img,
+  .rich-editor-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 4px;
+    margin: 0.5rem 0;
+  }
 }
