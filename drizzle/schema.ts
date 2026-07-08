@@ -30,6 +30,8 @@ export const employees = mysqlTable("employees", {
   profileImage: varchar("profileImage", { length: 500 }), // 프로필 사진 URL
   ext: varchar("ext", { length: 20 }), // 내선번호
   isActive: boolean("isActive").default(true).notNull(),
+  employmentStatus: mysqlEnum("employmentStatus", ["재직", "퇴사", "휴직"]).default("재직").notNull(), // 재직/퇴사/휴직
+  statusChangeDate: varchar("statusChangeDate", { length: 10 }), // 상태 변경일 (YYYY-MM-DD)
   passwordHash: varchar("passwordHash", { length: 255 }), // bcrypt hash
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
@@ -182,6 +184,48 @@ export const calendarEvents = mysqlTable("calendar_events", {
 export type CalendarEvent = typeof calendarEvents.$inferSelect;
 export type InsertCalendarEvent = typeof calendarEvents.$inferInsert;
 
+// ── 예약 테이블 ─────────────────────────────────────────────────
+export const reservations = mysqlTable("reservations", {
+  id: int("id").autoincrement().primaryKey(),
+  resourceType: mysqlEnum("resourceType", ["회의실", "차량", "장비", "공간"]).notNull(),
+  resourceName: varchar("resourceName", { length: 100 }).notNull(),
+  reserveDate: varchar("reserveDate", { length: 10 }).notNull(), // YYYY-MM-DD
+  startTime: varchar("startTime", { length: 5 }).notNull(),      // HH:MM
+  endTime: varchar("endTime", { length: 5 }).notNull(),          // HH:MM
+  purpose: varchar("purpose", { length: 300 }).notNull(),
+  employeeId: int("employeeId"),
+  employeeName: varchar("employeeName", { length: 100 }).notNull(),
+  department: varchar("department", { length: 100 }),
+  attendees: int("attendees").default(1),
+  note: text("note"),
+  status: mysqlEnum("status", ["대기", "승인", "반려", "취소"]).default("대기").notNull(),
+  approverName: varchar("approverName", { length: 100 }),
+  approvedAt: timestamp("approvedAt"),
+  rejectReason: text("rejectReason"),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type Reservation = typeof reservations.$inferSelect;
+export type InsertReservation = typeof reservations.$inferInsert;
+
+// ── 예약 자원 테이블 ─────────────────────────────────────────────
+export const reservationResources = mysqlTable("reservation_resources", {
+  id: int("id").autoincrement().primaryKey(),
+  resourceType: mysqlEnum("resourceType", ["회의실", "차량", "장비", "공간"]).notNull(),
+  name: varchar("name", { length: 100 }).notNull(),
+  capacity: int("capacity").default(1).notNull(),
+  location: varchar("location", { length: 100 }),
+  description: text("description"),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type ReservationResource = typeof reservationResources.$inferSelect;
+export type InsertReservationResource = typeof reservationResources.$inferInsert;
+
 // ── 비밀번호 재설정 토큰 테이블 ────────────────────────────────
 export const passwordResetTokens = mysqlTable("password_reset_tokens", {
   id: int("id").autoincrement().primaryKey(),
@@ -193,3 +237,18 @@ export const passwordResetTokens = mysqlTable("password_reset_tokens", {
 });
 export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
 export type InsertPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
+// ── 배너 테이블 ─────────────────────────────────────────────────
+export const banners = mysqlTable("banners", {
+  id: int("id").autoincrement().primaryKey(),
+  name: varchar("name", { length: 200 }).notNull(),
+  imageUrl: varchar("imageUrl", { length: 500 }).notNull(),
+  linkUrl: varchar("linkUrl", { length: 500 }),
+  note: text("note"),
+  isActive: boolean("isActive").default(true).notNull(),
+  sortOrder: int("sortOrder").default(0).notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+export type Banner = typeof banners.$inferSelect;
+export type InsertBanner = typeof banners.$inferInsert;

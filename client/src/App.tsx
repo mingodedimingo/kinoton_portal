@@ -23,6 +23,9 @@ import AdminHrPage from "./pages/admin/AdminHrPage";
 import AdminCondolencesPage from "./pages/admin/AdminCondolencesPage";
 import AdminBoardPage from "./pages/admin/AdminBoardPage";
 import AdminEmployeesPage from "./pages/admin/AdminEmployeesPage";
+import AdminReservePage from "./pages/admin/AdminReservePage";
+import AdminResourcePage from "./pages/admin/AdminResourcePage";
+import AdminBannerPage from "./pages/admin/AdminBannerPage";
 import MyPage from "./pages/MyPage";
 import NoticesPage from "./pages/NoticesPage";
 import NoticeDetailPage from "./pages/NoticeDetailPage";
@@ -107,6 +110,9 @@ function Router() {
       <Route path="/admin/condolences" component={AdminCondolencesPage} />
       <Route path="/admin/board" component={AdminBoardPage} />
       <Route path="/admin/employees" component={AdminEmployeesPage} />
+      <Route path="/admin/reserve" component={AdminReservePage} />
+      <Route path="/admin/resources" component={AdminResourcePage} />
+      <Route path="/admin/banners" component={AdminBannerPage} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
     </Switch>

@@ -1,12 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getSessionCookieOptions } from "./_core/cookies";
-import { COOKIE_NAME } from "@shared/const";
+import { COOKIE_NAME, ONE_YEAR_MS } from "@shared/const";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, adminProcedure, router } from "./_core/trpc";
 import { sdk } from "./_core/sdk";
 import {
-  getAttendanceLogs, getTodayStatus, getTodaySummary, insertAttendanceLog,
+  getAttendanceLogs, getTodayStatus, getTodaySummary, insertAttendanceLog, upsertTodayAttendanceLog,
   getNotices, getNoticeById, insertNotice, updateNotice, deleteNotice,
   getHrNotices, getHrNoticeById, insertHrNotice, updateHrNotice, deleteHrNotice,
   getCondolences, getCondolenceById, insertCondolence, updateCondolence, deleteCondolence,
@@ -15,8 +15,13 @@ import {
   getLeaveBalance, getAllLeaveBalances, upsertLeaveBalance, updateLeaveUsed,
   getLeaveRequests, insertLeaveRequest, updateLeaveRequestStatus, getLeaveRequestById,
   getCalendarEvents, getTodayEvents, getCalendarEventById, insertCalendarEvent, updateCalendarEvent, deleteCalendarEvent,
-  getEmployeeByEmail, upsertUser,
+  getEmployeeByEmail, upsertUser, getUserByOpenId,
   createPasswordResetToken, getValidPasswordResetToken, markPasswordResetTokenUsed,
+  insertReservation, getReservations, getReservationsByDateRange, getReservationById,
+  updateReservationStatus,
+  getReservationResources, getReservationResourceById,
+  insertReservationResource, updateReservationResource, deleteReservationResource,
+  getBanners, getBannerById, insertBanner, updateBanner, deleteBanner,
 } from "./db";
 import bcrypt from "bcryptjs";
 import { sendPasswordResetEmail } from "./_core/mailer";
@@ -54,18 +59,21 @@ export const appRouter = router({
         if (!isValid) {
           throw new TRPCError({ code: 'UNAUTHORIZED', message: '이메일 또는 비밀번호가 올바르지 않습니다.' });
         }
-        // 직원 openId: emp_{id} 형식으로 users 테이블에 upsert
+        // 직원 openId: emp_{id} 형식으로 users 테이블에 upsert (기존 role 보존)
         const openId = `emp_${employee.id}`;
+        const existingUser = await getUserByOpenId(openId);
         await upsertUser({
           openId,
           name: employee.name,
           email: employee.email ?? undefined,
           loginMethod: 'employee',
           lastSignedIn: new Date(),
+          // 기존에 admin으로 설정된 경우 role 유지
+          role: existingUser?.role === 'admin' ? 'admin' : undefined,
         });
         const token = await sdk.createSessionToken(openId, { name: employee.name });
         const cookieOptions = getSessionCookieOptions(ctx.req);
-        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: 365 * 24 * 60 * 60 * 1000 });
+        ctx.res.cookie(COOKIE_NAME, token, { ...cookieOptions, maxAge: ONE_YEAR_MS }); // 8시간 (shared/const.ts)
         return { success: true, name: employee.name };
       }),
 
@@ -228,6 +236,8 @@ export const appRouter = router({
         joinDate: z.string().optional(),
         profileImage: z.string().optional(),
         isActive: z.boolean().optional(),
+        employmentStatus: z.enum(["재직", "퇴사", "휴직"]).optional(),
+        statusChangeDate: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
@@ -267,6 +277,30 @@ export const appRouter = router({
         return { totalDays: total, usedDays: used, remainingDays: total - used, year };
       }),
 
+    // 직원 어드민 권한 설정 (어드민 전용)
+    setAdminRole: adminProcedure
+      .input(z.object({
+        employeeId: z.number(),
+        isAdmin: z.boolean(),
+      }))
+      .mutation(async ({ input }) => {
+        const openId = `emp_${input.employeeId}`;
+        const role = input.isAdmin ? 'admin' : 'user';
+        await upsertUser({ openId, role });
+        return { success: true };
+      }),
+
+    // 직원 어드민 권한 조회 (어드민 전용)
+    getAdminRoles: adminProcedure
+      .query(async () => {
+        const db = await (await import('./db')).getDb();
+        if (!db) return [];
+        const { users } = await import('../drizzle/schema');
+        const { like, eq } = await import('drizzle-orm');
+        const rows = await db.select().from(users).where(like(users.openId, 'emp_%'));
+        return rows.map(r => ({ openId: r.openId, role: r.role }));
+      }),
+
     // 전체 직원 연차 현황 (어드민 전용)
     allLeaveBalances: adminProcedure
       .input(z.object({ year: z.number().optional() }))
@@ -304,7 +338,13 @@ export const appRouter = router({
         days: z.number().min(0.25).max(365),
         reason: z.string().optional(),
       }))
-      .mutation(async ({ input }) => {
+      .mutation(async ({ input, ctx }) => {
+        // 본인 확인: 세션의 openId가 emp_{employeeId}와 일치해야 함 (어드민 제외)
+        const sessionOpenId = ctx.user.openId;
+        const expectedOpenId = `emp_${input.employeeId}`;
+        if (ctx.user.role !== 'admin' && !ctx.isAdminSession && sessionOpenId !== expectedOpenId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '본인의 연차만 신청할 수 있습니다.' });
+        }
         const year = parseInt(input.startDate.substring(0, 4));
         const balance = await getLeaveBalance(input.employeeId, year);
         const total = balance ? parseFloat(String(balance.totalDays)) : 15;
@@ -404,7 +444,8 @@ export const appRouter = router({
         note: z.string().optional(),
       }))
       .mutation(async ({ input }) => {
-        await insertAttendanceLog({
+        // 당일 동일 타입 기록이 있으면 삭제 후 새로 삽입 (오버라이드 허용)
+        await upsertTodayAttendanceLog({
           employeeId: input.employeeId ?? null,
           employeeName: input.employeeName,
           department: input.department ?? null,
@@ -456,9 +497,11 @@ export const appRouter = router({
         const logs = await getAttendanceLogs({ employeeName: input.employeeName, startDate, endDate });
         const grouped: Record<string, { date: string; checkIn: string | null; checkOut: string | null; workType: string; workHours: string | null }> = {};
         for (const log of logs) {
-          const dateKey = log.recordedAt.toISOString().substring(0, 10);
+          // KST 기준 날짜 계산 (UTC+9)
+          const kstDate = new Date(log.recordedAt.getTime() + 9 * 60 * 60 * 1000);
+          const dateKey = kstDate.toISOString().substring(0, 10);
           if (!grouped[dateKey]) grouped[dateKey] = { date: dateKey, checkIn: null, checkOut: null, workType: log.workType === 'office' ? '내근' : '외근', workHours: null };
-          const timeStr = log.recordedAt.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit', hour12: false });
+          const timeStr = `${String(kstDate.getUTCHours()).padStart(2, '0')}:${String(kstDate.getUTCMinutes()).padStart(2, '0')}`;
           if (log.type === 'checkin') grouped[dateKey].checkIn = timeStr;
           else grouped[dateKey].checkOut = timeStr;
         }
@@ -756,7 +799,7 @@ export const appRouter = router({
       }),
 
     // 게시글 수정 (작성자 본인 또는 어드민)
-    update: publicProcedure
+    update: protectedProcedure
       .input(z.object({
         id: z.number(),
         category: z.enum(["언론보도", "매뉴얼", "기타"]).optional(),
@@ -777,7 +820,6 @@ export const appRouter = router({
           });
           return { success: true };
         }
-        if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
         const rows = await getBoardPostById(input.id);
         if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
         const post = rows[0];
@@ -794,7 +836,7 @@ export const appRouter = router({
       }),
 
     // 게시글 삭제 (어드민 또는 작성자 본인)
-    delete: publicProcedure
+    delete: protectedProcedure
       .input(z.object({ id: z.number() }))
       .mutation(async ({ input, ctx }) => {
         // 어드민 세션이면 무조건 삭제 가능
@@ -802,7 +844,6 @@ export const appRouter = router({
           await deleteBoardPost(input.id);
           return { success: true };
         }
-        if (!ctx.user) throw new TRPCError({ code: 'UNAUTHORIZED', message: '로그인이 필요합니다.' });
         const rows = await getBoardPostById(input.id);
         if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
         const post = rows[0];
@@ -821,15 +862,21 @@ export const appRouter = router({
   }),
   // ── 캘린더 일정 API ───────────────────────────────────────────
   calendar: router({
-    // 월별 일정 목록
+    // 월별 일정 목록 (본인 일정만)
     listMonth: protectedProcedure
       .input(z.object({ year: z.number(), month: z.number() }))
-      .query(async ({ input }) => getCalendarEvents(input.year, input.month)),
+      .query(async ({ input, ctx }) => {
+        const all = await getCalendarEvents(input.year, input.month);
+        return all.filter(ev => ev.authorOpenId === ctx.user.openId);
+      }),
 
-    // 오늘 일정 목록
+    // 오늘 일정 목록 (본인 일정만)
     today: protectedProcedure
       .input(z.object({ date: z.string() })) // YYYY-MM-DD
-      .query(async ({ input }) => getTodayEvents(input.date)),
+      .query(async ({ input, ctx }) => {
+        const all = await getTodayEvents(input.date);
+        return all.filter(ev => ev.authorOpenId === ctx.user.openId);
+      }),
 
     // 단건 조회
     get: protectedProcedure
@@ -892,6 +939,253 @@ export const appRouter = router({
           throw new TRPCError({ code: 'FORBIDDEN', message: '삭제 권한이 없습니다.' });
         }
         await deleteCalendarEvent(input.id);
+        return { success: true };
+      }),
+  }),
+
+
+  // ── 예약 API ──────────────────────────────────────────────────────────────────────────────────────
+  reservations: router({
+    // 예약 신청 (로그인 필수)
+    request: protectedProcedure
+      .input(z.object({
+        resourceType: z.enum(["회의실", "차량", "장비", "공간"]),
+        resourceName: z.string().min(1),
+        reserveDate: z.string().min(1),
+        startTime: z.string().min(1),
+        endTime: z.string().min(1),
+        purpose: z.string().min(1),
+        employeeId: z.number().optional(),
+        employeeName: z.string().min(1),
+        department: z.string().optional(),
+        attendees: z.number().min(1).default(1),
+        note: z.string().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const existing = await getReservations({
+          reserveDate: input.reserveDate,
+          resourceType: input.resourceType,
+        });
+        const conflict = existing.filter(r =>
+          r.resourceName === input.resourceName &&
+          r.status !== "반려" && r.status !== "취소" &&
+          r.startTime < input.endTime && r.endTime > input.startTime
+        );
+        if (conflict.length > 0) {
+          throw new TRPCError({
+            code: "CONFLICT",
+            message: `해당 시간대(${input.startTime}~${input.endTime})에 이미 예약이 있습니다.`,
+          });
+        }
+        const id = await insertReservation({
+          resourceType: input.resourceType,
+          resourceName: input.resourceName,
+          reserveDate: input.reserveDate,
+          startTime: input.startTime,
+          endTime: input.endTime,
+          purpose: input.purpose,
+          employeeId: input.employeeId ?? null,
+          employeeName: input.employeeName,
+          department: input.department ?? null,
+          attendees: input.attendees,
+          note: input.note ?? null,
+          status: "대기",
+        });
+        return { success: true, id };
+      }),
+
+    // 일자별 전체 예약 현황 (로그인 필수 - 모두 볼 수 있음)
+    byDate: protectedProcedure
+      .input(z.object({ reserveDate: z.string().min(1) }))
+      .query(async ({ input }) => getReservations({ reserveDate: input.reserveDate })),
+
+    // 날짜 범위 조회 (로그인 필수)
+    byDateRange: protectedProcedure
+      .input(z.object({ startDate: z.string().min(1), endDate: z.string().min(1) }))
+      .query(async ({ input }) => getReservationsByDateRange(input.startDate, input.endDate)),
+
+    // 내 예약 이력 (로그인 필수)
+    myList: protectedProcedure
+      .input(z.object({ employeeId: z.number() }))
+      .query(async ({ input }) => getReservations({ employeeId: input.employeeId })),
+
+    // 전체 예약 목록 (어드민 전용)
+    adminList: adminProcedure
+      .input(z.object({
+        status: z.string().optional(),
+        resourceType: z.string().optional(),
+      }))
+      .query(async ({ input }) => {
+        return getReservations({
+          status: input.status,
+          resourceType: input.resourceType,
+        });
+      }),
+
+    // 예약 승인 (어드민 전용)
+    approve: adminProcedure
+      .input(z.object({ id: z.number(), approverName: z.string().min(1) }))
+      .mutation(async ({ input, ctx }) => {
+        const approverName = ctx.user.name ?? input.approverName;
+        const req = await getReservationById(input.id);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "예약 내역을 찾을 수 없습니다." });
+        if (req.status !== "대기") throw new TRPCError({ code: "BAD_REQUEST", message: "이미 처리된 신청입니다." });
+        await updateReservationStatus(input.id, "승인", approverName);
+        return { success: true };
+      }),
+
+    // 예약 반려 (어드민 전용)
+    reject: adminProcedure
+      .input(z.object({ id: z.number(), approverName: z.string().min(1), rejectReason: z.string().optional() }))
+      .mutation(async ({ input, ctx }) => {
+        const approverName = ctx.user.name ?? input.approverName;
+        const req = await getReservationById(input.id);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "예약 내역을 찾을 수 없습니다." });
+        if (req.status !== "대기") throw new TRPCError({ code: "BAD_REQUEST", message: "이미 처리된 신청입니다." });
+        await updateReservationStatus(input.id, "반려", approverName, input.rejectReason);
+        return { success: true };
+      }),
+
+    // 예약 취소 (본인 또는 어드민)
+    cancel: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        const req = await getReservationById(input.id);
+        if (!req) throw new TRPCError({ code: "NOT_FOUND", message: "예약 내역을 찾을 수 없습니다." });
+        const isOwner = req.employeeId !== null && ctx.user.openId === `emp_${req.employeeId}`;
+        if (ctx.user.role !== 'admin' && !isOwner) {
+          throw new TRPCError({ code: "FORBIDDEN", message: "취소 권한이 없습니다." });
+        }
+        if (req.status === "취소") throw new TRPCError({ code: "BAD_REQUEST", message: "이미 취소된 예약입니다." });
+        await updateReservationStatus(input.id, "취소");
+        return { success: true };
+      }),
+  }),
+
+  // ── 예약 자원 관리 API ───────────────────────────────────────────────────────────────────────────────────
+  reservationResources: router({
+    // 자원 목록 조회 (공개 - 예약 페이지에서 사용, 비로그인도 조회 가능)
+    list: publicProcedure
+      .input(z.object({ onlyActive: z.boolean().optional() }))
+      .query(async ({ input }) => getReservationResources(input.onlyActive ?? true)),
+
+    // 자원 전체 목록 (어드민 전용 - 비활성 포함)
+    adminList: adminProcedure
+      .query(async () => getReservationResources(false)),
+
+    // 자원 추가 (어드민 전용)
+    create: adminProcedure
+      .input(z.object({
+        resourceType: z.enum(["회의실", "차량", "장비", "공간"]),
+        name: z.string().min(1).max(100),
+        capacity: z.number().min(1).default(1),
+        location: z.string().max(100).optional(),
+        description: z.string().optional(),
+        isActive: z.boolean().default(true),
+        sortOrder: z.number().default(0),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await insertReservationResource({
+          resourceType: input.resourceType,
+          name: input.name,
+          capacity: input.capacity,
+          location: input.location ?? null,
+          description: input.description ?? null,
+          isActive: input.isActive,
+          sortOrder: input.sortOrder,
+        });
+        return { success: true, id };
+      }),
+
+    // 자원 수정 (어드민 전용)
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        resourceType: z.enum(["회의실", "차량", "장비", "공간"]).optional(),
+        name: z.string().min(1).max(100).optional(),
+        capacity: z.number().min(1).optional(),
+        location: z.string().max(100).optional(),
+        description: z.string().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const resource = await getReservationResourceById(id);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "자원을 찾을 수 없습니다." });
+        await updateReservationResource(id, data);
+        return { success: true };
+      }),
+
+    // 자원 삭제 (어드민 전용)
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const resource = await getReservationResourceById(input.id);
+        if (!resource) throw new TRPCError({ code: "NOT_FOUND", message: "자원을 찾을 수 없습니다." });
+        await deleteReservationResource(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ── 배너 API ──────────────────────────────────────────────────────────
+  banners: router({
+    // 활성 배너 목록 조회 (포탈 사용자용 - 로그인 필수)
+    list: protectedProcedure
+      .query(async () => getBanners(true)),
+
+    // 전체 배너 목록 (어드민 전용 - 비활성 포함, 등록순)
+    adminList: adminProcedure
+      .query(async () => getBanners(false)),
+
+    // 배너 등록 (어드민 전용)
+    create: adminProcedure
+      .input(z.object({
+        name: z.string().min(1).max(200),
+        imageUrl: z.string().min(1).max(500),
+        linkUrl: z.string().max(500).optional(),
+        note: z.string().optional(),
+        isActive: z.boolean().default(true),
+        sortOrder: z.number().default(0),
+      }))
+      .mutation(async ({ input }) => {
+        const id = await insertBanner({
+          name: input.name,
+          imageUrl: input.imageUrl,
+          linkUrl: input.linkUrl ?? null,
+          note: input.note ?? null,
+          isActive: input.isActive,
+          sortOrder: input.sortOrder,
+        });
+        return { success: true, id };
+      }),
+
+    // 배너 수정 (어드민 전용)
+    update: adminProcedure
+      .input(z.object({
+        id: z.number(),
+        name: z.string().min(1).max(200).optional(),
+        imageUrl: z.string().max(500).optional(),
+        linkUrl: z.string().max(500).nullable().optional(),
+        note: z.string().nullable().optional(),
+        isActive: z.boolean().optional(),
+        sortOrder: z.number().optional(),
+      }))
+      .mutation(async ({ input }) => {
+        const { id, ...data } = input;
+        const banner = await getBannerById(id);
+        if (!banner) throw new TRPCError({ code: "NOT_FOUND", message: "배너를 찾을 수 없습니다." });
+        await updateBanner(id, data);
+        return { success: true };
+      }),
+
+    // 배너 삭제 (어드민 전용)
+    delete: adminProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input }) => {
+        const banner = await getBannerById(input.id);
+        if (!banner) throw new TRPCError({ code: "NOT_FOUND", message: "배너를 찾을 수 없습니다." });
+        await deleteBanner(input.id);
         return { success: true };
       }),
   }),

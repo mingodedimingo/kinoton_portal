@@ -12,6 +12,9 @@ import {
   LeaveRequest, InsertLeaveRequest, leaveRequests,
   CalendarEvent, InsertCalendarEvent, calendarEvents,
   PasswordResetToken, InsertPasswordResetToken, passwordResetTokens,
+  Reservation, InsertReservation, reservations,
+  ReservationResource, InsertReservationResource, reservationResources,
+  Banner, InsertBanner, banners,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -70,6 +73,25 @@ export async function insertAttendanceLog(data: InsertAttendanceLog): Promise<vo
   await db.insert(attendanceLogs).values(data);
 }
 
+// 당일 동일 타입(checkin/checkout) 기록이 있으면 삭제 후 새로 삽입 (오버라이드)
+export async function upsertTodayAttendanceLog(data: InsertAttendanceLog): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  // KST 기준 오늘 자정 ~ 23:59:59 계산
+  const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayKSTStr = nowKST.toISOString().substring(0, 10); // YYYY-MM-DD
+  const startUTC = new Date(`${todayKSTStr}T00:00:00+09:00`);
+  const endUTC = new Date(`${todayKSTStr}T23:59:59+09:00`);
+  // 당일 동일 타입 기록 삭제
+  const nameCondition = eq(attendanceLogs.employeeName, data.employeeName);
+  const typeCondition = eq(attendanceLogs.type, data.type as 'checkin' | 'checkout');
+  const startCondition = gte(attendanceLogs.recordedAt, startUTC);
+  const endCondition = lte(attendanceLogs.recordedAt, endUTC);
+  await db.delete(attendanceLogs).where(and(nameCondition, typeCondition, startCondition, endCondition));
+  // 새 기록 삽입
+  await db.insert(attendanceLogs).values(data);
+}
+
 export async function getAttendanceLogs(filters?: {
   date?: Date;
   department?: string;
@@ -102,9 +124,11 @@ export async function getTodayStatus(employeeName: string): Promise<{
 }> {
   const db = await getDb();
   if (!db) return { checkin: null, checkout: null };
-  const now = new Date();
-  const start = new Date(now); start.setHours(0, 0, 0, 0);
-  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  // KST 기준 오늘 자정 ~ 23:59:59
+  const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayKSTStr = nowKST.toISOString().substring(0, 10);
+  const start = new Date(`${todayKSTStr}T00:00:00+09:00`);
+  const end = new Date(`${todayKSTStr}T23:59:59+09:00`);
   const rows = await db.select().from(attendanceLogs).where(
     and(eq(attendanceLogs.employeeName, employeeName), gte(attendanceLogs.recordedAt, start), lte(attendanceLogs.recordedAt, end))
   ).orderBy(desc(attendanceLogs.recordedAt));
@@ -120,9 +144,11 @@ export async function getTodaySummary(): Promise<{
 }> {
   const db = await getDb();
   if (!db) return { totalCheckin: 0, totalCheckout: 0, currentlyIn: 0 };
-  const now = new Date();
-  const start = new Date(now); start.setHours(0, 0, 0, 0);
-  const end = new Date(now); end.setHours(23, 59, 59, 999);
+  // KST 기준 오늘 자정 ~ 23:59:59
+  const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  const todayKSTStr = nowKST.toISOString().substring(0, 10);
+  const start = new Date(`${todayKSTStr}T00:00:00+09:00`);
+  const end = new Date(`${todayKSTStr}T23:59:59+09:00`);
   const rows = await db.select().from(attendanceLogs).where(
     and(gte(attendanceLogs.recordedAt, start), lte(attendanceLogs.recordedAt, end))
   );
@@ -509,4 +535,152 @@ export async function markPasswordResetTokenUsed(id: number): Promise<void> {
     .update(passwordResetTokens)
     .set({ usedAt: new Date() })
     .where(eq(passwordResetTokens.id, id));
+}
+
+// ── 예약 헬퍼 ────────────────────────────────────────────────────
+export async function insertReservation(data: InsertReservation): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(reservations).values(data);
+  return (result[0] as { insertId: number }).insertId;
+}
+
+export async function getReservations(filters?: {
+  reserveDate?: string;
+  resourceType?: string;
+  status?: string;
+  employeeId?: number;
+}): Promise<Reservation[]> {
+  const db = await getDb();
+  if (!db) return [];
+  const conditions = [];
+  if (filters?.reserveDate) conditions.push(eq(reservations.reserveDate, filters.reserveDate));
+  if (filters?.resourceType) conditions.push(eq(reservations.resourceType, filters.resourceType as "회의실" | "차량" | "장비" | "공간"));
+  if (filters?.status) conditions.push(eq(reservations.status, filters.status as "대기" | "승인" | "반려" | "취소"));
+  if (filters?.employeeId) conditions.push(eq(reservations.employeeId, filters.employeeId));
+  const query = conditions.length > 0
+    ? db.select().from(reservations).where(and(...conditions)).orderBy(reservations.reserveDate, reservations.startTime)
+    : db.select().from(reservations).orderBy(desc(reservations.createdAt));
+  return query;
+}
+
+export async function getReservationsByDateRange(startDate: string, endDate: string): Promise<Reservation[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(reservations)
+    .where(and(gte(reservations.reserveDate, startDate), lte(reservations.reserveDate, endDate)))
+    .orderBy(reservations.reserveDate, reservations.startTime);
+}
+
+export async function getReservationById(id: number): Promise<Reservation | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(reservations).where(eq(reservations.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function updateReservationStatus(
+  id: number,
+  status: "승인" | "반려" | "취소",
+  approverName?: string,
+  rejectReason?: string,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(reservations).set({
+    status,
+    approverName: approverName ?? null,
+    approvedAt: status === "승인" ? new Date() : null,
+    rejectReason: rejectReason ?? null,
+  }).where(eq(reservations.id, id));
+}
+
+export async function deleteReservation(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(reservations).where(eq(reservations.id, id));
+}
+
+// ── 예약 자원 헬퍼 ────────────────────────────────────────────────────
+export async function getReservationResources(onlyActive?: boolean): Promise<ReservationResource[]> {
+  const db = await getDb();
+  if (!db) return [];
+  if (onlyActive) {
+    return db.select().from(reservationResources)
+      .where(eq(reservationResources.isActive, true))
+      .orderBy(reservationResources.sortOrder, reservationResources.resourceType, reservationResources.name);
+  }
+  return db.select().from(reservationResources)
+    .orderBy(reservationResources.sortOrder, reservationResources.resourceType, reservationResources.name);
+}
+
+export async function getReservationResourceById(id: number): Promise<ReservationResource | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(reservationResources).where(eq(reservationResources.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function insertReservationResource(data: InsertReservationResource): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(reservationResources).values(data);
+  return (result[0] as { insertId: number }).insertId;
+}
+
+export async function updateReservationResource(
+  id: number,
+  data: Partial<Omit<InsertReservationResource, "id" | "createdAt" | "updatedAt">>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(reservationResources).set(data).where(eq(reservationResources.id, id));
+}
+
+export async function deleteReservationResource(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(reservationResources).where(eq(reservationResources.id, id));
+}
+
+// ── 배너 쿼리 헬퍼 ─────────────────────────────────────────────────
+export async function getBanners(onlyActive?: boolean): Promise<Banner[]> {
+  const db = await getDb();
+  if (!db) return [];
+  if (onlyActive) {
+    return db.select().from(banners)
+      .where(eq(banners.isActive, true))
+      .orderBy(banners.sortOrder, banners.createdAt);
+  }
+  return db.select().from(banners)
+    .orderBy(banners.sortOrder, banners.createdAt);
+}
+
+export async function getBannerById(id: number): Promise<Banner | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(banners).where(eq(banners.id, id)).limit(1);
+  return result.length > 0 ? result[0] : undefined;
+}
+
+export async function insertBanner(data: InsertBanner): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(banners).values(data);
+  return (result[0] as { insertId: number }).insertId;
+}
+
+export async function updateBanner(
+  id: number,
+  data: Partial<Omit<InsertBanner, "id" | "createdAt" | "updatedAt">>,
+): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.update(banners).set(data).where(eq(banners.id, id));
+}
+
+export async function deleteBanner(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(banners).where(eq(banners.id, id));
 }

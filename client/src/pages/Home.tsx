@@ -4,7 +4,7 @@
  * PC: 좌(프로필+통계+출퇴근+연차+달력) + 우(퀵메뉴+공지+게시판+인사발령+경조사)
  * Mobile: 퀵메뉴카드 → 프로필카드 → 통계카드 → 출퇴근카드
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { Link, useLocation } from "wouter";
 import { toast } from "sonner";
 import {
@@ -52,10 +52,16 @@ const CONDOLENCES = [
   { id: 4, type: "부고", name: "Dx사업부 최재실 담당님 부친상", date: "2026.01.02", emoji: "🕯️" },
 ];
 
-// 퀵메뉴: 메일·전자결재·ERP·영업시스템·전체메뉴 (5개)
-const QUICK_MENUS = [
+// 퀵메뉴: PC 5개 (전자결재 포함), 모바일 4개 (전자결재 제외)
+const QUICK_MENUS_PC = [
   { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
-  { label: "전자결재",   icon: FileCheck,   path: "/approve",                       badge: 0 },
+  { label: "전자결재",   icon: FileCheck,   path: "https://login.ecount.com/Login/", badge: 0, external: true },
+  { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
+  { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
+  { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
+];
+const QUICK_MENUS_MOBILE = [
+  { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
   { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
   { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
   { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
@@ -71,16 +77,125 @@ function getFirstDayOfMonth(year: number, month: number) {
 const DAY_NAMES = ["일","월","화","수","목","금","토"];
 const DAY_KO = ["일","월","화","수","목","금","토"];
 
+// ── Rolling Banner ─────────────────────────────────────────────
+type BannerItem = {
+  id: number;
+  imageUrl: string;
+  linkUrl?: string | null;
+  name: string;
+};
+
+function RollingBanner() {
+  const [navigate] = useLocation();
+  const { data: banners, isLoading } = trpc.banners.list.useQuery();
+  const [current, setCurrent] = useState(0);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  const list: BannerItem[] = banners ?? [];
+  const count = list.length;
+
+  const startTimer = useCallback(() => {
+    if (timerRef.current) clearInterval(timerRef.current);
+    if (count <= 1) return;
+    timerRef.current = setInterval(() => {
+      setCurrent(prev => (prev + 1) % count);
+    }, 10000);
+  }, [count]);
+
+  useEffect(() => {
+    startTimer();
+    return () => { if (timerRef.current) clearInterval(timerRef.current); };
+  }, [startTimer]);
+
+  const goTo = (idx: number) => {
+    setCurrent(idx);
+    startTimer();
+  };
+
+  const handleBannerClick = (banner: BannerItem) => {
+    if (!banner.linkUrl) return;
+    const url = banner.linkUrl.trim();
+    if (!url) return;
+    // 외부 링크: 새 탭, 내부 경로: wouter navigate (세션 유지)
+    if (url.startsWith("http://") || url.startsWith("https://")) {
+      window.open(url, "_blank", "noopener,noreferrer");
+    } else {
+      window.location.href = url;
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        className="rounded-lg animate-pulse"
+        style={{ height: "140px", background: "var(--kino-pale)" }}
+      />
+    );
+  }
+
+  if (!list || list.length === 0) return null;
+
+  const active = list[current] ?? list[0];
+
+  return (
+    <div
+      className="relative rounded-lg overflow-hidden"
+      style={{ height: "140px", background: "#000", flexShrink: 0 }}
+    >
+      {/* 배너 이미지 */}
+      {list.map((banner, idx) => (
+        <div
+          key={banner.id}
+          className="absolute inset-0 transition-opacity duration-700"
+          style={{ opacity: idx === current ? 1 : 0, zIndex: idx === current ? 1 : 0 }}
+        >
+          <img
+            src={banner.imageUrl}
+            alt={banner.name}
+            className="w-full h-full object-cover"
+            style={{ cursor: banner.linkUrl ? "pointer" : "default" }}
+            onClick={() => handleBannerClick(banner)}
+          />
+        </div>
+      ))}
+
+      {/* 인디케이터 (2개 이상일 때만) */}
+      {count > 1 && (
+        <div
+          className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5"
+          style={{ zIndex: 10 }}
+        >
+          {list.map((_, idx) => (
+            <button
+              key={idx}
+              onClick={() => goTo(idx)}
+              className="rounded-full transition-all"
+              style={{
+                width: idx === current ? "18px" : "6px",
+                height: "6px",
+                background: idx === current ? "white" : "rgba(255,255,255,0.5)",
+                border: "none",
+                padding: 0,
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ── Quick Menu ───────────────────────────────────────────────────
-function QuickMenuSection({ card = false }: { card?: boolean }) {
-  const handleClick = (item: typeof QUICK_MENUS[0]) => {
+function QuickMenuSection({ card = false, mobile = false }: { card?: boolean; mobile?: boolean }) {
+  const menus = mobile ? QUICK_MENUS_MOBILE : QUICK_MENUS_PC;
+  const handleClick = (item: typeof QUICK_MENUS_PC[0]) => {
     if (item.path === "/#menu") openFullMenu();
     else if (item.external) window.open(item.path, "_blank");
     else window.location.href = item.path;
   };
   const inner = (
     <div className="flex items-center justify-center gap-4 md:gap-10 pt-8 pb-5 px-4">
-      {QUICK_MENUS.map((item) => {
+      {menus.map((item) => {
         const Icon = item.icon;
         const content = (
           <div className="quick-menu-item" key={item.label}>
@@ -518,6 +633,24 @@ function useAttendance(employee: { id: number; name: string; department: string;
 }
 
 const DEFAULT_AVATAR = "https://ui-avatars.com/api/?background=e5e7eb&color=374151&size=128&name=";
+// 이름 이니셜: 3자 이상이면 뒤 2자, 2자 이하면 그대로
+const getNameInitials = (name: string) => name.length >= 3 ? name.slice(-2) : name;
+const getAvatarUrl = (name: string) => `${DEFAULT_AVATAR}${encodeURIComponent(getNameInitials(name))}`;
+
+// ── PC 오늘 일정 통계 (달력 기준) ───────────────────────────────
+function PcTodayStats() {
+  const todayStr = `${TODAY.getFullYear()}-${String(TODAY.getMonth() + 1).padStart(2, '0')}-${String(TODAY.getDate()).padStart(2, '0')}`;
+  const { data: tasks } = trpc.calendar.today.useQuery({ date: todayStr });
+  const taskCount = tasks?.length ?? 0;
+  return (
+    <div className="py-1" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
+      <div className="flex flex-col items-center py-2.5">
+        <span className="text-xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{taskCount}</span>
+        <span className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>오늘 일정</span>
+      </div>
+    </div>
+  );
+}
 
 // ── Left Panel (PC only) — 프로필+통계+출퇴근+연차+달력 ──────────
 function LeftPanel() {
@@ -525,7 +658,7 @@ function LeftPanel() {
   const [workType, setWorkType] = useState<"내근"|"외근">("내근");
   const { data: myEmployee } = trpc.employees.me.useQuery();
   const selectedEmployee = myEmployee ? { id: myEmployee.id, name: myEmployee.name, department: myEmployee.department, position: myEmployee.position } : null;
-  const profileImage = myEmployee?.profileImage || `${DEFAULT_AVATAR}${encodeURIComponent(myEmployee?.name ?? "")}`;
+  const profileImage = myEmployee?.profileImage || getAvatarUrl(myEmployee?.name ?? "");
   const { checkedIn, checkedOut, isLoading, isPending, checkinTime, checkoutTime, handleCheckin, handleCheckout } = useAttendance(selectedEmployee);
 
   const now = new Date();
@@ -534,8 +667,9 @@ function LeftPanel() {
 
   const formatTime = (date: Date | undefined) => {
     if (!date) return null;
-    const d = new Date(date);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    // KST 변환 (UTC+9)
+    const d = new Date(new Date(date).getTime() + 9 * 60 * 60 * 1000);
+    return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   };
 
   const statusLabel = isLoading ? "조회 중" : checkedIn ? (checkedOut ? "퇴근" : "출근 중") : "미출근";
@@ -557,24 +691,10 @@ function LeftPanel() {
         />
         <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{myEmployee?.name ?? ""}</p>
         <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{myEmployee?.department ?? ""} · {myEmployee?.position ?? ""}</p>
-        <div className="flex items-center gap-1 mt-1.5">
-          <Wifi size={10} style={{ color: "var(--kino-green)" }} />
-          <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
-        </div>
       </div>
 
-      {/* 통계 2열 */}
-      <div className="grid grid-cols-2 divide-x py-1" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
-        {[
-          { label: "오늘 일정", value: "2" },
-          { label: "진행 결재", value: "1" },
-        ].map((s) => (
-          <div key={s.label} className="flex flex-col items-center py-2.5">
-            <span className="text-xl font-bold" style={{ color: "var(--kino-charcoal)" }}>{s.value}</span>
-            <span className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{s.label}</span>
-          </div>
-        ))}
-      </div>
+      {/* 통계 1열 - 오늘 일정만 표시 (달력 기제 일정 기준 타운팅) */}
+      <PcTodayStats />
 
       {/* 출퇴근 */}
       <div className="py-3" style={{ borderBottom: "1px solid var(--kino-pale)" }}>
@@ -619,12 +739,12 @@ function LeftPanel() {
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => handleCheckin(workType === "내근" ? "office" : "field")}
-            disabled={checkedIn || isPending || isLoading}
+            disabled={isPending || isLoading}
             className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all active:scale-95"
             style={{
-              background: checkedIn ? "var(--kino-pale)" : "var(--kino-charcoal)",
-              color: checkedIn ? "var(--kino-muted)" : "white",
-              opacity: checkedIn ? 0.6 : 1,
+              background: "var(--kino-charcoal)",
+              color: "white",
+              opacity: (isPending || isLoading) ? 0.6 : 1,
             }}
           >
             {isPending ? <Loader2 size={12} className="animate-spin" /> : <LogIn size={12} />}
@@ -632,12 +752,12 @@ function LeftPanel() {
           </button>
           <button
             onClick={() => handleCheckout(workType === "내근" ? "office" : "field")}
-            disabled={!checkedIn || checkedOut || isPending || isLoading}
+            disabled={isPending || isLoading}
             className="flex items-center justify-center gap-1.5 py-2 rounded text-xs font-bold transition-all active:scale-95"
             style={{
               border: "1.5px solid var(--kino-pale)",
-              color: (!checkedIn || checkedOut) ? "var(--kino-pale)" : "var(--kino-mid)",
-              opacity: (!checkedIn || checkedOut) ? 0.5 : 1,
+              color: (isPending || isLoading) ? "var(--kino-pale)" : "var(--kino-mid)",
+              opacity: (isPending || isLoading) ? 0.5 : 1,
             }}
           >
             {isPending ? <Loader2 size={12} className="animate-spin" /> : <LogOut size={12} />}
@@ -656,14 +776,14 @@ function LeftPanel() {
 
 // ── Mobile: 퀵메뉴 카드 ──────────────────────────────────────────
 function MobileQuickMenu() {
-  return <QuickMenuSection card={true} />;
+  return <QuickMenuSection card={true} mobile={true} />;
 }
 
 // ── Mobile: 프로필 카드 ──────────────────────────────────────────
 function MobileProfileCard() {
   const [, navigate] = useLocation();
   const { data: myEmployee } = trpc.employees.me.useQuery();
-  const profileImage = myEmployee?.profileImage || `${DEFAULT_AVATAR}${encodeURIComponent(myEmployee?.name ?? "")}`;
+  const profileImage = myEmployee?.profileImage || getAvatarUrl(myEmployee?.name ?? "");
   return (
     <div className="portal-card p-4 animate-fade-in-up stagger-2 flex items-center gap-3">
       <img
@@ -675,12 +795,8 @@ function MobileProfileCard() {
       <div className="flex-1 min-w-0">
         <p className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>{myEmployee?.name ?? ""}</p>
         <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{myEmployee?.department ?? ""} · {myEmployee?.position ?? ""}</p>
-        <div className="flex items-center gap-1 mt-1">
-          <Wifi size={10} style={{ color: "var(--kino-green)" }} />
-          <span className="text-xs font-medium" style={{ color: "var(--kino-green)" }}>온라인</span>
-        </div>
-      </div>
 
+      </div>
     </div>
   );
 }
@@ -713,8 +829,9 @@ function MobileAttendanceCard() {
 
   const formatTime = (date: Date | undefined) => {
     if (!date) return null;
-    const d = new Date(date);
-    return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+    // KST 변환 (UTC+9)
+    const d = new Date(new Date(date).getTime() + 9 * 60 * 60 * 1000);
+    return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
   };
 
   const statusLabel = isLoading ? "조회 중" : checkedIn ? (checkedOut ? "퇴근" : "출근 중") : "미출근";
@@ -762,12 +879,12 @@ function MobileAttendanceCard() {
       <div className="grid grid-cols-2 gap-3">
         <button
           onClick={() => handleCheckin(workType === "내근" ? "office" : "field")}
-          disabled={checkedIn || isPending || isLoading}
+          disabled={isPending || isLoading}
           className="flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold transition-all active:scale-95"
           style={{
-            background: checkedIn ? "var(--kino-pale)" : "var(--kino-charcoal)",
-            color: checkedIn ? "var(--kino-muted)" : "white",
-            opacity: checkedIn ? 0.6 : 1,
+            background: "var(--kino-charcoal)",
+            color: "white",
+            opacity: (isPending || isLoading) ? 0.6 : 1,
           }}
         >
           {isPending ? <Loader2 size={15} className="animate-spin" /> : <LogIn size={15} />}
@@ -775,12 +892,12 @@ function MobileAttendanceCard() {
         </button>
         <button
           onClick={() => handleCheckout(workType === "내근" ? "office" : "field")}
-          disabled={!checkedIn || checkedOut || isPending || isLoading}
+          disabled={isPending || isLoading}
           className="flex items-center justify-center gap-2 py-3.5 rounded-lg text-sm font-bold transition-all active:scale-95"
           style={{
             border: "1.5px solid var(--kino-pale)",
-            color: (!checkedIn || checkedOut) ? "var(--kino-pale)" : "var(--kino-mid)",
-            opacity: (!checkedIn || checkedOut) ? 0.5 : 1,
+            color: (isPending || isLoading) ? "var(--kino-pale)" : "var(--kino-mid)",
+            opacity: (isPending || isLoading) ? 0.5 : 1,
           }}
         >
           {isPending ? <Loader2 size={15} className="animate-spin" /> : <LogOut size={15} />}
@@ -805,7 +922,15 @@ export default function Home() {
 
             {/* 우측: 퀵메뉴 + 공지+게시판 / 인사발령+경조사 */}
             <div className="flex-1 min-w-0 flex flex-col gap-4">
-              <QuickMenuSection card={false} />
+              {/* 퀵메뉴 + 배너 좌우 분할 */}
+              <div className="flex gap-4 items-stretch">
+                <div className="flex-1 min-w-0">
+                  <QuickMenuSection card={false} />
+                </div>
+                <div style={{ width: "42%", flexShrink: 0 }}>
+                  <RollingBanner />
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-4">
                 <NoticeSection />
                 <BoardSection />

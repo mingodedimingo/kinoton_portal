@@ -11,7 +11,7 @@ import {
   LayoutDashboard, ClipboardList, Megaphone,
   UserCheck, Heart, BookOpen, LogOut,
   Menu, X, ChevronRight, Loader2, Users, CalendarDays,
-  ShieldOff,
+  ShieldOff, Building2, Package, Image,
 } from "lucide-react";
 
 const ADMIN_NAV = [
@@ -22,6 +22,9 @@ const ADMIN_NAV = [
   { label: "인사발령",    icon: UserCheck,       path: "/admin/hr" },
   { label: "경조사",      icon: Heart,           path: "/admin/condolences" },
   { label: "게시판",      icon: BookOpen,        path: "/admin/board" },
+  { label: "예약 관리",   icon: Building2,       path: "/admin/reserve" },
+  { label: "자원 관리",   icon: Package,         path: "/admin/resources" },
+  { label: "배너 관리",   icon: Image,           path: "/admin/banners" },
 ];
 
 interface Props {
