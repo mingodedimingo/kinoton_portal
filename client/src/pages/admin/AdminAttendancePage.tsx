@@ -23,8 +23,9 @@ function fromDateString(str: string): Date {
 }
 function formatTime(date: Date | string | null | undefined): string {
   if (!date) return "-";
-  const d = new Date(date);
-  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+  // KST 변환 (UTC+9)
+  const d = new Date(new Date(date).getTime() + 9 * 60 * 60 * 1000);
+  return `${String(d.getUTCHours()).padStart(2, '0')}:${String(d.getUTCMinutes()).padStart(2, '0')}`;
 }
 function calcWorkMinutes(checkin: Date | string | null | undefined, checkout: Date | string | null | undefined): string {
   if (!checkin || !checkout) return "-";
@@ -34,37 +35,55 @@ function calcWorkMinutes(checkin: Date | string | null | undefined, checkout: Da
   const mins = Math.floor((diff % 3600000) / 60000);
   return `${hours}시간 ${mins}분`;
 }
-// 지각 여부 (09:00 이후 출근)
+// 지각 여부 (09:00 이후 출근) - KST 기준
 function isLate(checkin: Date | string | null | undefined): boolean {
   if (!checkin) return false;
-  const d = new Date(checkin);
-  return d.getHours() > 9 || (d.getHours() === 9 && d.getMinutes() > 0);
+  const d = new Date(new Date(checkin).getTime() + 9 * 60 * 60 * 1000);
+  return d.getUTCHours() > 9 || (d.getUTCHours() === 9 && d.getUTCMinutes() > 0);
 }
-// 조퇴 여부 (18:00 이전 퇴근)
+// 조퇴 여부 (18:00 이전 퇴근) - KST 기준
 function isEarlyLeave(checkout: Date | string | null | undefined): boolean {
   if (!checkout) return false;
-  const d = new Date(checkout);
-  return d.getHours() < 18;
+  const d = new Date(new Date(checkout).getTime() + 9 * 60 * 60 * 1000);
+  return d.getUTCHours() < 18;
 }
 
 // ── 일별 현황 탭 ──────────────────────────────────────────────────
 function DailyTab() {
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(toDateString(today));
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+  const [useRange, setUseRange] = useState(false);
   const [deptFilter, setDeptFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
 
   const queryDate = useMemo(() => fromDateString(selectedDate), [selectedDate]);
+  const queryStartDate = useMemo(() => startDate ? fromDateString(startDate) : undefined, [startDate]);
+  const queryEndDate = useMemo(() => endDate ? fromDateString(endDate) : undefined, [endDate]);
 
-  const { data: logs, isLoading, refetch } = trpc.attendance.adminList.useQuery({
-    date: queryDate,
-    department: deptFilter || undefined,
-    employeeName: nameFilter || undefined,
-  });
+  const { data: logs, isLoading, refetch } = trpc.attendance.adminList.useQuery(
+    useRange && startDate && endDate
+      ? { startDate: queryStartDate, endDate: queryEndDate, department: deptFilter || undefined, employeeName: nameFilter || undefined }
+      : { date: queryDate, department: deptFilter || undefined, employeeName: nameFilter || undefined }
+  );
   const { data: summary } = trpc.attendance.todaySummary.useQuery();
 
+  // 날짜 범위 모드: 날짜별 전체 로그 목록
+  const rangeLogList = useMemo(() => {
+    if (!useRange || !logs) return [];
+    return logs.map(log => {
+      const kstDate = new Date(new Date(log.recordedAt).getTime() + 9 * 60 * 60 * 1000);
+      return {
+        ...log,
+        dateStr: kstDate.toISOString().substring(0, 10),
+        timeStr: `${String(kstDate.getUTCHours()).padStart(2, '0')}:${String(kstDate.getUTCMinutes()).padStart(2, '0')}`,
+      };
+    });
+  }, [logs, useRange]);
+
   const employeeMap = useMemo(() => {
-    if (!logs) return [];
+    if (useRange || !logs) return [];
     const map = new Map<string, {
       name: string; dept: string; position: string;
       checkin: (typeof logs)[0] | null;
@@ -87,9 +106,9 @@ function DailyTab() {
       if (log.type === "checkout" && !entry.checkout) entry.checkout = log;
     }
     return Array.from(map.values());
-  }, [logs]);
+  }, [logs, useRange]);
 
-  const isToday = selectedDate === toDateString(today);
+  const isToday = !useRange && selectedDate === toDateString(today);
 
   // CSV 내보내기 (이카운트 근태 업로드 형식)
   const handleExportCSV = async () => {
@@ -151,6 +170,20 @@ function DailyTab() {
       <div className="rounded-lg p-4 mb-4 flex flex-wrap gap-3 items-end justify-between"
         style={{ background: "var(--kino-white)", border: "1px solid var(--kino-pale)" }}>
         <div className="flex flex-wrap gap-3 items-end">
+          {/* 단일 / 범위 토글 */}
+          <div className="flex items-center gap-2 mr-1">
+            <button
+              onClick={() => setUseRange(false)}
+              className="px-3 py-1.5 rounded text-xs font-semibold transition-all"
+              style={{ background: !useRange ? "var(--kino-charcoal)" : "var(--kino-bg)", color: !useRange ? "white" : "var(--kino-mid)", border: "1px solid var(--kino-pale)" }}
+            >단일</button>
+            <button
+              onClick={() => setUseRange(true)}
+              className="px-3 py-1.5 rounded text-xs font-semibold transition-all"
+              style={{ background: useRange ? "var(--kino-charcoal)" : "var(--kino-bg)", color: useRange ? "white" : "var(--kino-mid)", border: "1px solid var(--kino-pale)" }}
+            >기간</button>
+          </div>
+          {!useRange ? (
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>날짜</label>
             <input
@@ -161,6 +194,30 @@ function DailyTab() {
               style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
             />
           </div>
+          ) : (
+          <>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>시작일</label>
+              <input
+                type="date"
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
+                className="px-3 py-2 rounded-md text-sm outline-none"
+                style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+              />
+            </div>
+            <div>
+              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>종료일</label>
+              <input
+                type="date"
+                value={endDate}
+                onChange={e => setEndDate(e.target.value)}
+                className="px-3 py-2 rounded-md text-sm outline-none"
+                style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
+              />
+            </div>
+          </>
+          )}
           <div>
             <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>부서</label>
             <input
@@ -209,6 +266,48 @@ function DailyTab() {
               <p className="text-xs" style={{ color: "var(--kino-muted)" }}>조회 중...</p>
             </div>
           </div>
+        ) : useRange ? (
+          /* 기간 모드: 날짜 코럼 포함 원시 로그 목록 */
+          rangeLogList.length === 0 ? (
+            <div className="text-center py-10">
+              <p className="text-sm" style={{ color: "var(--kino-light)" }}>
+                {startDate} ~ {endDate} 기간에 출퇴근 기록이 없습니다
+              </p>
+            </div>
+          ) : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ background: "var(--kino-pale)" }}>
+                  {["날짜", "이름", "부서/직위", "구분", "시간", "근무형태"].map(h => (
+                    <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {rangeLogList.map((log, i) => (
+                  <tr key={log.id} style={{ background: i % 2 === 0 ? "var(--kino-white)" : "var(--kino-bg)", borderBottom: "1px solid var(--kino-pale)" }}>
+                    <td className="px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{log.dateStr}</td>
+                    <td className="px-4 py-2.5 font-medium" style={{ color: "var(--kino-charcoal)" }}>{log.employeeName}</td>
+                    <td className="px-4 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>
+                      {log.department ?? ""}{log.department && log.position ? " · " : ""}{log.position ?? ""}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <span className={`text-xs px-2 py-0.5 rounded font-semibold`} style={{ background: log.type === 'checkin' ? '#F0FDF4' : '#EFF6FF', color: log.type === 'checkin' ? '#16A34A' : '#1D4ED8' }}>
+                        {log.type === 'checkin' ? '출근' : '퇴근'}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>{log.timeStr}</td>
+                    <td className="px-4 py-2.5">
+                      <span className="flex items-center gap-1 text-xs" style={{ color: "var(--kino-mid)" }}>
+                        {log.workType === "office" ? <Building2 size={11} /> : <MapPin size={11} />}
+                        {log.workType === "office" ? "내근" : "외근"}
+                      </span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )
         ) : employeeMap.length === 0 ? (
           <div className="text-center py-10">
             <p className="text-sm" style={{ color: "var(--kino-light)" }}>
@@ -219,7 +318,7 @@ function DailyTab() {
           <table className="w-full text-sm">
             <thead>
               <tr style={{ background: "var(--kino-pale)" }}>
-                {["이름", "부서/직위", "근무형태", "출근", "퇴근", "근무시간", "지각", "조퇴", "상태"].map(h => (
+                {["날짜", "이름", "부서/직위", "근무형태", "출근", "퇴근", "근무시간", "지각", "조퇴", "상태"].map(h => (
                   <th key={h} className="text-left px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--kino-mid)" }}>{h}</th>
                 ))}
               </tr>
@@ -231,6 +330,7 @@ function DailyTab() {
                 const early = isEarlyLeave(emp.checkout?.recordedAt);
                 return (
                   <tr key={emp.name} style={{ background: i % 2 === 0 ? "var(--kino-white)" : "var(--kino-bg)", borderBottom: "1px solid var(--kino-pale)" }}>
+                    <td className="px-4 py-2.5 text-xs font-semibold" style={{ color: "var(--kino-charcoal)" }}>{selectedDate}</td>
                     <td className="px-4 py-2.5 font-medium" style={{ color: "var(--kino-charcoal)" }}>{emp.name}</td>
                     <td className="px-4 py-2.5 text-xs" style={{ color: "var(--kino-muted)" }}>
                       {emp.dept}{emp.dept && emp.position ? " · " : ""}{emp.position}

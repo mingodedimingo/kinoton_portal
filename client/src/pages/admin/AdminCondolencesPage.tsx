@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import RichEditor from "@/components/RichEditor";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 type CondolenceType = "결혼" | "출산" | "부고" | "기타";
 
@@ -16,7 +17,6 @@ type FormData = {
   name: string;
   content: string;
   eventDate: string;
-  authorName: string;
   attachments: AttachmentItem[];
 };
 
@@ -34,7 +34,6 @@ const DEFAULT_FORM: FormData = {
   name: "",
   content: "",
   eventDate: "",
-  authorName: "",
   attachments: [],
 };
 
@@ -54,6 +53,7 @@ const TYPE_COLORS: Record<CondolenceType, { bg: string; color: string }> = {
 
 export default function AdminCondolencesPage() {
   const utils = trpc.useUtils();
+  const { adminName } = useAdminAuth();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -127,7 +127,6 @@ export default function AdminCondolencesPage() {
       name: c.name,
       content: c.content ?? "",
       eventDate: c.eventDate ?? "",
-      authorName: c.authorName ?? "",
       attachments: existingAttachments,
     });
     setShowForm(true);
@@ -178,7 +177,12 @@ export default function AdminCondolencesPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>날짜 (YYYY.MM.DD)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>날짜 (YYYY.MM.DD)</label>
+                  {adminName && (
+                    <span className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>작성자: <strong style={{ color: "var(--kino-charcoal)" }}>{adminName}</strong></span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={form.eventDate}

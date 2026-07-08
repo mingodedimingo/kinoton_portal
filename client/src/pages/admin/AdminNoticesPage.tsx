@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X, Pin, Image as ImageIcon } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import RichEditor from "@/components/RichEditor";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 type FormData = {
   tag: string;
@@ -40,6 +41,7 @@ function parseImages(images: unknown): string[] {
 
 export default function AdminNoticesPage() {
   const utils = trpc.useUtils();
+  const { adminName } = useAdminAuth();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -165,7 +167,12 @@ export default function AdminNoticesPage() {
                 />
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>카테고리</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>카테고리</label>
+                  {adminName && (
+                    <span className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>작성자: <strong style={{ color: "var(--kino-charcoal)" }}>{adminName}</strong></span>
+                  )}
+                </div>
                 <select
                   value={form.category}
                   onChange={e => setForm(f => ({ ...f, category: e.target.value as "company" | "dept" | "all" }))}

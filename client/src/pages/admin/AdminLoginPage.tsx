@@ -1,10 +1,11 @@
 /**
  * AdminLoginPage — 어드민 로그인 페이지
- * ID: admin / PW: admin1920 방식으로 로그인
+ * 공용 어드민 계정(admin/PW) 또는 포탈 직원 계정(이메일+PW, role=admin 필요)
  */
 import { useState } from "react";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { trpc } from "@/lib/trpc";
 
 export default function AdminLoginPage() {
   const [id, setId] = useState("");
@@ -12,13 +13,24 @@ export default function AdminLoginPage() {
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!id.trim() || !password.trim()) {
-      toast.error("아이디와 비밀번호를 입력해주세요.");
-      return;
-    }
-    setLoading(true);
+  const employeeLoginMutation = trpc.auth.employeeLogin.useMutation({
+    onSuccess: async () => {
+      // 포탈 로그인 성공 후 어드민 권한 확인
+      const checkRes = await fetch("/api/admin/check", { credentials: "include" });
+      if (checkRes.ok) {
+        window.location.href = "/admin";
+      } else {
+        toast.error("어드민 권한이 없는 계정입니다. \n어드민 권한을 부여받은 후 다시 시도해주세요.");
+        setLoading(false);
+      }
+    },
+    onError: () => {
+      // 포탈 계정 로그인 실패 시 공용 어드민 계정으로 재시도
+      tryAdminLogin();
+    },
+  });
+
+  const tryAdminLogin = async () => {
     try {
       const res = await fetch("/api/admin/login", {
         method: "POST",
@@ -28,7 +40,7 @@ export default function AdminLoginPage() {
       });
       const data = await res.json();
       if (!res.ok) {
-        toast.error(data.error || "로그인에 실패했습니다.");
+        toast.error(data.error || "이메일 또는 비밀번호가 올바르지 않습니다.");
       } else {
         window.location.href = "/admin";
       }
@@ -37,6 +49,18 @@ export default function AdminLoginPage() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!id.trim() || !password.trim()) {
+      toast.error("이메일/아이디와 비밀번호를 입력해주세요.");
+      return;
+    }
+    setLoading(true);
+    // 먼저 포탈 직원 계정으로 로그인 시도 (이메일+PW)
+    // 실패 시 공용 어드민 계정(admin/PW)으로 재시도
+    employeeLoginMutation.mutate({ email: id.trim(), password });
   };
 
   return (
@@ -73,13 +97,13 @@ export default function AdminLoginPage() {
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <div>
             <label className="text-xs font-semibold block mb-1.5" style={{ color: "#9CA3AF" }}>
-              아이디
+              이메일 / 아이디
             </label>
             <input
               type="text"
               value={id}
               onChange={e => setId(e.target.value)}
-              placeholder="admin"
+              placeholder="이메일 또는 admin"
               autoComplete="username"
               className="w-full px-3.5 py-2.5 rounded-lg text-sm outline-none transition-all"
               style={{

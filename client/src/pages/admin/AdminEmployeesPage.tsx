@@ -2,11 +2,12 @@
  * AdminEmployeesPage.tsx — 어드민 직원 관리 페이지
  * - 직원 목록 조회, 등록, 수정, 비활성화
  * - 연차 부여 기능
+ * - 재직/퇴사/휴직 상태 관리
  */
 import { useState } from "react";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift, KeyRound,
+  Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift, KeyRound, ShieldCheck, ShieldOff,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
@@ -22,6 +23,7 @@ type Employee = {
   joinDate: string;
   profileImage: string | null;
   isActive: boolean;
+  employmentStatus?: string | null;
 };
 
 // ── 직원 폼 모달 ──────────────────────────────────────────────────
@@ -330,6 +332,85 @@ function LeaveGrantModal({
   );
 }
 
+// ── 재직 상태 변경 모달 ───────────────────────────────────────────
+function EmploymentStatusModal({
+  employee,
+  onClose,
+}: {
+  employee: Employee;
+  onClose: () => void;
+}) {
+  const utils = trpc.useUtils();
+  // 현재 상태 결정: isActive=false면 퇴사, employmentStatus 우선
+  const currentStatus = !employee.isActive
+    ? (employee.employmentStatus === "휴직" ? "휴직" : "퇴사")
+    : (employee.employmentStatus === "휴직" ? "휴직" : "재직");
+  const [status, setStatus] = useState<"재직" | "퇴사" | "휴직">(currentStatus as "재직" | "퇴사" | "휴직");
+
+  const mutation = trpc.employees.update.useMutation({
+    onSuccess: () => {
+      toast.success(`${employee.name} 님의 상태가 변경되었습니다.`);
+      utils.employees.list.invalidate();
+      onClose();
+    },
+    onError: (err) => toast.error(err.message),
+  });
+
+  const handleSave = () => {
+    const isActive = status === "재직";
+    mutation.mutate({ id: employee.id, isActive, employmentStatus: status });
+  };
+
+  const statusConfig = {
+    재직: { bg: "#F0FDF4", color: "#16A34A" },
+    퇴사: { bg: "#FEF2F2", color: "#DC2626" },
+    휴직: { bg: "#FFF7ED", color: "#EA580C" },
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.4)" }}>
+      <div className="w-full max-w-sm rounded-lg p-6 shadow-xl" style={{ background: "var(--kino-white)" }}>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-sm font-bold" style={{ color: "var(--kino-charcoal)" }}>
+            재직 상태 변경 — {employee.name}
+          </h3>
+          <button onClick={onClose} className="p-1 rounded" style={{ color: "var(--kino-muted)" }}>
+            <X size={16} />
+          </button>
+        </div>
+        <div className="flex gap-2 mb-4">
+          {(["재직", "퇴사", "휴직"] as const).map(s => (
+            <button
+              key={s}
+              onClick={() => setStatus(s)}
+              className="flex-1 py-2 rounded text-xs font-semibold border-2 transition-all"
+              style={{
+                borderColor: status === s ? statusConfig[s].color : "var(--kino-pale)",
+                background: status === s ? statusConfig[s].bg : "var(--kino-white)",
+                color: status === s ? statusConfig[s].color : "var(--kino-muted)",
+              }}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2">
+          <button onClick={onClose} className="flex-1 py-2 rounded text-xs font-semibold" style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-mid)" }}>취소</button>
+          <button
+            onClick={handleSave}
+            disabled={mutation.isPending}
+            className="flex-1 py-2 rounded text-xs font-semibold flex items-center justify-center gap-1"
+            style={{ background: "var(--kino-charcoal)", color: "white", opacity: mutation.isPending ? 0.7 : 1 }}
+          >
+            {mutation.isPending ? <Loader2 size={12} className="animate-spin" /> : <Check size={12} />}
+            저장
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────
 export default function AdminEmployeesPage() {
   const utils = trpc.useUtils();
@@ -337,21 +418,34 @@ export default function AdminEmployeesPage() {
   const [editEmployee, setEditEmployee] = useState<Employee | null>(null);
   const [grantEmployee, setGrantEmployee] = useState<Employee | null>(null);
   const [pwEmployee, setPwEmployee] = useState<Employee | null>(null);
+  const [statusEmployee, setStatusEmployee] = useState<Employee | null>(null);
   const [showInactive, setShowInactive] = useState(false);
 
   const { data: employees, isLoading } = trpc.employees.list.useQuery({ activeOnly: !showInactive });
 
-  const deleteMutation = trpc.employees.delete.useMutation({
-    onSuccess: () => {
-      toast.success("직원이 삭제되었습니다.");
-      utils.employees.list.invalidate();
+  // 어드민 권한 목록 조회
+  const { data: adminRoles, refetch: refetchAdminRoles } = trpc.employees.getAdminRoles.useQuery();
+  const adminOpenIds = new Set((adminRoles ?? []).filter(r => r.role === 'admin').map(r => r.openId));
+
+  const setAdminRoleMutation = trpc.employees.setAdminRole.useMutation({
+    onSuccess: (_, vars) => {
+      toast.success(vars.isAdmin ? '어드민 권한이 부여되었습니다.' : '어드민 권한이 해제되었습니다.');
+      refetchAdminRoles();
     },
     onError: (err) => toast.error(err.message),
   });
 
-  const deactivateMutation = trpc.employees.update.useMutation({
+  const handleToggleAdmin = (emp: Employee) => {
+    const openId = `emp_${emp.id}`;
+    const isCurrentlyAdmin = adminOpenIds.has(openId);
+    const action = isCurrentlyAdmin ? '해제' : '부여';
+    if (!confirm(`"${emp.name}" 직원의 어드민 권한을 ${action}하시겠습니까?`)) return;
+    setAdminRoleMutation.mutate({ employeeId: emp.id, isAdmin: !isCurrentlyAdmin });
+  };
+
+  const deleteMutation = trpc.employees.delete.useMutation({
     onSuccess: () => {
-      toast.success("처리되었습니다.");
+      toast.success("직원이 삭제되었습니다.");
       utils.employees.list.invalidate();
     },
     onError: (err) => toast.error(err.message),
@@ -362,10 +456,11 @@ export default function AdminEmployeesPage() {
     deleteMutation.mutate({ id: emp.id });
   };
 
-  const handleDeactivate = (emp: Employee) => {
-    const action = emp.isActive ? "비활성화" : "활성화";
-    if (!confirm(`"${emp.name}" 직원을 ${action}하시겠습니까?`)) return;
-    deactivateMutation.mutate({ id: emp.id, isActive: !emp.isActive });
+  // 상태 표시 헬퍼
+  const getStatusDisplay = (emp: Employee) => {
+    if (emp.employmentStatus === "휴직") return { label: "휴직", bg: "#FFF7ED", color: "#EA580C" };
+    if (!emp.isActive || emp.employmentStatus === "퇴사") return { label: "퇴사", bg: "#FEF2F2", color: "#DC2626" };
+    return { label: "재직", bg: "#F0FDF4", color: "#16A34A" };
   };
 
   return (
@@ -422,82 +517,99 @@ export default function AdminEmployeesPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ background: "var(--kino-pale)", borderBottom: "1px solid var(--kino-pale)" }}>
-                  {["이름", "부서", "직위", "입사일", "상태", "관리"].map(h => (
+                  {["이름", "부서", "직위", "입사일", "상태", "권한", "관리"].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold" style={{ color: "var(--kino-mid)" }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp, idx) => (
-                  <tr
-                    key={emp.id}
-                    style={{
-                      background: idx % 2 === 0 ? "var(--kino-white)" : "#FAFAFA",
-                      borderBottom: "1px solid var(--kino-pale)",
-                      opacity: emp.isActive ? 1 : 0.5,
-                    }}
-                  >
-                    <td className="px-4 py-3 font-medium" style={{ color: "var(--kino-charcoal)" }}>{emp.name}</td>
-                    <td className="px-4 py-3" style={{ color: "var(--kino-mid)" }}>{emp.department}</td>
-                    <td className="px-4 py-3" style={{ color: "var(--kino-mid)" }}>{emp.position}</td>
-                    <td className="px-4 py-3" style={{ color: "var(--kino-muted)" }}>{emp.joinDate}</td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="px-2 py-0.5 rounded font-semibold"
-                        style={{
-                          background: emp.isActive ? "#F0FDF4" : "#F9FAFB",
-                          color: emp.isActive ? "#16A34A" : "var(--kino-light)",
-                        }}
-                      >
-                        {emp.isActive ? "재직" : "퇴직"}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
+                {employees.map((emp, idx) => {
+                  const statusDisplay = getStatusDisplay(emp as Employee);
+                  return (
+                    <tr
+                      key={emp.id}
+                      style={{
+                        background: idx % 2 === 0 ? "var(--kino-white)" : "#FAFAFA",
+                        borderBottom: "1px solid var(--kino-pale)",
+                        opacity: emp.isActive ? 1 : 0.6,
+                      }}
+                    >
+                      <td className="px-4 py-3 font-medium" style={{ color: "var(--kino-charcoal)" }}>{emp.name}</td>
+                      <td className="px-4 py-3" style={{ color: "var(--kino-mid)" }}>{emp.department}</td>
+                      <td className="px-4 py-3" style={{ color: "var(--kino-mid)" }}>{emp.position}</td>
+                      <td className="px-4 py-3" style={{ color: "var(--kino-muted)" }}>{emp.joinDate}</td>
+                      <td className="px-4 py-3">
                         <button
-                          onClick={() => setPwEmployee(emp as Employee)}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: "#7C3AED" }}
-                          title="비밀번호 설정"
+                          onClick={() => setStatusEmployee(emp as Employee)}
+                          className="px-2 py-0.5 rounded font-semibold transition-all hover:opacity-80"
+                          style={{
+                            background: statusDisplay.bg,
+                            color: statusDisplay.color,
+                          }}
+                          title="클릭하여 상태 변경"
                         >
-                          <KeyRound size={13} />
+                          {statusDisplay.label}
                         </button>
-                        <button
-                          onClick={() => setGrantEmployee(emp as Employee)}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: "#16A34A" }}
-                          title="연차 부여"
-                        >
-                          <Gift size={13} />
-                        </button>
-                        <button
-                          onClick={() => { setEditEmployee(emp as Employee); setShowForm(true); }}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: "var(--kino-mid)" }}
-                          title="수정"
-                        >
-                          <Pencil size={13} />
-                        </button>
-                        <button
-                          onClick={() => handleDeactivate(emp as Employee)}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: emp.isActive ? "#92400E" : "#16A34A" }}
-                          title={emp.isActive ? "비활성화" : "활성화"}
-                        >
-                          {emp.isActive ? <X size={13} /> : <Check size={13} />}
-                        </button>
-                        <button
-                          onClick={() => handleDelete(emp as Employee)}
-                          className="p-1.5 rounded transition-colors"
-                          style={{ color: "var(--kino-red)" }}
-                          title="삭제"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3">
+                        {(() => {
+                          const openId = `emp_${emp.id}`;
+                          const isAdmin = adminOpenIds.has(openId);
+                          return (
+                            <button
+                              onClick={() => handleToggleAdmin(emp as Employee)}
+                              className="flex items-center gap-1 px-2 py-0.5 rounded font-semibold transition-all hover:opacity-80"
+                              style={{
+                                background: isAdmin ? '#EFF6FF' : 'var(--kino-pale)',
+                                color: isAdmin ? '#1D4ED8' : 'var(--kino-muted)',
+                              }}
+                              title={isAdmin ? '어드민 권한 해제' : '어드민 권한 부여'}
+                            >
+                              {isAdmin ? <ShieldCheck size={11} /> : <ShieldOff size={11} />}
+                              {isAdmin ? '어드민' : '일반'}
+                            </button>
+                          );
+                        })()}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-1.5">
+                          <button
+                            onClick={() => setPwEmployee(emp as Employee)}
+                            className="p-1.5 rounded transition-colors"
+                            style={{ color: "#7C3AED" }}
+                            title="비밀번호 설정"
+                          >
+                            <KeyRound size={13} />
+                          </button>
+                          <button
+                            onClick={() => setGrantEmployee(emp as Employee)}
+                            className="p-1.5 rounded transition-colors"
+                            style={{ color: "#16A34A" }}
+                            title="연차 부여"
+                          >
+                            <Gift size={13} />
+                          </button>
+                          <button
+                            onClick={() => { setEditEmployee(emp as Employee); setShowForm(true); }}
+                            className="p-1.5 rounded transition-colors"
+                            style={{ color: "var(--kino-mid)" }}
+                            title="수정"
+                          >
+                            <Pencil size={13} />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(emp as Employee)}
+                            className="p-1.5 rounded transition-colors"
+                            style={{ color: "var(--kino-red)" }}
+                            title="삭제"
+                          >
+                            <Trash2 size={13} />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -526,6 +638,14 @@ export default function AdminEmployeesPage() {
         <SetPasswordModal
           employee={pwEmployee}
           onClose={() => setPwEmployee(null)}
+        />
+      )}
+
+      {/* 재직 상태 변경 모달 */}
+      {statusEmployee && (
+        <EmploymentStatusModal
+          employee={statusEmployee}
+          onClose={() => setStatusEmployee(null)}
         />
       )}
     </AdminLayout>

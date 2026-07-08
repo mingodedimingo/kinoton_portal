@@ -8,6 +8,7 @@ import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import RichEditor from "@/components/RichEditor";
+import { useAdminAuth } from "@/hooks/useAdminAuth";
 
 type HrType = "입사" | "퇴직" | "발령" | "승진";
 
@@ -16,7 +17,6 @@ type FormData = {
   title: string;
   content: string;
   effectiveDate: string;
-  authorName: string;
   attachments: AttachmentItem[];
 };
 
@@ -34,7 +34,6 @@ const DEFAULT_FORM: FormData = {
   title: "",
   content: "",
   effectiveDate: "",
-  authorName: "",
   attachments: [],
 };
 
@@ -47,6 +46,7 @@ const TYPE_COLORS: Record<HrType, { bg: string; color: string }> = {
 
 export default function AdminHrPage() {
   const utils = trpc.useUtils();
+  const { adminName } = useAdminAuth();
 
   const [showForm, setShowForm] = useState(false);
   const [editId, setEditId] = useState<number | null>(null);
@@ -120,7 +120,6 @@ export default function AdminHrPage() {
       title: h.title,
       content: h.content ?? "",
       effectiveDate: h.effectiveDate ?? "",
-      authorName: h.authorName ?? "",
       attachments: existingAttachments,
     });
     setShowForm(true);
@@ -171,7 +170,12 @@ export default function AdminHrPage() {
                 </select>
               </div>
               <div>
-                <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>발령일 (YYYY.MM.DD)</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>발령일 (YYYY.MM.DD)</label>
+                  {adminName && (
+                    <span className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>작성자: <strong style={{ color: "var(--kino-charcoal)" }}>{adminName}</strong></span>
+                  )}
+                </div>
                 <input
                   type="text"
                   value={form.effectiveDate}
@@ -202,17 +206,7 @@ export default function AdminHrPage() {
                 minHeight={160}
               />
             </div>
-            <div>
-              <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>작성자</label>
-              <input
-                type="text"
-                value={form.authorName}
-                onChange={e => setForm(f => ({ ...f, authorName: e.target.value }))}
-                placeholder="인사팀"
-                className="w-full px-3 py-2 rounded-md text-sm outline-none"
-                style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
-              />
-            </div>
+
             <div>
               <label className="text-xs font-medium mb-1 block" style={{ color: "var(--kino-mid)" }}>이미지 첨부 (선택 · 최대 5장)</label>
               <FileUploader attachments={form.attachments} onChange={(files) => setForm(f => ({ ...f, attachments: files }))} />
