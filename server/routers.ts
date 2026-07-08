@@ -1130,8 +1130,8 @@ export const appRouter = router({
 
   // ── 배너 API ──────────────────────────────────────────────────────────
   banners: router({
-    // 활성 배너 목록 조회 (포탈 사용자용 - 로그인 필수)
-    list: protectedProcedure
+    // 활성 배너 목록 조회 (포탈 사용자용 - 비로그인도 조회 가능)
+    list: publicProcedure
       .query(async () => getBanners(true)),
 
     // 전체 배너 목록 (어드민 전용 - 비활성 포함, 등록순)
