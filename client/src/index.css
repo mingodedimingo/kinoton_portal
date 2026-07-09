@@ -8,6 +8,7 @@
  */
 
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 @import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
@@ -327,6 +328,57 @@
     margin: 1px auto 0;
   }
   .cal-day.today .cal-dot { background: white; }
+
+  /* ── Rich Content Viewer (TipTap HTML 렌더링) ── */
+  /* Tailwind Preflight가 p { margin:0 }을 전역 적용하므로
+     prose 클래스 내부의 p 태그 여백을 명시적으로 복원 */
+  .prose p {
+    margin-top: 0.75em;
+    margin-bottom: 0.75em;
+    line-height: 1.75;
+  }
+  .prose p:first-child { margin-top: 0; }
+  .prose p:last-child  { margin-bottom: 0; }
+  .prose br {
+    display: block;
+    content: "";
+    margin-top: 0.5em;
+  }
+  .prose h1 { font-size: 1.5em; font-weight: 700; margin: 1em 0 0.5em; }
+  .prose h2 { font-size: 1.25em; font-weight: 700; margin: 0.9em 0 0.45em; }
+  .prose h3 { font-size: 1.1em;  font-weight: 700; margin: 0.8em 0 0.4em; }
+  .prose ul { list-style-type: disc;    padding-left: 1.5em; margin: 0.5em 0; }
+  .prose ol { list-style-type: decimal; padding-left: 1.5em; margin: 0.5em 0; }
+  .prose li { margin: 0.25em 0; }
+  .prose blockquote {
+    border-left: 3px solid var(--kino-pale);
+    padding-left: 1em;
+    color: var(--kino-mid);
+    margin: 0.75em 0;
+    font-style: italic;
+  }
+  .prose pre, .prose code {
+    background: var(--kino-bg);
+    border-radius: 4px;
+    padding: 0.15em 0.4em;
+    font-size: 0.875em;
+    font-family: 'Menlo', 'Monaco', 'Consolas', monospace;
+  }
+  .prose pre { padding: 0.75em 1em; overflow-x: auto; }
+  .prose table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0.75em 0;
+    font-size: 0.875em;
+  }
+  .prose th, .prose td {
+    border: 1px solid var(--kino-pale);
+    padding: 0.4em 0.75em;
+    text-align: left;
+  }
+  .prose th { background: var(--kino-bg); font-weight: 600; }
+  .prose a { color: #2563EB; text-decoration: underline; }
+  .prose img { max-width: 100%; height: auto; border-radius: 4px; margin: 0.5em 0; }
 
   /* ── Scrollbar ── */
   ::-webkit-scrollbar { width: 5px; height: 5px; }
