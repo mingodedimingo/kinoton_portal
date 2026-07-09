@@ -65,16 +65,22 @@ export default function MyPage() {
   const handleProfileImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+
+    // 파일 형식 검사
     if (!file.type.startsWith("image/")) {
-      toast.error("이미지 파일만 업로드 가능합니다.");
+      toast.error("이미지 파일만 업로드 가능합니다. (JPG, PNG, GIF, WEBP 등)");
       return;
     }
+
+    // 파일 크기 검사 (5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error("파일 크기는 5MB 이하여야 합니다.");
       return;
     }
+
     setUploadingImage(true);
     try {
+      // 1단계: 이미지 파일 업로드 (multipart/form-data)
       const formData = new FormData();
       formData.append("image", file);
       const res = await fetch("/api/upload-image", {
@@ -82,11 +88,31 @@ export default function MyPage() {
         credentials: "include",
         body: formData,
       });
+
+      // 응답이 JSON인지 확인 (서버 에러 시 HTML이 반환될 수 있음)
+      const contentType = res.headers.get("content-type") || "";
+      if (!contentType.includes("application/json")) {
+        // 세션 만료 또는 서버 오류
+        if (res.status === 401 || res.status === 403) {
+          toast.error("로그인 세션이 만료되었습니다. 페이지를 새로고침 후 다시 시도해주세요.");
+        } else {
+          toast.error(`서버 오류가 발생했습니다. (${res.status}) 잠시 후 다시 시도해주세요.`);
+        }
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "업로드 실패");
+
+      // 2단계: 프로필 이미지 URL 저장 (tRPC)
       await updateProfileMutation.mutateAsync({ profileImage: data.url });
     } catch (err: any) {
-      toast.error(err.message || "이미지 업로드에 실패했습니다.");
+      // JSON 파싱 오류 등 예외 처리
+      if (err?.message?.includes("Unexpected token") || err?.message?.includes("not valid JSON")) {
+        toast.error("서버 응답 오류입니다. 로그인 세션을 확인하거나 페이지를 새로고침해주세요.");
+      } else {
+        toast.error(err.message || "이미지 업로드에 실패했습니다.");
+      }
     } finally {
       setUploadingImage(false);
       if (fileInputRef.current) fileInputRef.current.value = "";
@@ -113,7 +139,7 @@ export default function MyPage() {
             {/* 좌측: 프로필 카드 */}
             <div className="portal-card p-5 flex flex-col items-center text-center">
               {/* 프로필 이미지 + 업로드 버튼 */}
-              <div className="relative mb-3">
+              <div className="relative mb-1">
                 {employee.profileImage ? (
                   <img
                     src={employee.profileImage}
@@ -146,11 +172,17 @@ export default function MyPage() {
                 <input
                   ref={fileInputRef}
                   type="file"
-                  accept="image/*"
+                  accept="image/jpeg,image/png,image/gif,image/webp,image/bmp"
                   className="hidden"
                   onChange={handleProfileImageChange}
                 />
               </div>
+
+              {/* 업로드 규격 안내 문구 */}
+              <p className="text-xs mt-1 mb-3" style={{ color: "var(--kino-light)", lineHeight: "1.5" }}>
+                JPG · PNG · GIF · WEBP<br />
+                최대 5MB · 권장 200×200px 이상
+              </p>
 
               <p className="text-base font-bold" style={{ color: "var(--kino-charcoal)" }}>{employee.name}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{employee.department} · {employee.position}</p>
@@ -324,8 +356,7 @@ export default function MyPage() {
               직원 정보와 연결되지 않은 계정입니다.
             </p>
             <p className="text-xs" style={{ color: "var(--kino-light)" }}>
-              어
-드민에서 직원 정보를 등록하고 이메일을 설정해주세요.
+              어드민에서 직원 정보를 등록하고 이메일을 설정해주세요.
             </p>
           </div>
         )}

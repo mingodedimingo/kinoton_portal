@@ -2,10 +2,12 @@
  * LoginPage — 직원 이메일+비밀번호 로그인 + 비밀번호 찾기
  * 흐름: 로그인 → (비밀번호 찾기 클릭) → 이메일 입력 → 코드 확인 → 새 비밀번호 설정 → 로그인
  */
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Loader2, Eye, EyeOff, ArrowLeft, Mail, KeyRound, Lock } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+
+const SAVED_EMAIL_KEY = "kino_saved_email";
 
 type ResetStep = "email" | "code" | "newPassword";
 
@@ -17,6 +19,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [saveEmail, setSaveEmail] = useState(false);
 
   // ── 비밀번호 찾기 상태 ───────────────────────────────────────
   const [resetStep, setResetStep] = useState<ResetStep>("email");
@@ -28,6 +31,15 @@ export default function LoginPage() {
 
   const requestReset = trpc.auth.requestPasswordReset.useMutation();
   const resetPassword = trpc.auth.resetPassword.useMutation();
+
+  // ── 저장된 이메일 불러오기 ───────────────────────────────────
+  useEffect(() => {
+    const saved = localStorage.getItem(SAVED_EMAIL_KEY);
+    if (saved) {
+      setEmail(saved);
+      setSaveEmail(true);
+    }
+  }, []);
 
   // ── 로그인 핸들러 ────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
@@ -48,6 +60,12 @@ export default function LoginPage() {
       if (!res.ok) {
         toast.error(data.error || "로그인에 실패했습니다.");
       } else {
+        // 이메일 저장 처리
+        if (saveEmail) {
+          localStorage.setItem(SAVED_EMAIL_KEY, email.trim());
+        } else {
+          localStorage.removeItem(SAVED_EMAIL_KEY);
+        }
         window.location.href = "/";
       }
     } catch {
@@ -192,6 +210,18 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {/* 이메일(ID) 저장 체크박스 */}
+            <label className="flex items-center gap-2 cursor-pointer select-none" style={{ marginTop: "-0.25rem" }}>
+              <input
+                type="checkbox"
+                checked={saveEmail}
+                onChange={e => setSaveEmail(e.target.checked)}
+                className="w-3.5 h-3.5 rounded cursor-pointer"
+                style={{ accentColor: "var(--kino-charcoal)" }}
+              />
+              <span className="text-xs" style={{ color: "var(--kino-muted)" }}>이메일(ID) 저장</span>
+            </label>
 
             <button
               type="submit"
