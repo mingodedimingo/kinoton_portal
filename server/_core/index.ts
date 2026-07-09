@@ -12,6 +12,7 @@ import multer from "multer";
 import { storagePut } from "../storage";
 import { sdk } from "./sdk";
 import { parse as parseCookies } from "cookie";
+import { getUserByOpenId } from "../db";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -157,14 +158,27 @@ async function startServer() {
     res.json({ success: true });
   });
 
-  app.get("/api/admin/check", (req, res) => {
+  app.get("/api/admin/check", async (req, res) => {
     const cookies = parseCookies(req.headers.cookie || "");
-    const token = cookies.kino_admin;
-    if (token === ADMIN_TOKEN) {
-      res.json({ ok: true });
-    } else {
-      res.status(401).json({ ok: false });
+    // 1) 공용 어드민 쿠키 확인
+    if (cookies.kino_admin === ADMIN_TOKEN) {
+      res.json({ ok: true, name: "관리자" });
+      return;
     }
+    // 2) 포탈 직원 세션(app_session_id)으로 role=admin 확인
+    try {
+      const session = await sdk.verifySession(cookies.app_session_id);
+      if (session && session.openId) {
+        const user = await getUserByOpenId(session.openId);
+        if (user && user.role === "admin") {
+          res.json({ ok: true, name: user.name || session.name || "관리자" });
+          return;
+        }
+      }
+    } catch {
+      // 세션 검증 실패 → 권한 없음으로 처리
+    }
+    res.status(401).json({ ok: false });
   });
 
   // tRPC API
