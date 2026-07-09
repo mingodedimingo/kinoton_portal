@@ -9,6 +9,8 @@
  *    → wrapper div에 position: relative 추가
  * 3. TipTap Image extension에 allowBase64: false → true 유지하되
  *    업로드 성공 시에만 src 삽입하도록 보장
+ * 4. 글자 크기(크기▼) 및 글자 색상(A) 툴바 버튼 추가
+ *    → @tiptap/extension-color + TextStyle fontSize 속성 활용
  */
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -16,6 +18,7 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
+import Color from "@tiptap/extension-color";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
 import { useEffect, useCallback, useRef, useState } from "react";
@@ -60,10 +63,35 @@ async function uploadImageFile(file: File): Promise<string> {
   return data.url;
 }
 
+// 글자 크기 옵션
+const FONT_SIZES = [
+  { label: "소", value: "12px" },
+  { label: "기본", value: "14px" },
+  { label: "중", value: "18px" },
+  { label: "대", value: "24px" },
+  { label: "특대", value: "32px" },
+];
+
+// 글자 색상 옵션
+const FONT_COLORS = [
+  { label: "기본", value: "" },
+  { label: "검정", value: "#000000" },
+  { label: "회색", value: "#6B7280" },
+  { label: "빨강", value: "#DC2626" },
+  { label: "주황", value: "#EA580C" },
+  { label: "노랑", value: "#CA8A04" },
+  { label: "초록", value: "#16A34A" },
+  { label: "파랑", value: "#2563EB" },
+  { label: "남색", value: "#4F46E5" },
+  { label: "보라", value: "#9333EA" },
+];
+
 export default function RichEditor({ value, onChange, placeholder = "내용을 입력하세요...", minHeight = 300 }: RichEditorProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [isDragOver, setIsDragOver] = useState(false);
+  const [showSizeMenu, setShowSizeMenu] = useState(false);
+  const [showColorMenu, setShowColorMenu] = useState(false);
 
   // useRef로 handleFiles를 참조해 editor 의존성 순환 방지
   const handleFilesRef = useRef<(files: File[]) => Promise<void>>(async () => {});
@@ -75,6 +103,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
       }),
       Underline,
       TextStyle,
+      Color,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Table.configure({ resizable: true }),
       TableRow,
@@ -185,6 +214,24 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     }
   }, [editor]);
 
+  // 글자 크기 적용
+  const applyFontSize = useCallback((size: string) => {
+    if (!editor) return;
+    editor.chain().focus().setMark("textStyle", { fontSize: size }).run();
+    setShowSizeMenu(false);
+  }, [editor]);
+
+  // 글자 색상 적용
+  const applyColor = useCallback((color: string) => {
+    if (!editor) return;
+    if (color === "") {
+      editor.chain().focus().unsetColor().run();
+    } else {
+      editor.chain().focus().setColor(color).run();
+    }
+    setShowColorMenu(false);
+  }, [editor]);
+
   if (!editor) return null;
 
   const btnBase = "p-1.5 rounded transition-colors text-xs font-medium";
@@ -215,6 +262,9 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
   const Divider = () => (
     <span className="inline-block w-px h-5 mx-1" style={{ background: "var(--kino-pale)" }} />
   );
+
+  // 현재 선택된 글자 색상
+  const currentColor = editor.getAttributes("textStyle").color || "#000000";
 
   return (
     // ✅ 핵심 수정 3: position: relative 추가 → 드래그 오버레이가 정확한 위치에 표시됨
@@ -275,6 +325,110 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
         <ToolBtn onClick={() => editor.chain().focus().toggleStrike().run()} active={editor.isActive("strike")} title="취소선">
           <Strikethrough size={14} />
         </ToolBtn>
+
+        <Divider />
+
+        {/* 글자 크기 */}
+        <div style={{ position: "relative" }}>
+          <button
+            type="button"
+            className={`${btnBase} ${btnInactive}`}
+            style={{ color: "var(--kino-mid)", fontSize: "11px", fontWeight: 600, padding: "4px 6px" }}
+            title="글자 크기"
+            onClick={() => { setShowSizeMenu(v => !v); setShowColorMenu(false); }}
+          >
+            크기▼
+          </button>
+          {showSizeMenu && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 50,
+                background: "white",
+                border: "1px solid var(--kino-pale)",
+                borderRadius: "6px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                minWidth: "80px",
+                padding: "4px 0",
+              }}
+            >
+              {FONT_SIZES.map(({ label, value: sz }) => (
+                <button
+                  key={sz}
+                  type="button"
+                  onClick={() => applyFontSize(sz)}
+                  style={{
+                    display: "block",
+                    width: "100%",
+                    textAlign: "left",
+                    padding: "4px 12px",
+                    fontSize: sz,
+                    color: "var(--kino-charcoal)",
+                    background: "none",
+                    border: "none",
+                    cursor: "pointer",
+                    lineHeight: 1.4,
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.background = "var(--kino-bg)")}
+                  onMouseLeave={e => (e.currentTarget.style.background = "none")}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 글자 색상 */}
+        <div style={{ position: "relative" }}>
+          <button
+            type="button"
+            className={`${btnBase} ${btnInactive}`}
+            style={{ color: "var(--kino-mid)", padding: "4px 6px" }}
+            title="글자 색상"
+            onClick={() => { setShowColorMenu(v => !v); setShowSizeMenu(false); }}
+          >
+            <span style={{ fontWeight: 700, fontSize: "13px", borderBottom: `3px solid ${currentColor}`, paddingBottom: "1px", color: currentColor === "#000000" ? "var(--kino-charcoal)" : currentColor }}>A</span>
+          </button>
+          {showColorMenu && (
+            <div
+              style={{
+                position: "absolute",
+                top: "100%",
+                left: 0,
+                zIndex: 50,
+                background: "white",
+                border: "1px solid var(--kino-pale)",
+                borderRadius: "6px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                padding: "8px",
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "4px",
+                width: "148px",
+              }}
+            >
+              {FONT_COLORS.map(({ label, value: clr }) => (
+                <button
+                  key={label}
+                  type="button"
+                  onClick={() => applyColor(clr)}
+                  title={label}
+                  style={{
+                    width: "24px",
+                    height: "24px",
+                    borderRadius: "4px",
+                    border: clr === "" ? "1px dashed #ccc" : `2px solid ${clr === currentColor ? "#000" : "transparent"}`,
+                    background: clr === "" ? "linear-gradient(135deg, #fff 45%, #f00 45%, #f00 55%, #fff 55%)" : clr,
+                    cursor: "pointer",
+                  }}
+                />
+              ))}
+            </div>
+          )}
+        </div>
 
         <Divider />
 
