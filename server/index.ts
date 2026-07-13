@@ -16,10 +16,14 @@ async function startServer() {
       ? path.resolve(__dirname, "public")
       : path.resolve(__dirname, "..", "dist", "public");
 
-  app.use(express.static(staticPath));
+  // Static assets (JS/CSS/images): long-term cache OK (content-hashed filenames)
+  app.use(express.static(staticPath, { index: false }));
 
-  // Handle client-side routing - serve index.html for all routes
+  // Handle client-side routing - serve index.html with no-cache headers
   app.get("*", (_req, res) => {
+    res.setHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+    res.setHeader("Pragma", "no-cache");
+    res.setHeader("Expires", "0");
     res.sendFile(path.join(staticPath, "index.html"));
   });
 
