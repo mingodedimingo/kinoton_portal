@@ -244,6 +244,7 @@ export const banners = mysqlTable("banners", {
   name: varchar("name", { length: 200 }).notNull(),
   imageUrl: varchar("imageUrl", { length: 500 }).notNull(),
   linkUrl: varchar("linkUrl", { length: 500 }),
+  linkTarget: varchar("linkTarget", { length: 10 }).default("_blank"),
   note: text("note"),
   isActive: boolean("isActive").default(true).notNull(),
   sortOrder: int("sortOrder").default(0).notNull(),

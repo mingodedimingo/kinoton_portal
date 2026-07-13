@@ -17,6 +17,7 @@ interface BannerFormState {
   name: string;
   imageUrl: string;
   linkUrl: string;
+  linkTarget: "_blank" | "_self";
   note: string;
   isActive: boolean;
   sortOrder: number;
@@ -26,6 +27,7 @@ const DEFAULT_FORM: BannerFormState = {
   name: "",
   imageUrl: "",
   linkUrl: "",
+  linkTarget: "_blank",
   note: "",
   isActive: true,
   sortOrder: 0,
@@ -138,6 +140,7 @@ export default function AdminBannerPage() {
       name: banner.name,
       imageUrl: banner.imageUrl,
       linkUrl: banner.linkUrl ?? "",
+      linkTarget: (banner.linkTarget as "_blank" | "_self") ?? "_blank",
       note: banner.note ?? "",
       isActive: banner.isActive,
       sortOrder: banner.sortOrder,
@@ -153,6 +156,7 @@ export default function AdminBannerPage() {
       name: form.name.trim(),
       imageUrl: form.imageUrl,
       linkUrl: form.linkUrl.trim() || undefined,
+      linkTarget: form.linkTarget,
       note: form.note.trim() || undefined,
       isActive: form.isActive,
       sortOrder: form.sortOrder,
@@ -317,9 +321,31 @@ export default function AdminBannerPage() {
                     color: "var(--kino-charcoal)",
                   }}
                 />
-                <p className="text-xs mt-1" style={{ color: "var(--kino-light)" }}>
-                  외부 URL(https://...)은 새 탭으로, 포탈 내부 경로(/notices/...)는 현재 탭으로 이동합니다.
-                </p>
+                {/* 링크 타겟 라디오 버튼 */}
+                <div className="flex items-center gap-4 mt-2">
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="linkTarget"
+                      value="_blank"
+                      checked={form.linkTarget === "_blank"}
+                      onChange={() => setForm(f => ({ ...f, linkTarget: "_blank" }))}
+                      className="accent-gray-800"
+                    />
+                    <span className="text-xs" style={{ color: "var(--kino-mid)" }}>외부 링크 (새 탭)</span>
+                  </label>
+                  <label className="flex items-center gap-1.5 cursor-pointer">
+                    <input
+                      type="radio"
+                      name="linkTarget"
+                      value="_self"
+                      checked={form.linkTarget === "_self"}
+                      onChange={() => setForm(f => ({ ...f, linkTarget: "_self" }))}
+                      className="accent-gray-800"
+                    />
+                    <span className="text-xs" style={{ color: "var(--kino-mid)" }}>내부 이동 (현재 탭)</span>
+                  </label>
+                </div>
               </div>
 
               {/* 비고 */}

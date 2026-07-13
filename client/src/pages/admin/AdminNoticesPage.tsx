@@ -128,7 +128,7 @@ export default function AdminNoticesPage() {
     deleteMutation.mutate({ id });
   };
 
-  const categoryLabel = { all: "전체", company: "회사", dept: "부서" };
+  const categoryLabel = { all: "전체", company: "회사", dept: "대표이사" };
 
   return (
     <AdminLayout title="공지사항 관리">
@@ -181,7 +181,7 @@ export default function AdminNoticesPage() {
                 >
                   <option value="all">전체</option>
                   <option value="company">회사</option>
-                  <option value="dept">부서</option>
+                  <option value="dept">대표이사</option>
                 </select>
               </div>
             </div>

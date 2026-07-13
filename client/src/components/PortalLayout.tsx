@@ -18,7 +18,7 @@ import { trpc } from "@/lib/trpc";
 
 const NAV_ITEMS = [
   { label: "메일",       icon: Mail,       path: "https://wmail.ecount.com/",      external: true },
-  { label: "전자결재",   icon: FileCheck,  path: "/approve",                       external: false },
+  { label: "전자결재",   icon: FileCheck,  path: "https://login.ecount.com/Login/",  external: true },
   { label: "게시판",     icon: BookOpen,   path: "/board",                         external: false },
   { label: "조직도",     icon: Network,    path: "/orgchart",                     external: false },
   { label: "ERP",        icon: Settings2,  path: "https://erp.kinoton.co.kr/",    external: true },

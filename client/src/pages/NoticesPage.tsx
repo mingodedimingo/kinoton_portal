@@ -68,7 +68,7 @@ export default function NoticesPage() {
                 border: tab === t ? "none" : "1px solid var(--kino-pale)",
               }}
             >
-              {t === "all" ? "전체" : t === "company" ? "회사" : "부서"}
+              {t === "all" ? "전체" : t === "company" ? "회사" : "대표이사"}
             </button>
           ))}
         </div>

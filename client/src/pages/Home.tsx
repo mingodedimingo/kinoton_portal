@@ -82,6 +82,7 @@ type BannerItem = {
   id: number;
   imageUrl: string;
   linkUrl?: string | null;
+  linkTarget?: string | null;
   name: string;
 };
 
@@ -116,8 +117,9 @@ function RollingBanner() {
     if (!banner.linkUrl) return;
     const url = banner.linkUrl.trim();
     if (!url) return;
-    // 외부 링크: 새 탭, 내부 경로: wouter navigate (세션 유지)
-    if (url.startsWith("http://") || url.startsWith("https://")) {
+    // linkTarget 값에 따라 링크 타겟 결정 (없으면 URL 형식으로 폴백)
+    const target = banner.linkTarget ?? (url.startsWith("http") ? "_blank" : "_self");
+    if (target === "_blank") {
       window.open(url, "_blank", "noopener,noreferrer");
     } else {
       window.location.href = url;
@@ -266,7 +268,7 @@ function NoticeSection() {
                   color: tab === t ? "white" : "var(--kino-muted)",
                 }}
               >
-                {t === "all" ? "전체" : t === "company" ? "회사" : "부서"}
+                {t === "all" ? "전체" : t === "company" ? "회사" : "대표이사"}
               </button>
             ))}
           </div>

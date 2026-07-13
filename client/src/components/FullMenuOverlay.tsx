@@ -24,7 +24,7 @@ const MENU_GROUPS = [
   {
     category: "업무·결재",
     items: [
-      { label: "전자결재",   icon: FileCheck,      path: "/approve",   desc: "기안·결재·조회" },
+      { label: "전자결재",   icon: FileCheck,      path: "https://login.ecount.com/Login/",   desc: "기안·결재·조회" },
       { label: "업무",       icon: Briefcase,      path: "/work",      desc: "To-Do·업무현황" },
       { label: "보고서",     icon: FileText,       path: "/board",     desc: "업무 보고" },
     ],

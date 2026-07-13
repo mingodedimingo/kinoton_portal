@@ -192,7 +192,7 @@ export default function NoticeDetailPage() {
                     >
                       <option value="all">전체</option>
                       <option value="company">회사</option>
-                      <option value="dept">부서</option>
+                      <option value="dept">대표이사</option>
                     </select>
                   </div>
                 </div>
