@@ -6,6 +6,7 @@ import { Link } from "wouter";
 import { X, Mail, FileCheck, BookOpen, Calendar, Users, Building2, Briefcase,
   MessageSquare, FileText, Settings, HelpCircle, Bell,
   ClipboardList, Car, Globe, Settings2, TrendingUp, ShieldCheck, CalendarDays, User, Heart } from "lucide-react";
+import { EXTERNAL_URLS } from "@/config/navigation";
 
 interface Props {
   open: boolean;
@@ -16,7 +17,7 @@ const MENU_GROUPS = [
   {
     category: "커뮤니케이션",
     items: [
-      { label: "메일",       icon: Mail,          path: "https://wmail.ecount.com/", desc: "사내 이메일", external: true },
+      { label: "메일",       icon: Mail,          path: EXTERNAL_URLS.MAIL, desc: "사내 이메일", external: true },
       { label: "게시판",     icon: BookOpen,       path: "/board",     desc: "언론보도 / 매뉴얼 / 기타" },
       { label: "쪽지",       icon: MessageSquare,  path: "/board",     desc: "사내 메시지" },
     ],
@@ -24,7 +25,7 @@ const MENU_GROUPS = [
   {
     category: "업무·결재",
     items: [
-      { label: "전자결재",   icon: FileCheck,      path: "https://login.ecount.com/Login/",   desc: "기안·결재·조회" },
+      { label: "전자결재",   icon: FileCheck,      path: EXTERNAL_URLS.APPROVE,   desc: "기안·결재·조회" },
       { label: "업무",       icon: Briefcase,      path: "/work",      desc: "To-Do·업무현황" },
       { label: "보고서",     icon: FileText,       path: "/board",     desc: "업무 보고" },
     ],
@@ -55,9 +56,9 @@ const MENU_GROUPS = [
   {
     category: "링크",
     items: [
-      { label: "ERP",        icon: Settings2,      path: "https://erp.kinoton.co.kr/",   desc: "erp.kinoton.co.kr" },
-      { label: "영업시스템", icon: TrendingUp,     path: "https://sales.kinoton.co.kr/", desc: "sales.kinoton.co.kr" },
-      { label: "홈페이지",   icon: Globe,          path: "https://kinoton.co.kr/",       desc: "kinoton.co.kr" },
+      { label: "ERP",        icon: Settings2,      path: EXTERNAL_URLS.ERP,   desc: "erp.kinoton.co.kr" },
+      { label: "영업시스템", icon: TrendingUp,     path: EXTERNAL_URLS.SALES, desc: "sales.kinoton.co.kr" },
+      { label: "홈페이지",   icon: Globe,          path: EXTERNAL_URLS.HOMEPAGE,       desc: "kinoton.co.kr" },
     ],
   },
   {

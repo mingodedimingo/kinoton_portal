@@ -6,8 +6,9 @@
 import { useState, useRef } from "react";
 import { ExternalLink, RefreshCw, AlertCircle, Mail } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
+import { EXTERNAL_URLS } from "@/config/navigation";
 
-const MAIL_URL = "https://wmail.ecount.com/";
+const MAIL_URL = EXTERNAL_URLS.MAIL;
 
 export default function MailPage() {
   const [loading, setLoading] = useState(true);

@@ -2,6 +2,7 @@
  * NoticesPage.tsx — 공지사항 전체 목록 페이지
  */
 import { useState } from "react";
+import { NOTICE_CATEGORY_KEYS, NOTICE_CATEGORY_LABELS, type NoticeCategory } from "@/config/categories";
 import { Link } from "wouter";
 import { Megaphone, ChevronRight, Image as ImageIcon } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
@@ -16,7 +17,7 @@ type NoticeItem = {
   createdAt: Date;
   isNew: boolean;
   isPinned: boolean;
-  category: "all" | "company" | "dept";
+  category: NoticeCategory;
   authorName: string | null;
 };
 
@@ -33,7 +34,7 @@ function parseImages(images: unknown): string[] {
 
 
 export default function NoticesPage() {
-  const [tab, setTab] = useState<"all" | "company" | "dept">("all");
+  const [tab, setTab] = useState<NoticeCategory>("all");
 
   const [page, setPage] = useState(0);
   const PAGE_SIZE = 20;
@@ -57,7 +58,7 @@ export default function NoticesPage() {
 
         {/* 탭 */}
         <div className="flex gap-1 mb-4">
-          {(["all", "company", "dept"] as const).map((t) => (
+          {NOTICE_CATEGORY_KEYS.map((t) => (
             <button
               key={t}
               onClick={() => setTab(t)}
@@ -68,7 +69,7 @@ export default function NoticesPage() {
                 border: tab === t ? "none" : "1px solid var(--kino-pale)",
               }}
             >
-              {t === "all" ? "전체" : t === "company" ? "회사" : "대표이사"}
+              {NOTICE_CATEGORY_LABELS[t]}
             </button>
           ))}
         </div>

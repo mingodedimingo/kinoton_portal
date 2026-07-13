@@ -5,6 +5,7 @@
  */
 import { useState } from "react";
 import { useParams, useLocation, Link } from "wouter";
+import { NOTICE_CATEGORY_LABELS, type NoticeCategory } from "@/config/categories";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
@@ -26,7 +27,7 @@ type EditForm = {
   tag: string;
   title: string;
   content: string;
-  category: "company" | "dept" | "all";
+  category: NoticeCategory;
   isNew: boolean;
   isPinned: boolean;
   attachments: AttachmentItem[];
@@ -188,11 +189,11 @@ export default function NoticeDetailPage() {
                       className="w-full px-3 py-1.5 rounded text-sm outline-none"
                       style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)" }}
                       value={editForm.category}
-                      onChange={e => setEditForm({ ...editForm, category: e.target.value as "company" | "dept" | "all" })}
+                      onChange={e => setEditForm({ ...editForm, category: e.target.value as NoticeCategory })}
                     >
-                      <option value="all">전체</option>
-                      <option value="company">회사</option>
-                      <option value="dept">대표이사</option>
+                      {(Object.entries(NOTICE_CATEGORY_LABELS) as [NoticeCategory, string][]).map(([key, label]) => (
+                        <option key={key} value={key}>{label}</option>
+                      ))}
                     </select>
                   </div>
                 </div>

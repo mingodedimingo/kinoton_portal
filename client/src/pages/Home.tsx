@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
+import { EXTERNAL_URLS } from "@/config/navigation";
+import { NOTICE_CATEGORY_KEYS, NOTICE_CATEGORY_LABELS, type NoticeCategory } from "@/config/categories";
 
 
 // ── Dummy Data ──────────────────────────────────────────────────
@@ -54,17 +56,17 @@ const CONDOLENCES = [
 
 // 퀵메뉴: PC 5개 (전자결재 포함), 모바일 4개 (전자결재 제외)
 const QUICK_MENUS_PC = [
-  { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
-  { label: "전자결재",   icon: FileCheck,   path: "https://login.ecount.com/Login/", badge: 0, external: true },
-  { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
-  { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
-  { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
+  { label: "메일",       icon: Mail,        path: EXTERNAL_URLS.MAIL,      badge: 0, external: true },
+  { label: "전자결재",   icon: FileCheck,   path: EXTERNAL_URLS.APPROVE,   badge: 0, external: true },
+  { label: "ERP",        icon: Settings2,   path: EXTERNAL_URLS.ERP,       badge: 0, external: true },
+  { label: "영업시스템", icon: Building2,   path: EXTERNAL_URLS.SALES,     badge: 0, external: true },
+  { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                badge: 0 },
 ];
 const QUICK_MENUS_MOBILE = [
-  { label: "메일",       icon: Mail,        path: "https://wmail.ecount.com/",      badge: 0, external: true },
-  { label: "ERP",        icon: Settings2,   path: "https://erp.kinoton.co.kr/",     badge: 0, external: true },
-  { label: "영업시스템", icon: Building2,   path: "https://sales.kinoton.co.kr/",   badge: 0, external: true },
-  { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                         badge: 0 },
+  { label: "메일",       icon: Mail,        path: EXTERNAL_URLS.MAIL,      badge: 0, external: true },
+  { label: "ERP",        icon: Settings2,   path: EXTERNAL_URLS.ERP,       badge: 0, external: true },
+  { label: "영업시스템", icon: Building2,   path: EXTERNAL_URLS.SALES,     badge: 0, external: true },
+  { label: "전체메뉴",   icon: LayoutGrid,  path: "/#menu",                badge: 0 },
 ];
 
 // ── Calendar helpers ─────────────────────────────────────────────
@@ -245,7 +247,7 @@ function QuickMenuSection({ card = false, mobile = false }: { card?: boolean; mo
 
 // ── Notice Section (DB 연동) ─────────────────────────────────────
 function NoticeSection() {
-  const [tab, setTab] = useState<"all"|"company"|"dept">("all");
+  const [tab, setTab] = useState<NoticeCategory>("all");
   const { data: noticesData, isLoading } = trpc.notices.list.useQuery({ limit: 5 });
   const notices = noticesData?.items;
   const filtered = tab === "all" ? notices : notices?.filter(n => n.category === tab);
@@ -258,7 +260,7 @@ function NoticeSection() {
             공지사항
           </span>
           <div className="flex gap-1">
-            {(["all","company","dept"] as const).map((t) => (
+            {NOTICE_CATEGORY_KEYS.map((t) => (
               <button
                 key={t}
                 onClick={() => setTab(t)}
@@ -268,7 +270,7 @@ function NoticeSection() {
                   color: tab === t ? "white" : "var(--kino-muted)",
                 }}
               >
-                {t === "all" ? "전체" : t === "company" ? "회사" : "대표이사"}
+                {NOTICE_CATEGORY_LABELS[t]}
               </button>
             ))}
           </div>

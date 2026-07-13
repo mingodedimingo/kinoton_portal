@@ -15,14 +15,15 @@ import {
 } from "lucide-react";
 import FullMenuOverlay from "./FullMenuOverlay";
 import { trpc } from "@/lib/trpc";
+import { EXTERNAL_URLS } from "@/config/navigation";
 
 const NAV_ITEMS = [
-  { label: "메일",       icon: Mail,       path: "https://wmail.ecount.com/",      external: true },
-  { label: "전자결재",   icon: FileCheck,  path: "https://login.ecount.com/Login/",  external: true },
+  { label: "메일",       icon: Mail,       path: EXTERNAL_URLS.MAIL,      external: true },
+  { label: "전자결재",   icon: FileCheck,  path: EXTERNAL_URLS.APPROVE,   external: true },
   { label: "게시판",     icon: BookOpen,   path: "/board",                         external: false },
   { label: "조직도",     icon: Network,    path: "/orgchart",                     external: false },
-  { label: "ERP",        icon: Settings2,  path: "https://erp.kinoton.co.kr/",    external: true },
-  { label: "영업시스템", icon: Building2,  path: "https://sales.kinoton.co.kr/",  external: true },
+  { label: "ERP",        icon: Settings2,  path: EXTERNAL_URLS.ERP,    external: true },
+  { label: "영업시스템", icon: Building2,  path: EXTERNAL_URLS.SALES,  external: true },
   { label: "전체메뉴",   icon: LayoutGrid, path: "/#menu",                         external: false },
 ];
 

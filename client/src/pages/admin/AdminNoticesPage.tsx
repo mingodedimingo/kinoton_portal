@@ -3,6 +3,7 @@
  */
 import { useState } from "react";
 import AdminLayout from "@/components/AdminLayout";
+import { NOTICE_CATEGORY_LABELS, NOTICE_CATEGORY_KEYS, type NoticeCategory } from "@/config/categories";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
 import { Plus, Pencil, Trash2, Loader2, X, Pin, Image as ImageIcon } from "lucide-react";
@@ -14,7 +15,7 @@ type FormData = {
   tag: string;
   title: string;
   content: string;
-  category: "company" | "dept" | "all";
+  category: NoticeCategory;
   isNew: boolean;
   isPinned: boolean;
   attachments: AttachmentItem[];
@@ -24,7 +25,7 @@ const DEFAULT_FORM: FormData = {
   tag: "공지",
   title: "",
   content: "",
-  category: "all",
+  category: "all" as NoticeCategory,
   isNew: true,
   isPinned: false,
   attachments: [],
@@ -128,7 +129,7 @@ export default function AdminNoticesPage() {
     deleteMutation.mutate({ id });
   };
 
-  const categoryLabel = { all: "전체", company: "회사", dept: "대표이사" };
+  const categoryLabel = NOTICE_CATEGORY_LABELS;
 
   return (
     <AdminLayout title="공지사항 관리">
@@ -175,13 +176,13 @@ export default function AdminNoticesPage() {
                 </div>
                 <select
                   value={form.category}
-                  onChange={e => setForm(f => ({ ...f, category: e.target.value as "company" | "dept" | "all" }))}
+                  onChange={e => setForm(f => ({ ...f, category: e.target.value as NoticeCategory }))}
                   className="w-full px-3 py-2 rounded-md text-sm outline-none"
                   style={{ border: "1px solid var(--kino-pale)", color: "var(--kino-charcoal)", background: "var(--kino-bg)" }}
                 >
-                  <option value="all">전체</option>
-                  <option value="company">회사</option>
-                  <option value="dept">대표이사</option>
+                  {NOTICE_CATEGORY_KEYS.map(key => (
+                    <option key={key} value={key}>{NOTICE_CATEGORY_LABELS[key]}</option>
+                  ))}
                 </select>
               </div>
             </div>
