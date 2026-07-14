@@ -465,19 +465,29 @@ export const appRouter = router({
     // 출퇴근 목록 (어드민 전용)
     adminList: adminProcedure
       .input(z.object({
-        date: z.date().optional(),
+        // YYYY-MM-DD 문자열로 받아 서버에서 KST 범위 계산 (타임존 변환 문제 방지)
+        dateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
         department: z.string().optional(),
         employeeName: z.string().optional(),
-        startDate: z.date().optional(),
-        endDate: z.date().optional(),
+        startDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+        endDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
       }))
-      .query(async ({ input }) => getAttendanceLogs({
-        date: input.date,
-        department: input.department,
-        employeeName: input.employeeName,
-        startDate: input.startDate,
-        endDate: input.endDate,
-      })),
+      .query(async ({ input }) => {
+        // YYYY-MM-DD 문자열을 KST 기준 UTC Date로 변환
+        const dateToUTC = (str: string, isEnd = false) =>
+          new Date(`${str}T${isEnd ? '23:59:59' : '00:00:00'}+09:00`);
+        return getAttendanceLogs({
+          date: undefined,
+          ...(input.dateStr ? {
+            startDate: dateToUTC(input.dateStr),
+            endDate: dateToUTC(input.dateStr, true),
+          } : {}),
+          ...(input.startDateStr ? { startDate: dateToUTC(input.startDateStr) } : {}),
+          ...(input.endDateStr ? { endDate: dateToUTC(input.endDateStr, true) } : {}),
+          department: input.department,
+          employeeName: input.employeeName,
+        });
+      }),
 
     // 오늘 요약 (로그인 필수)
     todaySummary: protectedProcedure.query(async () => getTodaySummary()),
@@ -489,11 +499,14 @@ export const appRouter = router({
         days: z.number().default(7),
       }))
       .query(async ({ input }) => {
-        const endDate = new Date();
-        endDate.setHours(23, 59, 59, 999);
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - input.days);
-        startDate.setHours(0, 0, 0, 0);
+        // KST 기준 오늘 자정 ~ 23:59:59 계산
+        const nowKST = new Date(Date.now() + 9 * 60 * 60 * 1000);
+        const todayKSTStr = nowKST.toISOString().substring(0, 10);
+        const endDate = new Date(`${todayKSTStr}T23:59:59+09:00`);
+        // N일 전 KST 날짜 계산
+        const pastKST = new Date(nowKST.getTime() - input.days * 24 * 60 * 60 * 1000);
+        const pastKSTStr = pastKST.toISOString().substring(0, 10);
+        const startDate = new Date(`${pastKSTStr}T00:00:00+09:00`);
         const logs = await getAttendanceLogs({ employeeName: input.employeeName, startDate, endDate });
         const grouped: Record<string, { date: string; checkIn: string | null; checkOut: string | null; workType: string; workHours: string | null }> = {};
         for (const log of logs) {
@@ -519,11 +532,13 @@ export const appRouter = router({
     // CSV 내보내기 (어드민 전용)
     exportCsv: adminProcedure
       .input(z.object({
-        startDate: z.date(),
-        endDate: z.date(),
+        startDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+        endDateStr: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
       }))
       .query(async ({ input }) => {
-        const logs = await getAttendanceLogs({ startDate: input.startDate, endDate: input.endDate });
+        const startDate = new Date(`${input.startDateStr}T00:00:00+09:00`);
+        const endDate = new Date(`${input.endDateStr}T23:59:59+09:00`);
+        const logs = await getAttendanceLogs({ startDate, endDate });
         const headers = ["사원명", "부서", "직위", "날짜", "출근시간", "퇴근시간", "근무형태"];
         const grouped: Record<string, { checkin?: string; checkout?: string; department?: string; position?: string; workType?: string }> = {};
         for (const log of logs) {

@@ -58,14 +58,11 @@ function DailyTab() {
   const [deptFilter, setDeptFilter] = useState("");
   const [nameFilter, setNameFilter] = useState("");
 
-  const queryDate = useMemo(() => fromDateString(selectedDate), [selectedDate]);
-  const queryStartDate = useMemo(() => startDate ? fromDateString(startDate) : undefined, [startDate]);
-  const queryEndDate = useMemo(() => endDate ? fromDateString(endDate) : undefined, [endDate]);
-
+  // YYYY-MM-DD 문자열을 직접 전달 (Date 객체 사용 시 tRPC 직렬화에서 타임존 변환 발생)
   const { data: logs, isLoading, refetch } = trpc.attendance.adminList.useQuery(
     useRange && startDate && endDate
-      ? { startDate: queryStartDate, endDate: queryEndDate, department: deptFilter || undefined, employeeName: nameFilter || undefined }
-      : { date: queryDate, department: deptFilter || undefined, employeeName: nameFilter || undefined }
+      ? { startDateStr: startDate, endDateStr: endDate, department: deptFilter || undefined, employeeName: nameFilter || undefined }
+      : { dateStr: selectedDate, department: deptFilter || undefined, employeeName: nameFilter || undefined }
   );
   const { data: summary } = trpc.attendance.todaySummary.useQuery();
 
@@ -395,25 +392,17 @@ function MonthlyTab() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  // 해당 월의 시작일~종료일 계산 (KST 기준 00:00:00 ~ 23:59:59)
-  const { startDate, endDate } = useMemo(() => {
+  // 해당 월의 시작일~종료일 YYYY-MM-DD 문자열 계산 (Date 객체 사용 안 함 - tRPC 타임존 변환 방지)
+  const { startDateStr, endDateStr } = useMemo(() => {
     const yyyy = year;
     const mm = String(month).padStart(2, '0');
     const lastDay = new Date(year, month, 0).getDate();
     const dd = String(lastDay).padStart(2, '0');
-    const start = new Date(`${yyyy}-${mm}-01T00:00:00+09:00`);
-    const end = new Date(`${yyyy}-${mm}-${dd}T23:59:59+09:00`);
-    return { startDate: start, endDate: end };
+    return { startDateStr: `${yyyy}-${mm}-01`, endDateStr: `${yyyy}-${mm}-${dd}` };
   }, [year, month]);
 
-  const { data: logs, isLoading } = trpc.attendance.adminList.useQuery({
-    date: startDate,
-    // 월 전체를 가져오기 위해 날짜 필터 없이 조회 (백엔드에서 날짜 범위 지원 필요)
-    // 현재 adminList는 하루 단위이므로 exportCsv를 활용
-  }, { enabled: false }); // 월별은 exportCsv 사용
-
   const { data: csvData, isLoading: csvLoading, refetch: fetchCsv } = trpc.attendance.exportCsv.useQuery(
-    { startDate, endDate },
+    { startDateStr, endDateStr },
     { enabled: false }
   );
 
