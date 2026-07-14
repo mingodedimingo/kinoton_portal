@@ -395,10 +395,14 @@ function MonthlyTab() {
   const [year, setYear] = useState(today.getFullYear());
   const [month, setMonth] = useState(today.getMonth() + 1);
 
-  // 해당 월의 시작일~종료일 계산
+  // 해당 월의 시작일~종료일 계산 (KST 기준 00:00:00 ~ 23:59:59)
   const { startDate, endDate } = useMemo(() => {
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 0); // 말일
+    const yyyy = year;
+    const mm = String(month).padStart(2, '0');
+    const lastDay = new Date(year, month, 0).getDate();
+    const dd = String(lastDay).padStart(2, '0');
+    const start = new Date(`${yyyy}-${mm}-01T00:00:00+09:00`);
+    const end = new Date(`${yyyy}-${mm}-${dd}T23:59:59+09:00`);
     return { startDate: start, endDate: end };
   }, [year, month]);
 

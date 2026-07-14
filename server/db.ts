@@ -103,8 +103,16 @@ export async function getAttendanceLogs(filters?: {
   if (!db) return [];
   const conditions = [];
   if (filters?.date) {
-    const start = new Date(filters.date); start.setHours(0, 0, 0, 0);
-    const end = new Date(filters.date); end.setHours(23, 59, 59, 999);
+    // KST 기준 해당 날짜의 00:00:00 ~ 23:59:59 (UTC+9)
+    // filters.date는 클라이언트에서 new Date(y, m-1, d) 로컬 시간으로 전달됨
+    // 날짜 문자열을 직접 추출하여 KST 범위로 변환
+    const d = filters.date;
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    const dateStr = `${yyyy}-${mm}-${dd}`;
+    const start = new Date(`${dateStr}T00:00:00+09:00`);
+    const end = new Date(`${dateStr}T23:59:59+09:00`);
     conditions.push(gte(attendanceLogs.recordedAt, start));
     conditions.push(lte(attendanceLogs.recordedAt, end));
   }

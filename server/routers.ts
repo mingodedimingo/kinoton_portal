@@ -527,10 +527,12 @@ export const appRouter = router({
         const headers = ["사원명", "부서", "직위", "날짜", "출근시간", "퇴근시간", "근무형태"];
         const grouped: Record<string, { checkin?: string; checkout?: string; department?: string; position?: string; workType?: string }> = {};
         for (const log of logs) {
-          const dateKey = log.recordedAt.toISOString().substring(0, 10);
+          // KST 기준 날짜/시간 추출 (UTC+9)
+          const kstDate = new Date(log.recordedAt.getTime() + 9 * 60 * 60 * 1000);
+          const dateKey = kstDate.toISOString().substring(0, 10);
           const key = `${log.employeeName}__${dateKey}`;
           if (!grouped[key]) grouped[key] = {};
-          const timeStr = log.recordedAt.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit", hour12: false });
+          const timeStr = `${String(kstDate.getUTCHours()).padStart(2, '0')}:${String(kstDate.getUTCMinutes()).padStart(2, '0')}`;
           if (log.type === "checkin") {
             grouped[key].checkin = timeStr;
             grouped[key].department = log.department ?? "";
