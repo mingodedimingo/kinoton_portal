@@ -4,10 +4,10 @@
  * - 연차 부여 기능
  * - 재직/퇴사/휴직 상태 관리
  */
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { toast } from "sonner";
 import {
-  Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift, KeyRound, ShieldCheck, ShieldOff,
+  Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift, KeyRound, ShieldCheck, ShieldOff, Search,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
@@ -420,8 +420,21 @@ export default function AdminEmployeesPage() {
   const [pwEmployee, setPwEmployee] = useState<Employee | null>(null);
   const [statusEmployee, setStatusEmployee] = useState<Employee | null>(null);
   const [showInactive, setShowInactive] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: employees, isLoading } = trpc.employees.list.useQuery({ activeOnly: !showInactive });
+
+  // 이름 + 부서명 검색 필터
+  const filteredEmployees = useMemo(() => {
+    if (!employees) return [];
+    if (!searchQuery.trim()) return employees;
+    const q = searchQuery.trim().toLowerCase();
+    return employees.filter(
+      (emp) =>
+        emp.name.toLowerCase().includes(q) ||
+        emp.department.toLowerCase().includes(q)
+    );
+  }, [employees, searchQuery]);
 
   // 어드민 권한 목록 조회
   const { data: adminRoles, refetch: refetchAdminRoles } = trpc.employees.getAdminRoles.useQuery();
@@ -478,6 +491,30 @@ export default function AdminEmployeesPage() {
             </p>
           </div>
           <div className="flex items-center gap-2">
+            {/* 검색창 */}
+            <div
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded text-xs"
+              style={{ border: "1px solid var(--kino-pale)", background: "var(--kino-white)", minWidth: "200px" }}
+            >
+              <Search size={12} style={{ color: "var(--kino-muted)", flexShrink: 0 }} />
+              <input
+                type="text"
+                placeholder="이름 또는 부서명 검색"
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                className="bg-transparent outline-none w-full text-xs"
+                style={{ color: "var(--kino-charcoal)" }}
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="shrink-0"
+                  style={{ color: "var(--kino-muted)" }}
+                >
+                  <X size={11} />
+                </button>
+              )}
+            </div>
             <label className="flex items-center gap-1.5 text-xs cursor-pointer" style={{ color: "var(--kino-muted)" }}>
               <input
                 type="checkbox"
@@ -514,6 +551,13 @@ export default function AdminEmployeesPage() {
           </div>
         ) : (
           <div className="overflow-x-auto rounded-lg" style={{ border: "1px solid var(--kino-pale)" }}>
+            {/* 검색 결과 카운트 */}
+            {searchQuery && (
+              <div className="px-4 py-2 text-xs" style={{ background: "#F0F9FF", borderBottom: "1px solid var(--kino-pale)", color: "#0369A1" }}>
+                <strong>'{searchQuery}'</strong> 검색 결과: {filteredEmployees.length}명
+                {filteredEmployees.length === 0 && " — 일치하는 직원이 없습니다"}
+              </div>
+            )}
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ background: "var(--kino-pale)", borderBottom: "1px solid var(--kino-pale)" }}>
@@ -523,7 +567,7 @@ export default function AdminEmployeesPage() {
                 </tr>
               </thead>
               <tbody>
-                {employees.map((emp, idx) => {
+                {filteredEmployees.map((emp, idx) => {
                   const statusDisplay = getStatusDisplay(emp as Employee);
                   return (
                     <tr
