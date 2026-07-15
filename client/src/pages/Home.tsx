@@ -88,8 +88,9 @@ type BannerItem = {
   name: string;
 };
 
+const BANNER_INTERVAL_MS = 4000;
+
 function RollingBanner() {
-  const [navigate] = useLocation();
   const { data: banners, isLoading } = trpc.banners.list.useQuery();
   const [current, setCurrent] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -102,7 +103,7 @@ function RollingBanner() {
     if (count <= 1) return;
     timerRef.current = setInterval(() => {
       setCurrent(prev => (prev + 1) % count);
-    }, 10000);
+    }, BANNER_INTERVAL_MS);
   }, [count]);
 
   useEffect(() => {
@@ -114,6 +115,9 @@ function RollingBanner() {
     setCurrent(idx);
     startTimer();
   };
+
+  const goPrevious = () => goTo((current - 1 + count) % count);
+  const goNext = () => goTo((current + 1) % count);
 
   const handleBannerClick = (banner: BannerItem) => {
     if (!banner.linkUrl) return;
@@ -139,8 +143,6 @@ function RollingBanner() {
 
   if (!list || list.length === 0) return null;
 
-  const active = list[current] ?? list[0];
-
   return (
     <div
       className="relative rounded-lg overflow-hidden"
@@ -163,27 +165,67 @@ function RollingBanner() {
         </div>
       ))}
 
-      {/* 인디케이터 (2개 이상일 때만) */}
       {count > 1 && (
-        <div
-          className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5"
-          style={{ zIndex: 10 }}
-        >
-          {list.map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => goTo(idx)}
-              className="rounded-full transition-all"
-              style={{
-                width: idx === current ? "18px" : "6px",
-                height: "6px",
-                background: idx === current ? "white" : "rgba(255,255,255,0.5)",
-                border: "none",
-                padding: 0,
-              }}
-            />
-          ))}
-        </div>
+        <>
+          {/* 이전/다음 배너 이동 버튼 */}
+          <button
+            type="button"
+            onClick={goPrevious}
+            aria-label="이전 배너"
+            className="absolute left-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-white transition-all hover:bg-black/55 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            style={{
+              zIndex: 10,
+              width: "30px",
+              height: "40px",
+              background: "rgba(0,0,0,0.32)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "6px",
+              backdropFilter: "blur(2px)",
+            }}
+          >
+            <ChevronLeft size={20} strokeWidth={2.2} />
+          </button>
+          <button
+            type="button"
+            onClick={goNext}
+            aria-label="다음 배너"
+            className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center justify-center text-white transition-all hover:bg-black/55 active:scale-95 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
+            style={{
+              zIndex: 10,
+              width: "30px",
+              height: "40px",
+              background: "rgba(0,0,0,0.32)",
+              border: "1px solid rgba(255,255,255,0.2)",
+              borderRadius: "6px",
+              backdropFilter: "blur(2px)",
+            }}
+          >
+            <ChevronRight size={20} strokeWidth={2.2} />
+          </button>
+
+          {/* 인디케이터 */}
+          <div
+            className="absolute bottom-2 left-0 right-0 flex justify-center gap-1.5"
+            style={{ zIndex: 10 }}
+          >
+            {list.map((_, idx) => (
+              <button
+                type="button"
+                key={idx}
+                onClick={() => goTo(idx)}
+                aria-label={`${idx + 1}번째 배너로 이동`}
+                className="rounded-full transition-all"
+                style={{
+                  width: idx === current ? "18px" : "6px",
+                  height: "6px",
+                  background: idx === current ? "white" : "rgba(255,255,255,0.5)",
+                  border: "none",
+                  padding: 0,
+                }}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );
