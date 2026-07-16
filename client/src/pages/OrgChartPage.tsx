@@ -35,14 +35,14 @@ const ORG_TREE: OrgNode = {
   children: [
     // ── 투자전략실 ──────────────────────────────────────────────
     {
-      id: "invest", label: "투자전략실", subLabel: "부사장 고현환", color: COLOR.invest,
+      id: "invest", label: "투자전략실", subLabel: "부사장 고영환", color: COLOR.invest,
     },
     // ── 미래전략사업본부 ─────────────────────────────────────────
     {
       id: "mira", label: "미래전략사업본부", subLabel: "부사장 배우성", color: COLOR.exec,
       children: [
         {
-          id: "strategy-dept", label: "권역망영업담당", subLabel: "담당 정도영", color: COLOR.dept,
+          id: "strategy-dept", label: "전략영업담당", subLabel: "담당 정도영", color: COLOR.dept,
           children: [
             { id: "adv",    label: "광고사업팀",  color: COLOR.team },
             { id: "global", label: "글로벌사업팀", color: COLOR.team },
