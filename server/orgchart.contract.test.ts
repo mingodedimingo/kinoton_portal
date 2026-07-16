@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { formatEmployeeEmail } from "../client/src/lib/employeeEmail";
 
 /**
  * 조직도 수기 데이터 계약 테스트 (재발 방지 가드)
@@ -26,5 +27,28 @@ describe("조직도 핵심 데이터 계약 (재발 방지)", () => {
       /id:\s*"strategy-dept",\s*label:\s*"전략영업담당",\s*subLabel:\s*"담당 정도영"/,
     );
     expect(orgChartSrc).not.toContain("권역망영업담당");
+  });
+
+  it("상세 팝업과 전화번호부는 공통 이메일 정규화 함수를 사용한다", () => {
+    expect(orgChartSrc.match(/formatEmployeeEmail\(/g)).toHaveLength(2);
+    expect(orgChartSrc).not.toMatch(/\$\{(?:emp|m)\.email\}@kinoton\.co\.kr/);
+  });
+});
+
+describe("직원 이메일 정규화", () => {
+  it("이미 전체 주소인 이메일에는 도메인을 다시 붙이지 않는다", () => {
+    expect(formatEmployeeEmail("doyoung.jung@kinoton.co.kr")).toBe(
+      "doyoung.jung@kinoton.co.kr",
+    );
+  });
+
+  it("아이디만 저장된 레거시 값에는 회사 도메인을 한 번 붙인다", () => {
+    expect(formatEmployeeEmail("doyoung.jung")).toBe("doyoung.jung@kinoton.co.kr");
+  });
+
+  it("빈 값과 미등록 표시는 이메일로 렌더링하지 않는다", () => {
+    expect(formatEmployeeEmail(null)).toBeNull();
+    expect(formatEmployeeEmail("  ")).toBeNull();
+    expect(formatEmployeeEmail("-")).toBeNull();
   });
 });

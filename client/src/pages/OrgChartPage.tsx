@@ -9,6 +9,7 @@ import { useState, useMemo } from "react";
 import PortalLayout from "@/components/PortalLayout";
 import { Search, Phone, Mail, Users, Loader2, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
+import { formatEmployeeEmail } from "@/lib/employeeEmail";
 
 // ── 색상 팔레트 ──────────────────────────────────────────────────
 const COLOR = {
@@ -159,6 +160,7 @@ function rankBadge(position: string): { bg: string; color: string } {
 // ── 프로필 팝업 모달 ─────────────────────────────────────────────
 function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) {
   const badge = rankBadge(emp.position);
+  const email = formatEmployeeEmail(emp.email);
   return (
     <>
       {/* 배경 블러 딤 */}
@@ -224,12 +226,12 @@ function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) 
           {emp.phone && emp.phone !== "-" && (
             <InfoRow icon="📱" label="휴대폰" value={emp.phone} href={`tel:${emp.phone}`} />
           )}
-          {emp.email && emp.email !== "-" && (
+          {email && (
             <InfoRow
               icon="✉"
               label="이메일"
-              value={`${emp.email}@kinoton.co.kr`}
-              href={`mailto:${emp.email}@kinoton.co.kr`}
+              value={email}
+              href={`mailto:${email}`}
             />
           )}
         </div>
@@ -528,6 +530,7 @@ export default function OrgChartPage() {
               </div>
             ) : filtered.map((m) => {
               const badge = rankBadge(m.position);
+              const email = formatEmployeeEmail(m.email);
               return (
                 <div
                   key={m.id}
@@ -580,14 +583,14 @@ export default function OrgChartPage() {
                     ) : "—"}
                   </span>
                   <span className="text-xs truncate" style={{ color: "#6B7280" }}>
-                    {m.email && m.email !== "-" ? (
+                    {email ? (
                       <a
-                        href={`mailto:${m.email}@kinoton.co.kr`}
+                        href={`mailto:${email}`}
                         className="hover:underline"
                         style={{ color: "#2563EB" }}
                         onClick={e => e.stopPropagation()}
                       >
-                        {m.email}@kinoton.co.kr
+                        {email}
                       </a>
                     ) : "—"}
                   </span>
