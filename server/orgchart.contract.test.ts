@@ -3,6 +3,7 @@ import { readFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { formatEmployeeEmail } from "../client/src/lib/employeeEmail";
+import { compareOrgChartEmployees } from "../client/src/lib/employeeSort";
 
 /**
  * 조직도 수기 데이터 계약 테스트 (재발 방지 가드)
@@ -32,6 +33,30 @@ describe("조직도 핵심 데이터 계약 (재발 방지)", () => {
   it("상세 팝업과 전화번호부는 공통 이메일 정규화 함수를 사용한다", () => {
     expect(orgChartSrc.match(/formatEmployeeEmail\(/g)).toHaveLength(2);
     expect(orgChartSrc).not.toMatch(/\$\{(?:emp|m)\.email\}@kinoton\.co\.kr/);
+  });
+
+  it("모든 부서의 직원 배열에 공통 조직도 정렬 함수를 적용한다", () => {
+    expect(orgChartSrc).toContain("members.sort(compareOrgChartEmployees)");
+  });
+});
+
+describe("조직도 직원 정렬", () => {
+  it("입사일과 관계없이 팀장을 책임보다 먼저 노출한다", () => {
+    const globalBusinessTeam = [
+      { id: 30015, name: "강민구", position: "책임", joinDate: "2023-08-01" },
+      { id: 30014, name: "최우성", position: "팀장", joinDate: "2025-03-05" },
+    ].sort(compareOrgChartEmployees);
+
+    expect(globalBusinessTeam.map((employee) => employee.name)).toEqual(["최우성", "강민구"]);
+  });
+
+  it("동일 직급은 입사일이 빠른 직원을 먼저 노출한다", () => {
+    const managementPlanningTeam = [
+      { id: 30018, name: "장민석", position: "책임", joinDate: "2026-05-11" },
+      { id: 30017, name: "김진형", position: "책임", joinDate: "2026-04-14" },
+    ].sort(compareOrgChartEmployees);
+
+    expect(managementPlanningTeam.map((employee) => employee.name)).toEqual(["김진형", "장민석"]);
   });
 });
 

@@ -10,6 +10,7 @@ import PortalLayout from "@/components/PortalLayout";
 import { Search, Phone, Mail, Users, Loader2, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { formatEmployeeEmail } from "@/lib/employeeEmail";
+import { compareOrgChartEmployees } from "@/lib/employeeSort";
 
 // ── 색상 팔레트 ──────────────────────────────────────────────────
 const COLOR = {
@@ -141,6 +142,7 @@ type Employee = {
   ext: string | null;
   email: string | null;
   profileImage: string | null;
+  joinDate: string | null;
 };
 
 // ── 직위별 배지 색상 ─────────────────────────────────────────────
@@ -420,6 +422,7 @@ export default function OrgChartPage() {
       if (!map.has(dept)) map.set(dept, []);
       map.get(dept)!.push(emp);
     });
+    map.forEach((members) => members.sort(compareOrgChartEmployees));
     return map;
   }, [employees]);
 
