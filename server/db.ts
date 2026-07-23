@@ -289,12 +289,17 @@ export async function getLeaveRequestById(id: number): Promise<LeaveRequest | un
 
 // ── 공지사항 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getNotices(limit = 20, offset = 0): Promise<{ items: Notice[]; total: number }> {
+export async function getNotices(limit = 20, offset = 0, category?: string): Promise<{ items: Notice[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
+  const whereClause = category ? eq(notices.category, category) : undefined;
   const [items, countResult] = await Promise.all([
-    db.select().from(notices).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset),
-    db.select({ count: sql<number>`count(*)` }).from(notices),
+    whereClause
+      ? db.select().from(notices).where(whereClause).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset)
+      : db.select().from(notices).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset),
+    whereClause
+      ? db.select({ count: sql<number>`count(*)` }).from(notices).where(whereClause)
+      : db.select({ count: sql<number>`count(*)` }).from(notices),
   ]);
   return { items, total: Number(countResult[0]?.count ?? 0) };
 }

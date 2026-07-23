@@ -570,8 +570,8 @@ export const appRouter = router({
   notices: router({
     // 목록 조회 (로그인 필수)
     list: protectedProcedure
-      .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
-      .query(async ({ input }) => getNotices(input.limit ?? 20, input.offset ?? 0)),
+      .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), category: z.enum(["company", "dept", "all"]).optional() }))
+      .query(async ({ input }) => getNotices(input.limit ?? 20, input.offset ?? 0, input.category && input.category !== "all" ? input.category : undefined)),
 
     // 단건 조회 (로그인 필수)
     get: protectedProcedure

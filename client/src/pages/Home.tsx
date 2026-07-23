@@ -290,9 +290,9 @@ function QuickMenuSection({ card = false, mobile = false }: { card?: boolean; mo
 // ── Notice Section (DB 연동) ─────────────────────────────────────
 function NoticeSection() {
   const [tab, setTab] = useState<NoticeCategory>("all");
-  const { data: noticesData, isLoading } = trpc.notices.list.useQuery({ limit: 5 });
+  const { data: noticesData, isLoading } = trpc.notices.list.useQuery({ limit: 5, category: tab });
   const notices = noticesData?.items;
-  const filtered = tab === "all" ? notices : notices?.filter(n => n.category === tab);
+  const filtered = notices;
   return (
     <div className="portal-card animate-fade-in-up stagger-2">
       <div className="section-header">
