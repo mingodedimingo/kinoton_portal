@@ -291,7 +291,7 @@ export async function getLeaveRequestById(id: number): Promise<LeaveRequest | un
 
 // ── 공지사항 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getNotices(limit = 20, offset = 0, category?: string): Promise<{ items: Notice[]; total: number }> {
+export async function getNotices(limit = 20, offset = 0, category?: string): Promise<{ items: (Notice & { commentCount: number })[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const whereClause = category ? eq(notices.category, category as "company" | "dept" | "all") : undefined;
@@ -303,7 +303,12 @@ export async function getNotices(limit = 20, offset = 0, category?: string): Pro
       ? db.select({ count: sql<number>`count(*)` }).from(notices).where(whereClause)
       : db.select({ count: sql<number>`count(*)` }).from(notices),
   ]);
-  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
+  const ids = rows.map(r => r.id);
+  const commentCounts = ids.length > 0
+    ? await db.select({ postId: sql<number>`postId`, cnt: sql<number>`COUNT(*)` }).from(sql`post_comments`).where(sql`postType='notice' AND postId IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`).groupBy(sql`postId`)
+    : [];
+  const countMap = new Map(commentCounts.map(c => [Number(c.postId), Number(c.cnt)]));
+  return { items: rows.map(r => ({ ...r, commentCount: countMap.get(r.id) ?? 0 })), total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getNoticeById(id: number): Promise<Notice | undefined> {
@@ -333,14 +338,19 @@ export async function deleteNotice(id: number): Promise<void> {
 
 // ── 인사발령 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getHrNotices(limit = 20, offset = 0): Promise<{ items: HrNotice[]; total: number }> {
+export async function getHrNotices(limit = 20, offset = 0): Promise<{ items: (HrNotice & { commentCount: number })[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const [rows, countResult] = await Promise.all([
     db.select().from(hrNotices).orderBy(desc(hrNotices.createdAt)).limit(limit).offset(offset),
     db.select({ count: sql<number>`count(*)` }).from(hrNotices),
   ]);
-  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
+  const ids = rows.map(r => r.id);
+  const commentCounts = ids.length > 0
+    ? await db.select({ postId: sql<number>`postId`, cnt: sql<number>`COUNT(*)` }).from(sql`post_comments`).where(sql`postType='hr_notice' AND postId IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`).groupBy(sql`postId`)
+    : [];
+  const countMap = new Map(commentCounts.map(c => [Number(c.postId), Number(c.cnt)]));
+  return { items: rows.map(r => ({ ...r, commentCount: countMap.get(r.id) ?? 0 })), total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getHrNoticeById(id: number): Promise<HrNotice | undefined> {
@@ -370,14 +380,19 @@ export async function deleteHrNotice(id: number): Promise<void> {
 
 // ── 경조사 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getCondolences(limit = 20, offset = 0): Promise<{ items: Condolence[]; total: number }> {
+export async function getCondolences(limit = 20, offset = 0): Promise<{ items: (Condolence & { commentCount: number })[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const [rows, countResult] = await Promise.all([
     db.select().from(condolences).orderBy(desc(condolences.createdAt)).limit(limit).offset(offset),
     db.select({ count: sql<number>`count(*)` }).from(condolences),
   ]);
-  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
+  const ids = rows.map(r => r.id);
+  const commentCounts = ids.length > 0
+    ? await db.select({ postId: sql<number>`postId`, cnt: sql<number>`COUNT(*)` }).from(sql`post_comments`).where(sql`postType='condolence' AND postId IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`).groupBy(sql`postId`)
+    : [];
+  const countMap = new Map(commentCounts.map(c => [Number(c.postId), Number(c.cnt)]));
+  return { items: rows.map(r => ({ ...r, commentCount: countMap.get(r.id) ?? 0 })), total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getCondolenceById(id: number): Promise<Condolence | undefined> {
@@ -433,7 +448,12 @@ export async function getBoardPosts(filters?: {
       ? db.select({ count: sql<number>`count(*)` }).from(boardPosts).where(whereClause)
       : db.select({ count: sql<number>`count(*)` }).from(boardPosts),
   ]);
-  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
+  const ids = rows.map(r => r.id);
+  const commentCounts = ids.length > 0
+    ? await db.select({ postId: sql<number>`postId`, cnt: sql<number>`COUNT(*)` }).from(sql`post_comments`).where(sql`postType='board' AND postId IN (${sql.join(ids.map(id => sql`${id}`), sql`, `)})`).groupBy(sql`postId`)
+    : [];
+  const countMap = new Map(commentCounts.map(c => [Number(c.postId), Number(c.cnt)]));
+  return { items: rows.map(r => ({ ...r, commentCount: countMap.get(r.id) ?? 0 })), total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getBoardPostById(id: number): Promise<BoardPost[]> {

@@ -331,7 +331,7 @@ function NoticeSection() {
             <span className="badge-tag company shrink-0">{n.tag}</span>
             <span className="board-item-title flex items-center gap-1">
               {n.title}
-
+              {(n as any).commentCount > 0 && <span className="shrink-0 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>[{(n as any).commentCount}]</span>}
             </span>
             {n.isNew && <span className="badge-new shrink-0">N</span>}
             <span className="board-item-date shrink-0">{new Date(n.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
@@ -426,7 +426,7 @@ function BoardSection() {
             <span className="badge-tag shrink-0">{p.category}</span>
             <span className="board-item-title flex items-center gap-1">
               {p.title}
-
+              {(p as any).commentCount > 0 && <span className="shrink-0 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>[{(p as any).commentCount}]</span>}
             </span>
             {p.isNew && <span className="badge-new shrink-0">N</span>}
             <span className="board-item-date shrink-0">{new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
