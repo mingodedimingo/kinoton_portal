@@ -115,16 +115,16 @@ export default function PortalLayout({ children }: Props) {
         className="sticky top-0 z-50 flex items-center px-4 md:px-6"
         style={{
           height: "56px",
-          background: "var(--kino-white)",
-          borderBottom: "1px solid var(--kino-pale)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          background: "#363636",
+          borderBottom: "1px solid rgba(255,255,255,0.1)",
+          boxShadow: "0 1px 4px rgba(0,0,0,0.2)",
           gap: "0.75rem",
         }}
       >
         {/* Logo */}
         <Link href="/" className="flex items-center shrink-0 mr-2">
           <img
-            src="https://files.manuscdn.com/user_upload_by_module/session_file/310519663697530344/JiOEsaAjyNOzfJKQ.png"
+            src="/kinoton_logo_white.png"
             alt="Kinoton"
             style={{ height: "28px", width: "auto" }}
           />
@@ -134,14 +134,14 @@ export default function PortalLayout({ children }: Props) {
         <div className="hidden md:flex items-center flex-1 max-w-xs">
           <div
             className="flex items-center gap-2 w-full px-3 py-1.5 rounded-md text-sm"
-            style={{ background: "var(--kino-bg)", border: "1px solid var(--kino-pale)" }}
+            style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.2)" }}
           >
-            <Search size={14} style={{ color: "var(--kino-muted)" }} />
+            <Search size={14} style={{ color: "rgba(255,255,255,0.7)" }} />
             <input
               type="text"
               placeholder="통합검색 (메일, 결재, 게시판, 직원...)"
-              className="flex-1 bg-transparent outline-none text-sm"
-              style={{ color: "var(--kino-charcoal)" }}
+              className="flex-1 bg-transparent outline-none text-sm placeholder-white/50"
+              style={{ color: "white" }}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => { if (e.key === "Enter") handleComingSoon("통합검색"); }}
@@ -172,42 +172,42 @@ export default function PortalLayout({ children }: Props) {
 
           {/* Mobile: 검색 아이콘 */}
           <button
-            className="md:hidden p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="md:hidden p-2 rounded-md hover:bg-white/10 transition-colors"
             onClick={() => setSearchOpen(!searchOpen)}
           >
-            <Search size={20} style={{ color: "var(--kino-mid)" }} />
+            <Search size={20} style={{ color: "white" }} />
           </button>
 
           {/* 알림 — 모바일: 빨간 점만 / PC: 숫자 배지 */}
           <button
-            className="relative p-2 rounded-md hover:bg-gray-100 transition-colors"
+            className="relative p-2 rounded-md hover:bg-white/10 transition-colors"
             onClick={() => handleComingSoon("알림")}
           >
-            <Bell size={20} style={{ color: "var(--kino-mid)" }} />
+            <Bell size={20} style={{ color: "white" }} />
           </button>
 
           {/* 구분선 — 모바일에서만 표시 */}
           <div
             className="md:hidden mx-1"
-            style={{ width: "1px", height: "20px", background: "var(--kino-pale)" }}
+            style={{ width: "1px", height: "20px", background: "rgba(255,255,255,0.2)" }}
           />
 
           {/* 프로필 드롭다운 */}
           <div ref={profileRef} className="relative">
             <div
-              className="flex items-center gap-2 cursor-pointer px-1 py-1 rounded-md hover:bg-gray-50 transition-colors"
+              className="flex items-center gap-2 cursor-pointer px-1 py-1 rounded-md hover:bg-white/10 transition-colors"
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
             >
               <img
                 src={displayProfileImage}
                 alt={displayName}
                 className="w-9 h-9 rounded-full object-cover"
-                style={{ border: "1.5px solid var(--kino-pale)" }}
+                style={{ border: "1.5px solid rgba(255,255,255,0.3)" }}
               />
               {/* PC: 이름/부서 텍스트 */}
               <div className="hidden md:block mr-1">
-                <p className="text-xs font-semibold leading-tight" style={{ color: "var(--kino-charcoal)" }}>{displayName}</p>
-                <p className="text-xs leading-tight" style={{ color: "var(--kino-muted)" }}>{displayDept}</p>
+                <p className="text-xs font-semibold leading-tight" style={{ color: "white" }}>{displayName}</p>
+                <p className="text-xs leading-tight" style={{ color: "rgba(255,255,255,0.7)" }}>{displayDept}</p>
               </div>
             </div>
 
@@ -281,8 +281,9 @@ export default function PortalLayout({ children }: Props) {
 
           {/* 햄버거 메뉴 — lg 미만에서만 표시 */}
           <button
-            className="lg:hidden p-2 rounded-md hover:bg-gray-100 transition-colors ml-1"
+            className="lg:hidden p-2 rounded-md hover:bg-white/10 transition-colors ml-1"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            style={{ color: "white" }}
           >
             {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>

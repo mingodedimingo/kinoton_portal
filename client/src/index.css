@@ -194,18 +194,18 @@
     padding: 0.5rem 0.875rem;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--kino-charcoal);
+    color: rgba(255,255,255,0.9);
     border-radius: 0.25rem;
     transition: background 0.15s, color 0.15s;
     white-space: nowrap;
   }
   .gnb-item:hover {
-    background: var(--kino-pale);
-    color: var(--kino-black);
+    background: rgba(255,255,255,0.12);
+    color: white;
   }
   .gnb-item.active {
-    background: var(--kino-black);
-    color: var(--kino-white);
+    background: rgba(255,255,255,0.22);
+    color: white;
   }
 
   /* ── Quick Menu Circle ── */
