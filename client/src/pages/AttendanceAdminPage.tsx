@@ -57,7 +57,7 @@ export default function AttendanceAdminPage() {
 
   // 출퇴근 로그 조회
   const { data: logs = [], isLoading, refetch } = trpc.attendance.adminList.useQuery({
-    date: queryDate,
+    dateStr: selectedDate,
     department: filterDept || undefined,
     employeeName: filterName || undefined,
   }, {

@@ -143,6 +143,7 @@ type Employee = {
   email: string | null;
   profileImage: string | null;
   joinDate: string | null;
+  employeeNumber: string | null;
 };
 
 // ── 직위별 배지 색상 ─────────────────────────────────────────────

@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { NOTICE_CATEGORY_KEYS, NOTICE_CATEGORY_LABELS, type NoticeCategory } from "@/config/categories";
 import { Link } from "wouter";
-import { Megaphone, ChevronRight, Image as ImageIcon, Eye, MessageCircle } from "lucide-react";
+import { Megaphone, ChevronRight, Image as ImageIcon, Eye } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
@@ -20,7 +20,6 @@ type NoticeItem = {
   category: NoticeCategory;
   authorName: string | null;
   viewCount?: number;
-  commentCount?: number;
 };
 
 function parseImages(images: unknown): string[] {
@@ -99,12 +98,7 @@ export default function NoticesPage() {
                   <span className="board-item-title flex items-center gap-1">
                     {n.title}
                     {parseImages(n.images).length > 0 && <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />}
-                    {((n as any).commentCount ?? 0) > 0 && (
-                      <span className="flex items-center gap-0.5" style={{ color: "#E05C2A", fontSize: "0.7rem", fontWeight: 600 }}>
-                        <MessageCircle size={10} />
-                        <span>{(n as any).commentCount}</span>
-                      </span>
-                    )}
+
                   </span>
                   {n.isNew && <span className="badge-new shrink-0">N</span>}
                   <span className="flex items-center gap-0.5 shrink-0" style={{ color: "var(--kino-muted)", fontSize: "0.7rem" }}>

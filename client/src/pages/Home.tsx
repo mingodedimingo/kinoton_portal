@@ -11,7 +11,7 @@ import {
   Mail, FileCheck, Calendar, LayoutGrid,
   ChevronRight, Plus, Megaphone, UserCheck,
   Heart, BookOpen, ChevronLeft, LogIn, LogOut,
-  Building2, MapPin, Wifi, Settings2, Loader2, MessageCircle,
+  Building2, MapPin, Wifi, Settings2, Loader2,
 } from "lucide-react";
 import PortalLayout, { openFullMenu } from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
@@ -331,12 +331,7 @@ function NoticeSection() {
             <span className="badge-tag company shrink-0">{n.tag}</span>
             <span className="board-item-title flex items-center gap-1">
               {n.title}
-              {((n as any).commentCount ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 shrink-0" style={{ color: "#E05C2A", fontSize: "0.65rem", fontWeight: 600 }}>
-                  <MessageCircle size={9} />
-                  <span>{(n as any).commentCount}</span>
-                </span>
-              )}
+
             </span>
             {n.isNew && <span className="badge-new shrink-0">N</span>}
             <span className="board-item-date shrink-0">{new Date(n.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>
@@ -431,12 +426,7 @@ function BoardSection() {
             <span className="badge-tag shrink-0">{p.category}</span>
             <span className="board-item-title flex items-center gap-1">
               {p.title}
-              {((p as any).commentCount ?? 0) > 0 && (
-                <span className="flex items-center gap-0.5 shrink-0" style={{ color: "#E05C2A", fontSize: "0.65rem", fontWeight: 600 }}>
-                  <MessageCircle size={9} />
-                  <span>{(p as any).commentCount}</span>
-                </span>
-              )}
+
             </span>
             {p.isNew && <span className="badge-new shrink-0">N</span>}
             <span className="board-item-date shrink-0">{new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}</span>

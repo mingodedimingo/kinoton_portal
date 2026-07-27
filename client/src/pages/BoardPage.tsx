@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Search, Plus, BookOpen, Loader2, X, ExternalLink, Trash2, Image as ImageIcon, Eye, MessageCircle } from "lucide-react";
+import { Search, Plus, BookOpen, Loader2, X, ExternalLink, Trash2, Image as ImageIcon, Eye } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import RichEditor from "@/components/RichEditor";
 
@@ -341,12 +341,7 @@ export default function BoardPage() {
                               <ExternalLink size={11} style={{ color: "var(--kino-muted)" }} />
                             </a>
                           )}
-                          {((p as any).commentCount ?? 0) > 0 && (
-                            <span className="flex items-center gap-0.5 shrink-0" style={{ color: "#E05C2A", fontSize: "0.7rem", fontWeight: 600 }}>
-                              <MessageCircle size={10} />
-                              <span>{(p as any).commentCount}</span>
-                            </span>
-                          )}
+
                         </span>
                         <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>{p.authorName}</span>
                         <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>

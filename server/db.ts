@@ -291,20 +291,19 @@ export async function getLeaveRequestById(id: number): Promise<LeaveRequest | un
 
 // ── 공지사항 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getNotices(limit = 20, offset = 0, category?: string): Promise<{ items: (Notice & { commentCount: number })[]; total: number }> {
+export async function getNotices(limit = 20, offset = 0, category?: string): Promise<{ items: Notice[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
-  const whereClause = category ? eq(notices.category, category) : undefined;
+  const whereClause = category ? eq(notices.category, category as "company" | "dept" | "all") : undefined;
   const [rows, countResult] = await Promise.all([
     whereClause
-      ? db.select({ ...notices, commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE postType='notice' AND postId=${notices.id})` }).from(notices).where(whereClause).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset)
-      : db.select({ ...notices, commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE postType='notice' AND postId=${notices.id})` }).from(notices).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset),
+      ? db.select().from(notices).where(whereClause).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset)
+      : db.select().from(notices).orderBy(desc(notices.isPinned), desc(notices.createdAt)).limit(limit).offset(offset),
     whereClause
       ? db.select({ count: sql<number>`count(*)` }).from(notices).where(whereClause)
       : db.select({ count: sql<number>`count(*)` }).from(notices),
   ]);
-  const items = rows.map(r => ({ ...r, commentCount: Number(r.commentCount ?? 0) }));
-  return { items, total: Number(countResult[0]?.count ?? 0) };
+  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getNoticeById(id: number): Promise<Notice | undefined> {
@@ -334,15 +333,14 @@ export async function deleteNotice(id: number): Promise<void> {
 
 // ── 인사발령 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getHrNotices(limit = 20, offset = 0): Promise<{ items: (HrNotice & { commentCount: number })[]; total: number }> {
+export async function getHrNotices(limit = 20, offset = 0): Promise<{ items: HrNotice[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const [rows, countResult] = await Promise.all([
-    db.select({ ...hrNotices, commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE postType='hr_notice' AND postId=${hrNotices.id})` }).from(hrNotices).orderBy(desc(hrNotices.createdAt)).limit(limit).offset(offset),
+    db.select().from(hrNotices).orderBy(desc(hrNotices.createdAt)).limit(limit).offset(offset),
     db.select({ count: sql<number>`count(*)` }).from(hrNotices),
   ]);
-  const items = rows.map(r => ({ ...r, commentCount: Number(r.commentCount ?? 0) }));
-  return { items, total: Number(countResult[0]?.count ?? 0) };
+  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getHrNoticeById(id: number): Promise<HrNotice | undefined> {
@@ -372,15 +370,14 @@ export async function deleteHrNotice(id: number): Promise<void> {
 
 // ── 경조사 쿼리 헬퍼 ────────────────────────────────────────────
 
-export async function getCondolences(limit = 20, offset = 0): Promise<{ items: (Condolence & { commentCount: number })[]; total: number }> {
+export async function getCondolences(limit = 20, offset = 0): Promise<{ items: Condolence[]; total: number }> {
   const db = await getDb();
   if (!db) return { items: [], total: 0 };
   const [rows, countResult] = await Promise.all([
-    db.select({ ...condolences, commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE postType='condolence' AND postId=${condolences.id})` }).from(condolences).orderBy(desc(condolences.createdAt)).limit(limit).offset(offset),
+    db.select().from(condolences).orderBy(desc(condolences.createdAt)).limit(limit).offset(offset),
     db.select({ count: sql<number>`count(*)` }).from(condolences),
   ]);
-  const items = rows.map(r => ({ ...r, commentCount: Number(r.commentCount ?? 0) }));
-  return { items, total: Number(countResult[0]?.count ?? 0) };
+  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getCondolenceById(id: number): Promise<Condolence | undefined> {
@@ -430,14 +427,13 @@ export async function getBoardPosts(filters?: {
   const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
   const [rows, countResult] = await Promise.all([
     whereClause
-      ? db.select({ ...boardPosts, commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE postType='board' AND postId=${boardPosts.id})` }).from(boardPosts).where(whereClause).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit).offset(offset)
-      : db.select({ ...boardPosts, commentCount: sql<number>`(SELECT COUNT(*) FROM post_comments WHERE postType='board' AND postId=${boardPosts.id})` }).from(boardPosts).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit).offset(offset),
+      ? db.select().from(boardPosts).where(whereClause).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit).offset(offset)
+      : db.select().from(boardPosts).orderBy(desc(boardPosts.isPinned), desc(boardPosts.createdAt)).limit(limit).offset(offset),
     whereClause
       ? db.select({ count: sql<number>`count(*)` }).from(boardPosts).where(whereClause)
       : db.select({ count: sql<number>`count(*)` }).from(boardPosts),
   ]);
-  const items = rows.map(r => ({ ...r, commentCount: Number(r.commentCount ?? 0) }));
-  return { items, total: Number(countResult[0]?.count ?? 0) };
+  return { items: rows, total: Number(countResult[0]?.count ?? 0) };
 }
 
 export async function getBoardPostById(id: number): Promise<BoardPost[]> {
