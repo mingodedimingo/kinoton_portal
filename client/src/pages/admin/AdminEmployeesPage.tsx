@@ -24,6 +24,7 @@ type Employee = {
   profileImage: string | null;
   isActive: boolean;
   employmentStatus?: string | null;
+  employeeNumber?: string | null;
 };
 
 // ── 직원 폼 모달 ──────────────────────────────────────────────────
@@ -47,6 +48,7 @@ function EmployeeFormModal({
     joinDate: employee?.joinDate ?? new Date().toISOString().split("T")[0],
     profileImage: (employee as Employee | null)?.profileImage ?? "",
     annualLeave: 15,
+    employeeNumber: (employee as Employee | null)?.employeeNumber ?? "",
   });
 
   const createMutation = trpc.employees.create.useMutation({
@@ -79,6 +81,7 @@ function EmployeeFormModal({
         phone: form.phone,
         joinDate: form.joinDate,
         profileImage: form.profileImage || undefined,
+        employeeNumber: form.employeeNumber || undefined,
       });
     } else {
       createMutation.mutate({ ...form });
@@ -101,6 +104,7 @@ function EmployeeFormModal({
 
         <form onSubmit={handleSubmit} className="flex flex-col gap-3">
           {[
+            { label: "사원번호", key: "employeeNumber", type: "text", placeholder: "082404" },
             { label: "이름 *", key: "name", type: "text", placeholder: "홍길동" },
             { label: "부서 *", key: "department", type: "text", placeholder: "경영기획팀" },
             { label: "직위 *", key: "position", type: "text", placeholder: "선임" },
@@ -561,7 +565,7 @@ export default function AdminEmployeesPage() {
             <table className="w-full text-xs">
               <thead>
                 <tr style={{ background: "var(--kino-pale)", borderBottom: "1px solid var(--kino-pale)" }}>
-                  {["이름", "부서", "직위", "입사일", "상태", "권한", "관리"].map(h => (
+                  {["사원번호", "이름", "부서", "직위", "입사일", "상태", "권한", "관리"].map(h => (
                     <th key={h} className="px-4 py-3 text-left font-semibold" style={{ color: "var(--kino-mid)" }}>{h}</th>
                   ))}
                 </tr>
@@ -578,6 +582,7 @@ export default function AdminEmployeesPage() {
                         opacity: emp.isActive ? 1 : 0.6,
                       }}
                     >
+                      <td className="px-4 py-3" style={{ color: "var(--kino-muted)", fontFamily: "monospace" }}>{(emp as Employee).employeeNumber ?? "-"}</td>
                       <td className="px-4 py-3 font-medium" style={{ color: "var(--kino-charcoal)" }}>{emp.name}</td>
                       <td className="px-4 py-3" style={{ color: "var(--kino-mid)" }}>{emp.department}</td>
                       <td className="px-4 py-3" style={{ color: "var(--kino-mid)" }}>{emp.position}</td>

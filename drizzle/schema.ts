@@ -33,6 +33,7 @@ export const employees = mysqlTable("employees", {
   employmentStatus: mysqlEnum("employmentStatus", ["재직", "퇴사", "휴직"]).default("재직").notNull(), // 재직/퇴사/휴직
   statusChangeDate: varchar("statusChangeDate", { length: 10 }), // 상태 변경일 (YYYY-MM-DD)
   passwordHash: varchar("passwordHash", { length: 255 }), // bcrypt hash
+  employeeNumber: varchar("employeeNumber", { length: 20 }), // 사원번호
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -104,6 +105,7 @@ export const notices = mysqlTable("notices", {
   authorName: varchar("authorName", { length: 100 }),
   images: text("images"), // JSON array of image URLs (legacy)
   attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
+  viewCount: int("viewCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -121,6 +123,7 @@ export const hrNotices = mysqlTable("hr_notices", {
   authorName: varchar("authorName", { length: 100 }),
   images: text("images"), // JSON array of image URLs (legacy)
   attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
+  viewCount: int("viewCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -138,6 +141,7 @@ export const condolences = mysqlTable("condolences", {
   authorName: varchar("authorName", { length: 100 }),
   images: text("images"), // JSON array of image URLs (legacy)
   attachments: text("attachments"), // JSON array of {name, url, type, size, mimeType}
+  viewCount: int("viewCount").default(0).notNull(),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
   updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
 });
@@ -253,3 +257,18 @@ export const banners = mysqlTable("banners", {
 });
 export type Banner = typeof banners.$inferSelect;
 export type InsertBanner = typeof banners.$inferInsert;
+
+// ── 댓글 테이블 (게시판/공지사항/인사발령/경조사 공통) ──────────
+export const postComments = mysqlTable("post_comments", {
+  id: int("id").autoincrement().primaryKey(),
+  postType: mysqlEnum("postType", ["board", "notice", "hr_notice", "condolence"]).notNull(),
+  postId: int("postId").notNull(),
+  authorName: varchar("authorName", { length: 100 }).notNull(),
+  authorOpenId: varchar("authorOpenId", { length: 64 }),
+  content: text("content").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type PostComment = typeof postComments.$inferSelect;
+export type InsertPostComment = typeof postComments.$inferInsert;

@@ -186,6 +186,9 @@ export default function MyPage() {
 
               <p className="text-base font-bold" style={{ color: "var(--kino-charcoal)" }}>{employee.name}</p>
               <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)" }}>{employee.department} · {employee.position}</p>
+              {(employee as any).employeeNumber && (
+                <p className="text-xs mt-0.5" style={{ color: "var(--kino-muted)", fontFamily: "monospace" }}>사원번호: {(employee as any).employeeNumber}</p>
+              )}
 
               <div className="w-full mt-4 flex flex-col gap-2">
                 {employee.email && (

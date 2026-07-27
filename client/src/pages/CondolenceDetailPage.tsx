@@ -9,7 +9,8 @@ import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { useAuth } from "@/_core/hooks/useAuth";
 import { toast } from "sonner";
-import { ChevronLeft, Loader2, Pencil, Trash2, X, Save, List, Paperclip, Download, FileText, Film, FileSpreadsheet, Presentation, Archive, File } from "lucide-react";
+import { ChevronLeft, Loader2, Pencil, Trash2, X, Save, List, Paperclip, Download, FileText, Film, FileSpreadsheet, Presentation, Archive, File, Eye } from "lucide-react";
+import CommentSection from "@/components/CommentSection";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import DOMPurify from "dompurify";
 
@@ -279,6 +280,9 @@ export default function CondolenceDetailPage() {
                   {item.authorName && (
                     <span className="text-xs" style={{ color: "var(--kino-muted)" }}>· {item.authorName}</span>
                   )}
+                  <span className="flex items-center gap-1 text-xs" style={{ color: "var(--kino-muted)" }}>
+                    <Eye size={11} /> {(item as any).viewCount ?? 0}
+                  </span>
                 </div>
                 {isAdmin && (
                   <div className="flex items-center gap-1.5 shrink-0">
@@ -378,6 +382,9 @@ export default function CondolenceDetailPage() {
                 );
               })()}
             </div>
+
+            {/* ── 댓글 ── */}
+            <CommentSection postType="condolence" postId={itemId} />
 
             {/* ── 하단 경조사 리스트 (디씨 스타일) ── */}
             <div className="mt-6">

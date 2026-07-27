@@ -15,6 +15,7 @@ import {
   Reservation, InsertReservation, reservations,
   ReservationResource, InsertReservationResource, reservationResources,
   Banner, InsertBanner, banners,
+  PostComment, InsertPostComment, postComments,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -683,4 +684,58 @@ export async function deleteBanner(id: number): Promise<void> {
   const db = await getDb();
   if (!db) throw new Error("Database not available");
   await db.delete(banners).where(eq(banners.id, id));
+}
+
+// ── 조회수 증가 헬퍼 ──────────────────────────────────────────────
+export async function incrementNoticeViewCount(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(notices).set({ viewCount: sql`viewCount + 1` }).where(eq(notices.id, id));
+}
+
+export async function incrementHrNoticeViewCount(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(hrNotices).set({ viewCount: sql`viewCount + 1` }).where(eq(hrNotices.id, id));
+}
+
+export async function incrementCondolenceViewCount(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(condolences).set({ viewCount: sql`viewCount + 1` }).where(eq(condolences.id, id));
+}
+
+export async function incrementBoardPostViewCount(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  await db.update(boardPosts).set({ viewCount: sql`viewCount + 1` }).where(eq(boardPosts.id, id));
+}
+
+// ── 댓글 헬퍼 ────────────────────────────────────────────────────
+export async function getComments(postType: string, postId: number): Promise<PostComment[]> {
+  const db = await getDb();
+  if (!db) return [];
+  return db.select().from(postComments)
+    .where(and(eq(postComments.postType, postType as any), eq(postComments.postId, postId)))
+    .orderBy(postComments.createdAt);
+}
+
+export async function insertComment(data: InsertPostComment): Promise<number> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  const result = await db.insert(postComments).values(data);
+  return (result[0] as any).insertId;
+}
+
+export async function deleteComment(id: number): Promise<void> {
+  const db = await getDb();
+  if (!db) throw new Error("Database not available");
+  await db.delete(postComments).where(eq(postComments.id, id));
+}
+
+export async function getCommentById(id: number): Promise<PostComment | undefined> {
+  const db = await getDb();
+  if (!db) return undefined;
+  const result = await db.select().from(postComments).where(eq(postComments.id, id)).limit(1);
+  return result[0];
 }

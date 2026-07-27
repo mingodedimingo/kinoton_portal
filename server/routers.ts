@@ -22,6 +22,8 @@ import {
   getReservationResources, getReservationResourceById,
   insertReservationResource, updateReservationResource, deleteReservationResource,
   getBanners, getBannerById, insertBanner, updateBanner, deleteBanner,
+  incrementNoticeViewCount, incrementHrNoticeViewCount, incrementCondolenceViewCount, incrementBoardPostViewCount,
+  getComments, insertComment, deleteComment, getCommentById,
 } from "./db";
 import bcrypt from "bcryptjs";
 import { sendPasswordResetEmail } from "./_core/mailer";
@@ -205,6 +207,7 @@ export const appRouter = router({
         joinDate: z.string().min(1),
         profileImage: z.string().optional(),
         annualLeave: z.number().default(15),
+        employeeNumber: z.string().max(20).optional(),
       }))
       .mutation(async ({ input }) => {
         const empId = await insertEmployee({
@@ -217,6 +220,7 @@ export const appRouter = router({
           joinDate: input.joinDate,
           profileImage: input.profileImage || null,
           isActive: true,
+          employeeNumber: input.employeeNumber || null,
         });
         const currentYear = new Date().getFullYear();
         await upsertLeaveBalance(empId, currentYear, String(input.annualLeave));
@@ -238,6 +242,7 @@ export const appRouter = router({
         isActive: z.boolean().optional(),
         employmentStatus: z.enum(["재직", "퇴사", "휴직"]).optional(),
         statusChangeDate: z.string().optional(),
+        employeeNumber: z.string().max(20).optional().nullable(),
       }))
       .mutation(async ({ input }) => {
         const { id, ...data } = input;
@@ -573,12 +578,13 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), category: z.enum(["company", "dept", "all"]).optional() }))
       .query(async ({ input }) => getNotices(input.limit ?? 20, input.offset ?? 0, input.category && input.category !== "all" ? input.category : undefined)),
 
-    // 단건 조회 (로그인 필수)
+    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const notice = await getNoticeById(input.id);
         if (!notice) throw new TRPCError({ code: 'NOT_FOUND', message: '공지사항을 찾을 수 없습니다.' });
+        await incrementNoticeViewCount(input.id);
         return notice;
       }),
 
@@ -648,6 +654,7 @@ export const appRouter = router({
       .query(async ({ input }) => {
         const item = await getHrNoticeById(input.id);
         if (!item) throw new TRPCError({ code: 'NOT_FOUND', message: '인사발령을 찾을 수 없습니다.' });
+        await incrementHrNoticeViewCount(input.id);
         return item;
       }),
 
@@ -709,12 +716,13 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => getCondolences(input.limit ?? 20, input.offset ?? 0)),
 
-    // 단건 조회 (로그인 필수)
+    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const item = await getCondolenceById(input.id);
         if (!item) throw new TRPCError({ code: 'NOT_FOUND', message: '경조사 정보를 찾을 수 없습니다.' });
+        await incrementCondolenceViewCount(input.id);
         return item;
       }),
 
@@ -806,12 +814,13 @@ export const appRouter = router({
         return { success: true };
       }),
 
-    // 게시글 단건 조회 (로그인 필수)
+    // 게시글 단건 조회 (로그인 필수) — 조회 시 viewCount 증가
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
       .query(async ({ input }) => {
         const rows = await getBoardPostById(input.id);
         if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
+        await incrementBoardPostViewCount(input.id);
         return rows[0];
       }),
 
@@ -1206,6 +1215,52 @@ export const appRouter = router({
         const banner = await getBannerById(input.id);
         if (!banner) throw new TRPCError({ code: "NOT_FOUND", message: "배너를 찾을 수 없습니다." });
         await deleteBanner(input.id);
+        return { success: true };
+      }),
+  }),
+
+  // ── 댓글 API ──────────────────────────────────────────────────────
+  comments: router({
+    // 댓글 목록 조회 (로그인 필수)
+    list: protectedProcedure
+      .input(z.object({
+        postType: z.enum(["board", "notice", "hr_notice", "condolence"]),
+        postId: z.number(),
+      }))
+      .query(async ({ input }) => getComments(input.postType, input.postId)),
+
+    // 댓글 작성 (로그인 필수)
+    create: protectedProcedure
+      .input(z.object({
+        postType: z.enum(["board", "notice", "hr_notice", "condolence"]),
+        postId: z.number(),
+        content: z.string().min(1).max(1000),
+      }))
+      .mutation(async ({ input, ctx }) => {
+        await insertComment({
+          postType: input.postType,
+          postId: input.postId,
+          content: input.content,
+          authorName: ctx.user.name ?? "익명",
+          authorOpenId: ctx.user.openId,
+        });
+        return { success: true };
+      }),
+
+    // 댓글 삭제 (본인 또는 어드민)
+    delete: protectedProcedure
+      .input(z.object({ id: z.number() }))
+      .mutation(async ({ input, ctx }) => {
+        if (ctx.isAdminSession) {
+          await deleteComment(input.id);
+          return { success: true };
+        }
+        const comment = await getCommentById(input.id);
+        if (!comment) throw new TRPCError({ code: 'NOT_FOUND', message: '댓글을 찾을 수 없습니다.' });
+        if (ctx.user.role !== 'admin' && comment.authorOpenId !== ctx.user.openId) {
+          throw new TRPCError({ code: 'FORBIDDEN', message: '삭제 권한이 없습니다.' });
+        }
+        await deleteComment(input.id);
         return { success: true };
       }),
   }),
