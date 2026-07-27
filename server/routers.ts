@@ -578,13 +578,13 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional(), category: z.enum(["company", "dept", "all"]).optional() }))
       .query(async ({ input }) => getNotices(input.limit ?? 20, input.offset ?? 0, input.category && input.category !== "all" ? input.category : undefined)),
 
-    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가
+    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가 (24시간 중복 방지)
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const notice = await getNoticeById(input.id);
         if (!notice) throw new TRPCError({ code: 'NOT_FOUND', message: '공지사항을 찾을 수 없습니다.' });
-        await incrementNoticeViewCount(input.id);
+        await incrementNoticeViewCount(input.id, ctx.user.openId);
         return notice;
       }),
 
@@ -648,13 +648,13 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => getHrNotices(input.limit ?? 20, input.offset ?? 0)),
 
-    // 단건 조회 (로그인 필수)
+    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가 (24시간 중복 방지)
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const item = await getHrNoticeById(input.id);
         if (!item) throw new TRPCError({ code: 'NOT_FOUND', message: '인사발령을 찾을 수 없습니다.' });
-        await incrementHrNoticeViewCount(input.id);
+        await incrementHrNoticeViewCount(input.id, ctx.user.openId);
         return item;
       }),
 
@@ -716,13 +716,13 @@ export const appRouter = router({
       .input(z.object({ limit: z.number().optional(), offset: z.number().optional() }))
       .query(async ({ input }) => getCondolences(input.limit ?? 20, input.offset ?? 0)),
 
-    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가
+    // 단건 조회 (로그인 필수) — 조회 시 viewCount 증가 (24시간 중복 방지)
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const item = await getCondolenceById(input.id);
         if (!item) throw new TRPCError({ code: 'NOT_FOUND', message: '경조사 정보를 찾을 수 없습니다.' });
-        await incrementCondolenceViewCount(input.id);
+        await incrementCondolenceViewCount(input.id, ctx.user.openId);
         return item;
       }),
 
@@ -817,10 +817,10 @@ export const appRouter = router({
     // 게시글 단건 조회 (로그인 필수) — 조회 시 viewCount 증가
     get: protectedProcedure
       .input(z.object({ id: z.number() }))
-      .query(async ({ input }) => {
+      .query(async ({ input, ctx }) => {
         const rows = await getBoardPostById(input.id);
         if (!rows.length) throw new TRPCError({ code: 'NOT_FOUND', message: '게시글을 찾을 수 없습니다.' });
-        await incrementBoardPostViewCount(input.id);
+        await incrementBoardPostViewCount(input.id, ctx.user.openId);
         return rows[0];
       }),
 

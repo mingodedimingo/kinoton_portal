@@ -4,7 +4,7 @@
 import { useState } from "react";
 import { NOTICE_CATEGORY_KEYS, NOTICE_CATEGORY_LABELS, type NoticeCategory } from "@/config/categories";
 import { Link } from "wouter";
-import { Megaphone, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { Megaphone, ChevronRight, Image as ImageIcon, Eye } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
@@ -19,6 +19,7 @@ type NoticeItem = {
   isPinned: boolean;
   category: NoticeCategory;
   authorName: string | null;
+  viewCount?: number;
 };
 
 function parseImages(images: unknown): string[] {
@@ -99,6 +100,10 @@ export default function NoticesPage() {
                     {parseImages(n.images).length > 0 && <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />}
                   </span>
                   {n.isNew && <span className="badge-new shrink-0">N</span>}
+                  <span className="flex items-center gap-0.5 shrink-0" style={{ color: "var(--kino-muted)", fontSize: "0.7rem" }}>
+                    <Eye size={10} />
+                    <span>{(n as any).viewCount ?? 0}</span>
+                  </span>
                   <span className="board-item-date shrink-0">{dateStr}</span>
                   <ChevronRight size={12} style={{ color: "var(--kino-muted)" }} className="shrink-0" />
                 </Link>

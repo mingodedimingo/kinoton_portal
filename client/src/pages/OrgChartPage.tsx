@@ -221,6 +221,9 @@ function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) 
 
         {/* 상세 정보 */}
         <div className="px-6 py-5 flex flex-col gap-3">
+          {emp.employeeNumber && (
+            <InfoRow icon="📌" label="사원번호" value={emp.employeeNumber} />
+          )}
           <InfoRow icon="🏢" label="부서" value={emp.department} />
           {emp.ext && emp.ext !== "-" && (
             <InfoRow icon="☎" label="내선번호" value={emp.ext} href={`tel:${emp.ext}`} />
@@ -512,13 +515,14 @@ export default function OrgChartPage() {
             <div
               className="grid text-xs font-semibold px-4 py-2"
               style={{
-                gridTemplateColumns: "1.4fr 130px 70px 90px 160px 200px",
+                gridTemplateColumns: "1.4fr 90px 130px 70px 90px 160px 200px",
                 background: "#F9FAFB",
                 color: "#9CA3AF",
                 borderBottom: "1px solid #E5E7EB",
               }}
             >
               <span>이름</span>
+              <span>사번</span>
               <span>부서</span>
               <span>직위</span>
               <span>내선</span>
@@ -539,7 +543,7 @@ export default function OrgChartPage() {
                   key={m.id}
                   className="grid items-center px-4 py-2.5 text-sm hover:bg-gray-50 transition-colors cursor-pointer"
                   style={{
-                    gridTemplateColumns: "1.4fr 130px 70px 90px 160px 200px",
+                    gridTemplateColumns: "1.4fr 90px 130px 70px 90px 160px 200px",
                     borderBottom: "1px solid #F3F4F6",
                   }}
                   onClick={() => setModalEmp(m)}
@@ -561,6 +565,7 @@ export default function OrgChartPage() {
                     )}
                     <span className="font-medium" style={{ color: "#1F2937" }}>{m.name}</span>
                   </span>
+                  <span className="text-xs font-mono" style={{ color: "#6B7280" }}>{m.employeeNumber ?? "—"}</span>
                   <span className="text-xs" style={{ color: "#6B7280" }}>{m.department}</span>
                   <span>
                     <span

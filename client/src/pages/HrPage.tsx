@@ -3,7 +3,7 @@
  */
 import { useState } from "react";
 import { Link } from "wouter";
-import { UserCheck, ChevronRight, Image as ImageIcon } from "lucide-react";
+import { UserCheck, ChevronRight, Image as ImageIcon, Eye } from "lucide-react";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 
@@ -16,6 +16,7 @@ type HrItem = {
   effectiveDate: string | null;
   authorName: string | null;
   createdAt: Date;
+  viewCount?: number;
 };
 
 function parseImages(images: unknown): string[] {
@@ -83,6 +84,10 @@ export default function HrPage() {
                   <span className="board-item-title flex items-center gap-1">
                     {n.title}
                     {parseImages(n.images).length > 0 && <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />}
+                  </span>
+                  <span className="flex items-center gap-0.5 shrink-0" style={{ color: "var(--kino-muted)", fontSize: "0.7rem" }}>
+                    <Eye size={10} />
+                    <span>{(n as any).viewCount ?? 0}</span>
                   </span>
                   <span className="board-item-date shrink-0">{dateStr}</span>
                   <ChevronRight size={12} style={{ color: "var(--kino-muted)" }} className="shrink-0" />

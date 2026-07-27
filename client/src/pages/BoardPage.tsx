@@ -6,7 +6,7 @@ import { Link } from "wouter";
 import PortalLayout from "@/components/PortalLayout";
 import { trpc } from "@/lib/trpc";
 import { toast } from "sonner";
-import { Search, Plus, BookOpen, Loader2, X, ExternalLink, Trash2, Image as ImageIcon } from "lucide-react";
+import { Search, Plus, BookOpen, Loader2, X, ExternalLink, Trash2, Image as ImageIcon, Eye } from "lucide-react";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import RichEditor from "@/components/RichEditor";
 
@@ -344,6 +344,10 @@ export default function BoardPage() {
                         </span>
                         <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>{p.authorName}</span>
                         <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>
+                          <span className="flex items-center justify-center gap-0.5 mb-0.5">
+                            <Eye size={9} />
+                            <span>{(p as any).viewCount ?? 0}</span>
+                          </span>
                           {new Date(p.createdAt).toLocaleDateString("ko-KR", { month: "2-digit", day: "2-digit" })}
                         </span>
                         <span className="text-center">

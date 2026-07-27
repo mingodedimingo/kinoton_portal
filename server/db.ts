@@ -16,6 +16,7 @@ import {
   ReservationResource, InsertReservationResource, reservationResources,
   Banner, InsertBanner, banners,
   PostComment, InsertPostComment, postComments,
+  postViewLogs,
 } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
@@ -686,29 +687,63 @@ export async function deleteBanner(id: number): Promise<void> {
   await db.delete(banners).where(eq(banners.id, id));
 }
 
-// ── 조회수 증가 헬퍼 ──────────────────────────────────────────────
-export async function incrementNoticeViewCount(id: number): Promise<void> {
+// ── 조회수 증가 헬퍼 (중복 방지: viewerKey 기준 24시간 1회) ────────
+type PostType = "board" | "notice" | "hr_notice" | "condolence";
+
+async function tryIncrementViewCount(
+  postType: PostType,
+  postId: number,
+  viewerKey: string
+): Promise<boolean> {
   const db = await getDb();
-  if (!db) return;
-  await db.update(notices).set({ viewCount: sql`viewCount + 1` }).where(eq(notices.id, id));
+  if (!db) return false;
+  const cutoff = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const existing = await db.select({ id: postViewLogs.id })
+    .from(postViewLogs)
+    .where(
+      and(
+        eq(postViewLogs.postType, postType),
+        eq(postViewLogs.postId, postId),
+        eq(postViewLogs.viewerKey, viewerKey),
+        gt(postViewLogs.viewedAt, cutoff)
+      )
+    )
+    .limit(1);
+  if (existing.length > 0) return false;
+  try {
+    await db.insert(postViewLogs).values({ postType, postId, viewerKey });
+  } catch {
+    return false;
+  }
+  return true;
 }
 
-export async function incrementHrNoticeViewCount(id: number): Promise<void> {
+export async function incrementNoticeViewCount(id: number, viewerKey: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(hrNotices).set({ viewCount: sql`viewCount + 1` }).where(eq(hrNotices.id, id));
+  const ok = await tryIncrementViewCount("notice", id, viewerKey);
+  if (ok) await db.update(notices).set({ viewCount: sql`viewCount + 1` }).where(eq(notices.id, id));
 }
 
-export async function incrementCondolenceViewCount(id: number): Promise<void> {
+export async function incrementHrNoticeViewCount(id: number, viewerKey: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(condolences).set({ viewCount: sql`viewCount + 1` }).where(eq(condolences.id, id));
+  const ok = await tryIncrementViewCount("hr_notice", id, viewerKey);
+  if (ok) await db.update(hrNotices).set({ viewCount: sql`viewCount + 1` }).where(eq(hrNotices.id, id));
 }
 
-export async function incrementBoardPostViewCount(id: number): Promise<void> {
+export async function incrementCondolenceViewCount(id: number, viewerKey: string): Promise<void> {
   const db = await getDb();
   if (!db) return;
-  await db.update(boardPosts).set({ viewCount: sql`viewCount + 1` }).where(eq(boardPosts.id, id));
+  const ok = await tryIncrementViewCount("condolence", id, viewerKey);
+  if (ok) await db.update(condolences).set({ viewCount: sql`viewCount + 1` }).where(eq(condolences.id, id));
+}
+
+export async function incrementBoardPostViewCount(id: number, viewerKey: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  const ok = await tryIncrementViewCount("board", id, viewerKey);
+  if (ok) await db.update(boardPosts).set({ viewCount: sql`viewCount + 1` }).where(eq(boardPosts.id, id));
 }
 
 // ── 댓글 헬퍼 ────────────────────────────────────────────────────

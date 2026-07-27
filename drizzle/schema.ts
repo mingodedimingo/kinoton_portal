@@ -272,3 +272,13 @@ export const postComments = mysqlTable("post_comments", {
 
 export type PostComment = typeof postComments.$inferSelect;
 export type InsertPostComment = typeof postComments.$inferInsert;
+
+// ── 조회수 중복 방지 로그 테이블 ──────────────────────────────────
+export const postViewLogs = mysqlTable("post_view_logs", {
+  id: int("id").autoincrement().primaryKey(),
+  postType: mysqlEnum("postType", ["board", "notice", "hr_notice", "condolence"]).notNull(),
+  postId: int("postId").notNull(),
+  viewerKey: varchar("viewerKey", { length: 128 }).notNull(), // openId 또는 IP
+  viewedAt: timestamp("viewedAt").defaultNow().notNull(),
+});
+export type PostViewLog = typeof postViewLogs.$inferSelect;
