@@ -341,7 +341,7 @@ export default function BoardPage() {
                               <ExternalLink size={11} style={{ color: "var(--kino-muted)" }} />
                             </a>
                           )}
-                          {(p as any).commentCount > 0 && <span className="shrink-0 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>[{(p as any).commentCount}]</span>}
+                          {(p as any).commentCount > 0 && <span className="shrink-0 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>💬{(p as any).commentCount}</span>}
                         </span>
                         <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>{p.authorName}</span>
                         <span className="text-center text-xs" style={{ color: "var(--kino-muted)" }}>

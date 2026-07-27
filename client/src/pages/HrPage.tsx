@@ -85,7 +85,7 @@ export default function HrPage() {
                   <span className="board-item-title flex items-center gap-1">
                     {n.title}
                     {parseImages(n.images).length > 0 && <ImageIcon size={11} style={{ color: "var(--kino-muted)" }} className="shrink-0" />}
-                    {(n as any).commentCount > 0 && <span className="shrink-0 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>[{(n as any).commentCount}]</span>}
+                    {(n as any).commentCount > 0 && <span className="shrink-0 text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>💬{(n as any).commentCount}</span>}
                   </span>
                   <span className="flex items-center gap-0.5 shrink-0" style={{ color: "var(--kino-muted)", fontSize: "0.7rem" }}>
                     <Eye size={10} />
