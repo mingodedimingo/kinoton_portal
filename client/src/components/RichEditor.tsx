@@ -10,7 +10,8 @@
  * 3. TipTap Image extension에 allowBase64: false → true 유지하되
  *    업로드 성공 시에만 src 삽입하도록 보장
  * 4. 글자 크기(크기▼) 및 글자 색상(A) 툴바 버튼 추가
- *    → @tiptap/extension-color + TextStyle fontSize 속성 활용
+ *    → FontSize Extension + setFontSize 커맨드 활용 (버그 수정)
+ *    → pt 단위 숫자 옵션으로 세분화 + 미리보기 UI 개선
  */
 import { useEditor, EditorContent } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
@@ -18,6 +19,7 @@ import { Table, TableRow, TableHeader, TableCell } from "@tiptap/extension-table
 import Image from "@tiptap/extension-image";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
+import FontSize from "@tiptap/extension-text-style/font-size";
 import Color from "@tiptap/extension-color";
 import Underline from "@tiptap/extension-underline";
 import Link from "@tiptap/extension-link";
@@ -63,13 +65,22 @@ async function uploadImageFile(file: File): Promise<string> {
   return data.url;
 }
 
-// 글자 크기 옵션
+// pt → px 변환 (1pt = 1.3333px 기준)
+function ptToPx(pt: number): string {
+  return `${Math.round(pt * 1.3333)}px`;
+}
+
+// 글자 크기 옵션 (pt 단위 숫자로 세분화)
 const FONT_SIZES = [
-  { label: "소", value: "12px" },
-  { label: "기본", value: "14px" },
-  { label: "중", value: "18px" },
-  { label: "대", value: "24px" },
-  { label: "특대", value: "32px" },
+  { label: "8pt", pt: 8 },
+  { label: "9pt", pt: 9 },
+  { label: "10pt", pt: 10 },
+  { label: "11pt", pt: 11 },
+  { label: "12pt", pt: 12 },
+  { label: "14pt", pt: 14 },
+  { label: "18pt", pt: 18 },
+  { label: "24pt", pt: 24 },
+  { label: "36pt", pt: 36 },
 ];
 
 // 글자 색상 옵션
@@ -103,6 +114,7 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
       }),
       Underline,
       TextStyle,
+      FontSize,
       Color,
       TextAlign.configure({ types: ["heading", "paragraph"] }),
       Table.configure({ resizable: true }),
@@ -214,10 +226,10 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
     }
   }, [editor]);
 
-  // 글자 크기 적용
-  const applyFontSize = useCallback((size: string) => {
+  // 글자 크기 적용 (FontSize Extension의 setFontSize 커맨드 사용)
+  const applyFontSize = useCallback((pxValue: string) => {
     if (!editor) return;
-    editor.chain().focus().setMark("textStyle", { fontSize: size }).run();
+    (editor.chain().focus() as any).setFontSize(pxValue).run();
     setShowSizeMenu(false);
   }, [editor]);
 
@@ -265,6 +277,12 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
 
   // 현재 선택된 글자 색상
   const currentColor = editor.getAttributes("textStyle").color || "#000000";
+
+  // 현재 적용된 글자 크기 (툴바 버튼 레이블 표시용)
+  const currentFontSize = editor.getAttributes("textStyle").fontSize;
+  const currentSizeLabel = currentFontSize
+    ? (FONT_SIZES.find(s => ptToPx(s.pt) === currentFontSize)?.label ?? currentFontSize)
+    : "크기";
 
   return (
     // ✅ 핵심 수정 3: position: relative 추가 → 드래그 오버레이가 정확한 위치에 표시됨
@@ -328,16 +346,16 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
 
         <Divider />
 
-        {/* 글자 크기 */}
+        {/* 글자 크기 — pt 단위 숫자 옵션 + 미리보기 UI */}
         <div style={{ position: "relative" }}>
           <button
             type="button"
             className={`${btnBase} ${btnInactive}`}
-            style={{ color: "var(--kino-mid)", fontSize: "11px", fontWeight: 600, padding: "4px 6px" }}
+            style={{ color: "var(--kino-mid)", fontSize: "11px", fontWeight: 600, padding: "4px 6px", minWidth: "48px" }}
             title="글자 크기"
             onClick={() => { setShowSizeMenu(v => !v); setShowColorMenu(false); }}
           >
-            크기▼
+            {currentSizeLabel}▼
           </button>
           {showSizeMenu && (
             <div
@@ -349,34 +367,41 @@ export default function RichEditor({ value, onChange, placeholder = "내용을 �
                 background: "white",
                 border: "1px solid var(--kino-pale)",
                 borderRadius: "6px",
-                boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                minWidth: "80px",
+                boxShadow: "0 4px 12px rgba(0,0,0,0.12)",
+                minWidth: "160px",
                 padding: "4px 0",
               }}
             >
-              {FONT_SIZES.map(({ label, value: sz }) => (
-                <button
-                  key={sz}
-                  type="button"
-                  onClick={() => applyFontSize(sz)}
-                  style={{
-                    display: "block",
-                    width: "100%",
-                    textAlign: "left",
-                    padding: "4px 12px",
-                    fontSize: sz,
-                    color: "var(--kino-charcoal)",
-                    background: "none",
-                    border: "none",
-                    cursor: "pointer",
-                    lineHeight: 1.4,
-                  }}
-                  onMouseEnter={e => (e.currentTarget.style.background = "var(--kino-bg)")}
-                  onMouseLeave={e => (e.currentTarget.style.background = "none")}
-                >
-                  {label}
-                </button>
-              ))}
+              {FONT_SIZES.map(({ label, pt }) => {
+                const pxVal = ptToPx(pt);
+                const isActive = currentFontSize === pxVal;
+                return (
+                  <button
+                    key={pt}
+                    type="button"
+                    onClick={() => applyFontSize(pxVal)}
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      width: "100%",
+                      textAlign: "left",
+                      padding: "3px 14px",
+                      fontSize: pxVal,
+                      color: isActive ? "var(--kino-primary, #2563EB)" : "var(--kino-charcoal)",
+                      background: isActive ? "var(--kino-bg)" : "none",
+                      border: "none",
+                      cursor: "pointer",
+                      lineHeight: 1.3,
+                      fontWeight: isActive ? 600 : 400,
+                      whiteSpace: "nowrap",
+                    }}
+                    onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = "var(--kino-bg)"; }}
+                    onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = "none"; }}
+                  >
+                    가나다 ({label})
+                  </button>
+                );
+              })}
             </div>
           )}
         </div>
