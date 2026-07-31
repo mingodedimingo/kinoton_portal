@@ -46,7 +46,7 @@ const ORG_TREE: OrgNode = {
         {
           id: "strategy-dept", label: "전략영업담당", subLabel: "담당 정도영", color: COLOR.dept,
           children: [
-            { id: "adv",    label: "광고사업팀",  color: COLOR.team },
+            { id: "adv",    label: "광고영업팀",  color: COLOR.team },
             { id: "global", label: "글로벌사업팀", color: COLOR.team },
           ],
         },
