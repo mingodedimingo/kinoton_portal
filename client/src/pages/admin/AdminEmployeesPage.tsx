@@ -3,11 +3,13 @@
  * - 직원 목록 조회, 등록, 수정, 비활성화
  * - 연차 부여 기능
  * - 재직/퇴사/휴직 상태 관리
+ * - 프로필 사진 파일 직접 업로드 (파일 선택 + 드래그 앤 드롭, 5MB 제한)
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useRef, useCallback } from "react";
 import { toast } from "sonner";
 import {
   Plus, Pencil, Trash2, Loader2, Users, X, Check, Gift, KeyRound, ShieldCheck, ShieldOff, Search,
+  Upload, ImageIcon,
 } from "lucide-react";
 import AdminLayout from "@/components/AdminLayout";
 import { trpc } from "@/lib/trpc";
@@ -26,6 +28,170 @@ type Employee = {
   employmentStatus?: string | null;
   employeeNumber?: string | null;
 };
+
+// ── 프로필 이미지 업로드 훅 ───────────────────────────────────────
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+
+function useProfileImageUpload(onUploaded: (url: string) => void) {
+  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
+
+  const uploadFile = useCallback(async (file: File) => {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      toast.error("JPG, PNG, GIF, WEBP 형식만 업로드 가능합니다.");
+      return;
+    }
+    if (file.size > MAX_FILE_SIZE) {
+      toast.error("파일 크기는 5MB 이하여야 합니다.");
+      return;
+    }
+
+    // 로컬 미리보기
+    const reader = new FileReader();
+    reader.onload = (e) => setPreview(e.target?.result as string);
+    reader.readAsDataURL(file);
+
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("image", file);
+      const res = await fetch("/api/upload-image", {
+        method: "POST",
+        body: formData,
+        credentials: "include",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || "업로드 실패");
+      }
+      const data = await res.json();
+      // 업로드 규칙: storagePut이 반환한 상대경로(/manus-storage/...)를 그대로 사용
+      onUploaded(data.url);
+      toast.success("프로필 사진이 업로드되었습니다.");
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "업로드 실패";
+      toast.error(msg);
+      setPreview(null);
+    } finally {
+      setUploading(false);
+    }
+  }, [onUploaded]);
+
+  return { uploading, preview, setPreview, uploadFile };
+}
+
+// ── 프로필 이미지 업로드 UI 컴포넌트 ─────────────────────────────
+function ProfileImageUploader({
+  currentUrl,
+  onUploaded,
+}: {
+  currentUrl: string;
+  onUploaded: (url: string) => void;
+}) {
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const { uploading, preview, setPreview, uploadFile } = useProfileImageUpload(onUploaded);
+
+  // 현재 표시할 이미지: 로컬 미리보기 > 기존 URL
+  const displayImage = preview || currentUrl || null;
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFile(file);
+    // 같은 파일 재선택 허용을 위해 value 초기화
+    e.target.value = "";
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) uploadFile(file);
+  };
+
+  const handleRemove = () => {
+    setPreview(null);
+    onUploaded("");
+  };
+
+  return (
+    <div>
+      <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>
+        프로필 사진
+      </label>
+
+      {/* 드래그 앤 드롭 / 클릭 업로드 영역 */}
+      <div
+        onClick={() => !uploading && fileInputRef.current?.click()}
+        onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+        onDragLeave={() => setIsDragging(false)}
+        onDrop={handleDrop}
+        className="relative flex flex-col items-center justify-center rounded cursor-pointer transition-all"
+        style={{
+          border: `2px dashed ${isDragging ? "var(--kino-charcoal)" : "var(--kino-pale)"}`,
+          background: isDragging ? "rgba(0,0,0,0.03)" : "var(--kino-white)",
+          minHeight: "100px",
+          padding: "12px",
+        }}
+      >
+        {uploading ? (
+          <div className="flex flex-col items-center gap-2">
+            <Loader2 size={24} className="animate-spin" style={{ color: "var(--kino-muted)" }} />
+            <span className="text-xs" style={{ color: "var(--kino-muted)" }}>업로드 중...</span>
+          </div>
+        ) : displayImage ? (
+          <div className="flex items-center gap-3 w-full">
+            <img
+              src={displayImage}
+              alt="프로필 미리보기"
+              className="rounded-full object-cover flex-shrink-0"
+              style={{ width: 56, height: 56, border: "2px solid var(--kino-pale)" }}
+            />
+            <div className="flex flex-col gap-1 flex-1 min-w-0">
+              <span className="text-xs font-medium" style={{ color: "var(--kino-charcoal)" }}>
+                클릭하여 사진 변경
+              </span>
+              <span className="text-xs truncate" style={{ color: "var(--kino-muted)" }}>
+                JPG, PNG, GIF, WEBP · 최대 5MB
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); handleRemove(); }}
+              className="p-1 rounded transition-colors flex-shrink-0"
+              style={{ color: "var(--kino-muted)" }}
+              title="사진 제거"
+            >
+              <X size={14} />
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col items-center gap-2">
+            <div className="flex items-center gap-2">
+              <ImageIcon size={20} style={{ color: "var(--kino-muted)" }} />
+              <Upload size={16} style={{ color: "var(--kino-muted)" }} />
+            </div>
+            <span className="text-xs font-medium" style={{ color: "var(--kino-mid)" }}>
+              클릭하거나 파일을 드래그하여 업로드
+            </span>
+            <span className="text-xs" style={{ color: "var(--kino-muted)" }}>
+              JPG, PNG, GIF, WEBP · 최대 5MB
+            </span>
+          </div>
+        )}
+      </div>
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/gif,image/webp"
+        onChange={handleFileChange}
+        className="hidden"
+      />
+    </div>
+  );
+}
 
 // ── 직원 폼 모달 ──────────────────────────────────────────────────
 function EmployeeFormModal({
@@ -112,7 +278,6 @@ function EmployeeFormModal({
             { label: "이메일", key: "email", type: "email", placeholder: "hong@kinoton.co.kr" },
             { label: "연락처", key: "phone", type: "tel", placeholder: "010-0000-0000" },
             { label: "입사일 *", key: "joinDate", type: "date", placeholder: "" },
-            { label: "프로필 사진 URL", key: "profileImage", type: "url", placeholder: "https://example.com/photo.jpg" },
           ].map(field => (
             <div key={field.key}>
               <label className="block text-xs font-medium mb-1" style={{ color: "var(--kino-mid)" }}>{field.label}</label>
@@ -127,6 +292,12 @@ function EmployeeFormModal({
               />
             </div>
           ))}
+
+          {/* 프로필 사진 업로드 (파일 업로드 + 드래그 앤 드롭) */}
+          <ProfileImageUploader
+            currentUrl={form.profileImage}
+            onUploaded={(url) => setForm(f => ({ ...f, profileImage: url }))}
+          />
 
           {!employee && (
             <div>
