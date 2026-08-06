@@ -5,7 +5,7 @@
  * - 직원 카드 클릭 시 중앙 모달 팝업 (배경 블러)
  * - 전화번호부: 검색 가능 테이블
  */
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import PortalLayout from "@/components/PortalLayout";
 import { Search, Phone, Mail, Users, Loader2, X } from "lucide-react";
 import { trpc } from "@/lib/trpc";
@@ -164,6 +164,16 @@ function rankBadge(position: string): { bg: string; color: string } {
 function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) {
   const badge = rankBadge(emp.position);
   const email = formatEmployeeEmail(emp.email);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
+
+  // ESC 키로 라이트박스 닫기
+  useEffect(() => {
+    if (!lightboxOpen) return;
+    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setLightboxOpen(false); };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [lightboxOpen]);
+
   return (
     <>
       {/* 배경 블러 딤 */}
@@ -197,12 +207,30 @@ function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) 
             <X size={16} className="text-white" />
           </button>
           {emp.profileImage ? (
-            <img
-              src={emp.profileImage}
-              alt={emp.name}
-              className="w-20 h-20 rounded-full object-cover mb-3"
-              style={{ border: "3px solid rgba(255,255,255,0.6)" }}
-            />
+            <div
+              className="relative group mb-3 cursor-zoom-in"
+              onClick={(e) => { e.stopPropagation(); setLightboxOpen(true); }}
+              title="클릭하여 원본 사진 보기"
+            >
+              <img
+                src={emp.profileImage}
+                alt={emp.name}
+                className="w-20 h-20 rounded-full object-cover transition-opacity group-hover:opacity-80"
+                style={{ border: "3px solid rgba(255,255,255,0.6)" }}
+              />
+              {/* 호버 시 돋보기 오버레이 */}
+              <div
+                className="absolute inset-0 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+                style={{ background: "rgba(0,0,0,0.35)" }}
+              >
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="11" cy="11" r="8" />
+                  <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                  <line x1="11" y1="8" x2="11" y2="14" />
+                  <line x1="8" y1="11" x2="14" y2="11" />
+                </svg>
+              </div>
+            </div>
           ) : (
             <div
               className="w-20 h-20 rounded-full flex items-center justify-center text-3xl font-bold text-white mb-3"
@@ -242,6 +270,46 @@ function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) 
           )}
         </div>
       </div>
+
+      {/* 라이트박스 — 원본 사진 확대 */}
+      {lightboxOpen && emp.profileImage && (
+        <div
+          className="fixed inset-0 z-[300] flex items-center justify-center"
+          style={{ background: "rgba(0,0,0,0.85)" }}
+          onClick={() => setLightboxOpen(false)}
+        >
+
+          {/* 닫기 버튼 */}
+          <button
+            className="absolute top-4 right-4 p-2 rounded-full"
+            style={{ background: "rgba(255,255,255,0.15)" }}
+            onClick={(e) => { e.stopPropagation(); setLightboxOpen(false); }}
+          >
+            <X size={22} className="text-white" />
+          </button>
+          {/* 원본 이미지 */}
+          <img
+            src={emp.profileImage}
+            alt={emp.name}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              maxWidth: "min(480px, 88vw)",
+              maxHeight: "80vh",
+              borderRadius: "12px",
+              boxShadow: "0 8px 40px rgba(0,0,0,0.6)",
+              objectFit: "contain",
+              border: "3px solid rgba(255,255,255,0.15)",
+            }}
+          />
+          {/* 이름 캡션 */}
+          <div
+            className="absolute bottom-6 left-1/2 text-sm font-semibold text-white px-4 py-1.5 rounded-full"
+            style={{ transform: "translateX(-50%)", background: "rgba(0,0,0,0.5)" }}
+          >
+            {emp.name} · {emp.position}
+          </div>
+        </div>
+      )}
     </>
   );
 }
