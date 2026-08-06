@@ -216,7 +216,7 @@ function ProfileModal({ emp, onClose }: { emp: Employee; onClose: () => void }) 
                 src={emp.profileImage}
                 alt={emp.name}
                 className="w-20 h-20 rounded-full object-cover transition-opacity group-hover:opacity-80"
-                style={{ border: "3px solid rgba(255,255,255,0.6)" }}
+                style={{ border: "3px solid rgba(255,255,255,0.6)", backgroundColor: "#898e92" }}
               />
               {/* 호버 시 돋보기 오버레이 */}
               <div
@@ -365,7 +365,7 @@ function MiniEmployeeCard({
           src={emp.profileImage}
           alt={emp.name}
           className="w-7 h-7 rounded-full object-cover mb-1 shrink-0"
-          style={{ border: "1.5px solid #E5E7EB" }}
+          style={{ border: "1.5px solid #E5E7EB", backgroundColor: "#898e92" }}
         />
       ) : (
         <div
@@ -623,6 +623,7 @@ export default function OrgChartPage() {
                         src={m.profileImage}
                         alt={m.name}
                         className="w-7 h-7 rounded-full object-cover shrink-0"
+                        style={{ backgroundColor: "#898e92" }}
                       />
                     ) : (
                       <div
