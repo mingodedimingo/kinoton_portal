@@ -17,6 +17,7 @@ import CommentSection from "@/components/CommentSection";
 import FileUploader, { AttachmentItem } from "@/components/FileUploader";
 import DOMPurify from "dompurify";
 import RichEditor from "@/components/RichEditor";
+import { injectYoutubeEmbeds } from "@/lib/youtubeEmbed";
 
 function parseImages(images: unknown): string[] {
   if (!images) return [];
@@ -316,12 +317,12 @@ export default function BoardDetailPage() {
                   style={{ color: "var(--kino-charcoal)" }}
                   dangerouslySetInnerHTML={{ __html: (() => {
                     const clean = DOMPurify.sanitize(post.content, {
-                      ALLOWED_TAGS: ['p','br','strong','em','u','s','h1','h2','h3','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','img','span','div'],
-                      ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height'],
+                      ALLOWED_TAGS: ['p','br','strong','em','u','s','h1','h2','h3','ul','ol','li','blockquote','pre','code','table','thead','tbody','tr','th','td','a','img','span','div','iframe'],
+                      ALLOWED_ATTR: ['href','src','alt','style','class','target','rel','width','height','frameborder','allow','allowfullscreen','title'],
                       ALLOW_DATA_ATTR: false,
                       FORCE_BODY: true,
                     });
-                    return clean;
+                    return injectYoutubeEmbeds(clean);
                   })() }}
                 />
               ) : (
